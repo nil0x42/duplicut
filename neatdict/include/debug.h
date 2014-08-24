@@ -22,7 +22,7 @@ static void dlog_printf(const char *fmt, ...)
 
 #  define DLOG(...) (dlog_printf(__VA_ARGS__))
 # else
-#  define DLOG(...) ()
+#  define DLOG(...)
 # endif
 
 #endif
