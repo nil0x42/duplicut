@@ -1,6 +1,6 @@
 #include "error.h"
 
-int        die(const char *fmt, ...)
+void        die(const char *fmt, ...)
 {
     va_list ap;
 
@@ -9,11 +9,11 @@ int        die(const char *fmt, ...)
     vdprintf(STDERR_FILENO, fmt, ap);
     write(STDERR_FILENO, "\n", 1);
     va_end(ap);
+    abort();
     exit(1);
-    return (1);
 }
 
-int        error(const char *fmt, ...)
+int         error(const char *fmt, ...)
 {
     va_list ap;
 

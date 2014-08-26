@@ -10,7 +10,7 @@
 
 # define ERRNO (strerror(errno))
 
-int        die(const char *fmt, ...);
-int        error(const char *fmt, ...);
+void        die(const char *fmt, ...);
+int         error(const char *fmt, ...);
 
 #endif

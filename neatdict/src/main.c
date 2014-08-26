@@ -12,6 +12,7 @@ void            print_chunks(t_chunk *chunk)
         printf("ptr  = '%p'\n",         chunk->ptr);
         printf("size = '%ld'\n",        chunk->size);
         printf("next = '%p'\n",         chunk->next);
+        printf("id   = '%d'\n",         chunk->id);
         printf("-------------------------'\n");
         printf("file.name  = '%s'\n",   chunk->file.name);
         printf("file.size  = '%ld'\n",  chunk->file.size);

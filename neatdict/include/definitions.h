@@ -25,6 +25,7 @@ typedef struct      s_chunk
     void            *ptr;
     size_t          size;
     struct s_chunk  *next;
+    int             id;
     t_map           map;
     t_file          file;
 }                   t_chunk;
