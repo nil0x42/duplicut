@@ -32,6 +32,9 @@ static t_chunk  *add_chunk(t_file *file, t_map *map)
     chunk = (t_chunk*) malloc(sizeof(t_chunk));
     if (chunk == NULL)
         return (NULL);
+    chunk->ptr = NULL;
+    chunk->size = 0;
+    chunk->next = NULL;
     // can be done with only one memcpy
     memcpy(&chunk->file, file, sizeof(*file));
     memcpy(&chunk->map, map, sizeof(*map));
@@ -45,9 +48,9 @@ static t_chunk  *add_chunk(t_file *file, t_map *map)
     return (chunk);
 }
 
-#define MAP(off, len) (mmap(NULL, len, PROT_READ, MAP_PRIVATE, file.fd, off))
-# define PAGE_SIZE    (4096)
-# define CHUNK_SIZE   (PAGE_SIZE * 3)
+# define MAP(off, len) (mmap(NULL, len, PROT_READ, MAP_PRIVATE, file.fd, off))
+# define PAGE_SIZE     (4096)
+# define CHUNK_SIZE    (PAGE_SIZE * 3)
 int             get_chunks(const char *pathname, t_chunk **chunklist)
 {
     t_file          file;
