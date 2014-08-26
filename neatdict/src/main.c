@@ -1,17 +1,28 @@
-#include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
 #include "definitions.h"
-#include "error.h"
+#include "debug.h"
+#include "chunk.h"
 
-
-int         main(int argc, char **argv)
+int             main(int argc, char **argv)
 {
+    t_chunk     *chunklist;
+    int         i;
+
+    abort();
     if (argc != 2)
     {
         dprintf(STDERR_FILENO, "Usage: %s <wordlist>\n", argv[0]);
-        exit(EXIT_FAILURE);
-    }
-    if (memory_map(argv[1]) < 0)
         return (EXIT_FAILURE);
-    close(-1);
+    }
+    i = 0;
+    while (++i != argc)
+    {
+        /* if (memory_map(argv[1]) < 0) */
+        /*     return (EXIT_FAILURE); */
+        if (get_chunks(argv[i], &chunklist) < 0)
+            return (EXIT_FAILURE);
+    }
+    /* DLOG("got all chunks"); */
     return (EXIT_SUCCESS);
 }

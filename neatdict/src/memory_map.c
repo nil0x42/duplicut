@@ -18,13 +18,12 @@ int                 memory_map(const char *pathname)
         error("%s: not a regular file", pathname);
     else
     {
-        ptr = mmap(NULL, info.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+        ptr = mmap(NULL, info.st_size + 9999, PROT_READ, MAP_PRIVATE, fd, 4096);
         if (ptr == MAP_FAILED)
             error("cannot map %s: %s", pathname, ERRNO);
-        else if (*((char*)ptr + info.st_size - 1) != '\n')
-            error("%s: should end with a newline ('\\n')", pathname);
+        /* else if (*((char*)ptr + info.st_size - 1) != '\n') */
+        /*     error("%s: should end with a newline ('\\n')", pathname); */
         else
-
             return (remove_duplicates(ptr, info.st_size));
     }
 

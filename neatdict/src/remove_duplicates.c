@@ -3,6 +3,8 @@
 #include "definitions.h"
 #include "debug.h"
 
+#include <unistd.h>
+
 int         remove_duplicates(void *ptr, off_t off)
 {
     void    *eof;
@@ -14,11 +16,13 @@ int         remove_duplicates(void *ptr, off_t off)
     while (ptr != eof)
     {
         end = memchr(ptr, '\n', off);
-        len = end - ptr + 1;
+        len = end - ptr;
+        write(1, ptr, len + 1);
         ptr = end + 1;
         ++lines;
     }
+    printf("\n\n\n\n\n\n\n\n\n");
+    DLOG("");
     DLOG("found %d lines\n", lines);
-
     return (0);
 }

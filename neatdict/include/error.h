@@ -1,5 +1,5 @@
-#ifndef DEBUG_H
-# define DEBUG_H
+#ifndef ERROR_H
+# define ERROR_H
 
 # include <unistd.h>
 # include <stdio.h>
