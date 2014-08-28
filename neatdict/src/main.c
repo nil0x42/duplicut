@@ -3,24 +3,24 @@
 #include "definitions.h"
 #include "debug.h"
 
+t_chunk         *g_chunks = NULL;
+
 void            print_chunks(t_chunk *chunk)
 {
     while (chunk != NULL)
     {
         printf("\n");
         printf("==========================\n");
+        printf("fd   = '%d'\n",         chunk->fd);
+        printf("name = '%s'\n",        chunk->name);
         printf("ptr  = '%p'\n",         chunk->ptr);
         printf("size = '%ld'\n",        chunk->size);
         printf("next = '%p'\n",         chunk->next);
-        printf("id   = '%d'\n",         chunk->id);
         printf("-------------------------'\n");
-        printf("file.name  = '%s'\n",   chunk->file.name);
-        printf("file.size  = '%ld'\n",  chunk->file.size);
-        printf("file.fd    = '%d'\n",   chunk->file.fd);
-        printf("--------------------------\n");
-        printf("map.ptr    = '%p'\n",   chunk->map.ptr);
-        printf("map.size   = '%ld'\n",  chunk->map.size);
-        printf("map.offset = '%ld'\n",  chunk->map.offset);
+        printf("file.fd     = '%d'\n",   chunk->file.fd);
+        printf("file.name   = '%s'\n",   chunk->file.name);
+        printf("file.offset = '%ld'\n",  chunk->file.offset);
+        printf("file.size   = '%ld'\n",  chunk->file.size);
         chunk = chunk->next;
     }
 }
@@ -39,12 +39,9 @@ int             main(int argc, char **argv)
     i = 0;
     while (++i != argc)
     {
-        /* if (memory_map(argv[1]) < 0) */
-        /*     return (EXIT_FAILURE); */
-        if (get_chunks(argv[i], &chunklist) < 0)
-            return (EXIT_FAILURE);
+        DLOG("chunkify_file(argv[%d])", i);
+        chunkify_file(argv[i]);
     }
     print_chunks(chunklist);
-    /* DLOG("got all chunks"); */
     return (EXIT_SUCCESS);
 }

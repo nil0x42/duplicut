@@ -14,7 +14,7 @@ static void dlog_printf(const char *fmt, ...)
     va_list ap;
 
     va_start(ap, fmt);
-    dprintf(STDERR_FILENO, "DLOG: %s:%d ", __FILE__, __LINE__);
+    dprintf(STDERR_FILENO, "DLOG(%s:%d): ", __FILE__, __LINE__);
     vdprintf(STDERR_FILENO, fmt, ap);
     write(STDERR_FILENO, "\n", 1);
     va_end(ap);
