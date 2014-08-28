@@ -2,32 +2,28 @@
 # define DEFINITIONS_H
 
 # include <stdlib.h>
+# include <unistd.h>
+# include "debug.h"
 
 # define PROGNAME "neatdict"
 # define true (1)
 
 typedef struct      s_file
 {
-    const char      *name;
-    size_t          size;
     int             fd;
-}                   t_file;
-
-typedef struct      s_map
-{
-    void            *ptr;
-    size_t          size;
+    const char      *name;
     size_t          offset;
-}                   t_map;
+    size_t          size;
+}                   t_file;
 
 typedef struct      s_chunk
 {
+    int             fd;
+    char            name[255];
     void            *ptr;
     size_t          size;
-    struct s_chunk  *next;
-    int             id;
-    t_map           map;
     t_file          file;
+    struct s_chunk  *next;
 }                   t_chunk;
 
 
@@ -41,9 +37,8 @@ int              memory_map(const char *pathname);
  */
 int              remove_duplicates(void *ptr, off_t off);
 
-/*
- * chunk.c
- */
-int              get_chunks(const char *pathname, t_chunk **head);
+
+t_chunk             *create_chunk(t_file *file, size_t size);
+int                 chunkify_file(const char *pathname);
 
 #endif
