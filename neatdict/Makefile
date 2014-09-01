@@ -1,7 +1,7 @@
 SHELL = /bin/sh
 CC    = clang
  
-CFLAGS       = -std=gnu99 -Iinclude -march=native -Wall -Wextra -pedantic
+CFLAGS       = -lm -std=gnu99 -Iinclude -march=native -Wall -Wextra -pedantic
 DEBUGFLAGS   = -O0 -D DEBUG -g3
 RELEASEFLAGS = -O2 -D NDEBUG
  
