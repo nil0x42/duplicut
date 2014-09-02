@@ -3,6 +3,9 @@
 #include "definitions.h"
 #include "exit.h"
 
+extern t_conf       g_conf;
+
+
 static int          open_file(const char *pathname, t_file *file)
 {
     struct stat     info;
@@ -22,14 +25,14 @@ static int          open_file(const char *pathname, t_file *file)
     return (-1);
 }
 
+
 static void         close_file(t_file *file)
 {
     if (close(file->fd) < 0)
         die("close()");
 }
 
-# define PAGE_SIZE     (4096)
-# define CHUNK_SIZE    (PAGE_SIZE * 3)
+
 int                 chunkify_file(const char *pathname)
 {
     t_file          file;
@@ -41,15 +44,16 @@ int                 chunkify_file(const char *pathname)
     file.offset = 0;
     while (file.offset < file.size)
     {
-        if (CHUNK_SIZE > file.size - file.offset)
+        if (g_conf.chunk_size > file.size - file.offset)
             chunk_size = file.size - file.offset;
         else
-            chunk_size = CHUNK_SIZE;
+            chunk_size = g_conf.chunk_size;
         if ((chunk = create_chunk(&file, chunk_size)) == NULL)
             abort();
         file.offset += chunk_size;
-        if (chunk_size == CHUNK_SIZE)
-            file.offset -= PAGE_SIZE;
+        if (chunk_size == g_conf.chunk_size)
+            file.offset -= g_conf.page_size;
     }
     close_file(&file);
+    return (0);
 }
