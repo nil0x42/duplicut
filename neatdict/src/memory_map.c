@@ -2,7 +2,7 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include "definitions.h"
-#include "error.h"
+#include "exit.h"
 
 int                 memory_map(const char *pathname)
 {

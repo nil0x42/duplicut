@@ -3,10 +3,22 @@
 
 # include <stdlib.h>
 # include <unistd.h>
-# include "debug.h"
 
 # define PROGNAME "neatdict"
 # define true (1)
+
+# define HMAP_LOAD_FACTOR   (0.5)
+# define MEDIUM_LINE_BYTES  (5)          // a line takes at least ~= 5 bytes
+# define KEEP_FREE_MEMORY   (0xc800000L) // 200MB RAM kept unused as security
+
+typedef struct      s_conf
+{
+    size_t          memlimit;
+    int             threads;
+    int             page_size;
+    size_t          hmap_size;
+    size_t          chunk_size;
+}                   t_conf;
 
 typedef struct      s_file
 {
@@ -16,29 +28,43 @@ typedef struct      s_file
     size_t          size;
 }                   t_file;
 
+typedef struct      s_map
+{
+    void            *addr;
+    size_t          size;
+}                   t_map;
+
 typedef struct      s_chunk
 {
     int             fd;
     char            name[255];
-    void            *ptr;
+    char            *addr;
     size_t          size;
     t_file          file;
+    t_map           map;
     struct s_chunk  *next;
 }                   t_chunk;
 
+typedef struct      s_line
+{
+    char            *addr;
+    int             size;
+}                   t_line;
 
-/*
- * memory_map.c
- */
-int              memory_map(const char *pathname);
+// configure.c
+void        configure(int argc, char **argv, int *idx);
 
-/*
- * remove_duplicates.c
- */
-int              remove_duplicates(void *ptr, off_t off);
+// memory_map.c
+int         memory_map(const char *pathname);
 
+// remove_duplpicates.c
+int         remove_duplicates(char *ptr, off_t off);
 
-t_chunk             *create_chunk(t_file *file, size_t size);
-int                 chunkify_file(const char *pathname);
+// get_available_memory.c
+long        get_available_memory(void);
+
+// chunk handlers
+t_chunk     *create_chunk(t_file *file, size_t size);
+int         chunkify_file(const char *pathname);
 
 #endif

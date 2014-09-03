@@ -5,10 +5,10 @@
 
 #include <unistd.h>
 
-int         remove_duplicates(void *ptr, off_t off)
+int         remove_duplicates(char *ptr, off_t off)
 {
-    void    *eof;
-    void    *end;
+    char    *eof;
+    char    *end;
     int     len;
     int     lines = 0;
 
