@@ -106,6 +106,8 @@ static void     distribute_memory(void)
     g_conf.page_size = page_sz;
     g_conf.hmap_size = (size_t) hmap_sz;
     g_conf.chunk_size = (size_t) chunk_sz;
+    if (g_conf.chunk_size < (g_conf.page_size * 3))
+        error("chunk_size: Can't be less than (page_size * 3)");
 }
 
 
