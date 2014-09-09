@@ -11,6 +11,9 @@
 # define MEDIUM_LINE_BYTES  (5)          // a line takes at least ~= 5 bytes
 # define KEEP_FREE_MEMORY   (0xc800000L) // 200MB RAM kept unused as security
 
+# define FIRST_CHUNK (1)
+# define LAST_CHUNK  (2)
+
 typedef struct      s_conf
 {
     size_t          memlimit;
@@ -37,13 +40,15 @@ typedef struct      s_map
 typedef struct      s_chunk
 {
     int             fd;
-    char            name[255];
+    int             tag;
+    char            name[256];
     char            *addr;
     size_t          size;
     t_file          file;
     t_map           map;
     struct s_chunk  *next;
 }                   t_chunk;
+
 
 typedef struct      s_line
 {
@@ -66,5 +71,7 @@ long        get_available_memory(void);
 // chunk handlers
 t_chunk     *create_chunk(t_file *file, size_t size);
 int         chunkify_file(const char *pathname);
+
+
 
 #endif

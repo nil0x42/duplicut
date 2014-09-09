@@ -6,6 +6,13 @@
 extern t_conf       g_conf;
 
 
+static void         close_file(t_file *file)
+{
+    if (close(file->fd) < 0)
+        die("close()");
+}
+
+
 static int          open_file(const char *pathname, t_file *file)
 {
     struct stat     info;
@@ -20,16 +27,11 @@ static int          open_file(const char *pathname, t_file *file)
     {
         file->name = pathname;
         file->size = info.st_size;
-        return (0);
+        if (file->size != 0)
+            return (0);
     }
+    close_file(file);
     return (-1);
-}
-
-
-static void         close_file(t_file *file)
-{
-    if (close(file->fd) < 0)
-        die("close()");
 }
 
 
@@ -48,12 +50,16 @@ int                 chunkify_file(const char *pathname)
             chunk_size = file.size - file.offset;
         else
             chunk_size = g_conf.chunk_size;
-        if ((chunk = create_chunk(&file, chunk_size)) == NULL)
+        chunk = create_chunk(&file, chunk_size);
+        if (chunk == NULL)
             abort();
+        if (file.offset == 0)
+            chunk->tag |= FIRST_CHUNK;
         file.offset += chunk_size;
         if (chunk_size == g_conf.chunk_size)
             file.offset -= g_conf.page_size;
     }
+    chunk->tag |= LAST_CHUNK;
     close_file(&file);
     return (0);
 }
