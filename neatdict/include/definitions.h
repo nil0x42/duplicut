@@ -59,6 +59,9 @@ typedef struct      s_line
 // configure.c
 void        configure(int argc, char **argv, int *idx);
 
+// linecmp.c
+int         linecmp(t_line *l1, t_line *l2);
+
 // memory_map.c
 int         memory_map(const char *pathname);
 
