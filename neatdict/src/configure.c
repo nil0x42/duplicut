@@ -101,7 +101,8 @@ static void     distribute_memory(void)
     hmap_sz = prev_prime((long)hmap_sz);
 
     chunk_sz = (g_conf.memlimit - hmap_sz) / g_conf.threads;
-    chunk_sz = ((int)chunk_sz + page_sz - 1) & ~(page_sz - 1);
+    /* chunk_sz = ((int)chunk_sz + page_sz - 1) & ~(page_sz - 1); */
+    chunk_sz = (int)(chunk_sz) - ((int)chunk_sz % page_sz);
 
     g_conf.page_size = page_sz;
     g_conf.hmap_size = (size_t) hmap_sz;
@@ -109,6 +110,7 @@ static void     distribute_memory(void)
     if (g_conf.chunk_size < (g_conf.page_size * 3))
         error("chunk_size: Can't be less than (page_size * 3)");
 }
+
 
 
 /** Fill out g_conf (program configuration)
