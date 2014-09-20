@@ -11,13 +11,19 @@
 # define MEDIUM_LINE_BYTES  (5)          // a line takes at least ~= 5 bytes
 # define KEEP_FREE_MEMORY   (0xc800000L) // 200MB RAM kept unused as security
 
-# define FIRST_CHUNK (1)
-# define LAST_CHUNK  (2)
+
+# define FIRST_CHUNK    (1)
+# define LAST_CHUNK     (2)
+
+# define DEFAULT_TMPDIR "/tmp"
+# define CHUNK_PATHSIZE (256)
+# define CHUNK_FILENAME "neatdict-XXXXXX.chunk"
 
 typedef struct      s_conf
 {
     size_t          memlimit;
     int             threads;
+    char            *tmpdir;
     int             page_size;
     size_t          hmap_size;
     size_t          chunk_size;
@@ -41,7 +47,7 @@ typedef struct      s_chunk
 {
     int             fd;
     int             tag;
-    char            name[256];
+    char            name[CHUNK_PATHSIZE];
     char            *addr;
     size_t          size;
     t_file          file;

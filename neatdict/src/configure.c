@@ -1,5 +1,6 @@
 #include <unistd.h>
 #include <stdio.h>
+#include <string.h>
 #include <getopt.h>
 #include <math.h>
 #include "definitions.h"
@@ -7,7 +8,7 @@
 #include "debug.h"
 
 
-t_conf          g_conf = { 0, 1, 0, 0, 0 };
+t_conf          g_conf = { 0, 1, NULL, 0, 0, 0 };
 
 
 static void     bad_argument(char *optname)
@@ -24,24 +25,28 @@ static void     get_options(int argc, char **argv)
     int             opt;
     char            *end;
     struct option   options[] = {
-        { "memory-limit", required_argument, NULL, 'm' },
-        { "threads",      required_argument, NULL, 't' },
-        { NULL,           0,                 NULL, '\0'}
+        { "memlimit", required_argument, NULL, 'm' },
+        { "cores",    required_argument, NULL, 'c' },
+        { "tmpdir",   required_argument, NULL, 't' },
+        { NULL,       0,                 NULL, '\0'}
     };
 
-    while ((opt = getopt_long(argc, argv, "m:t:", options, NULL)) >= 0)
+    while ((opt = getopt_long(argc, argv, "m:c:t:", options, NULL)) >= 0)
     {
         switch (opt)
         {
             case 'm':
                 g_conf.memlimit = (size_t) strtol(optarg, &end, 10);
                 if (*end != '\0')
-                    bad_argument("memory-limit");
+                    bad_argument("memlimit");
                 break;
-            case 't':
+            case 'c':
                 g_conf.threads = (int) strtol(optarg, &end, 10);
                 if (*end != '\0')
-                    bad_argument("threads");
+                    bad_argument("cores");
+                break;
+            case 't':
+                g_conf.tmpdir = optarg;
                 break;
             default:
                 fprintf(stderr, "Try '%s --help' for more information.\n",
@@ -50,6 +55,7 @@ static void     get_options(int argc, char **argv)
         }
     }
 }
+
 
 /** Gives the nearest prime number
  * less or equal to `n`.
@@ -107,10 +113,9 @@ static void     distribute_memory(void)
     g_conf.page_size = page_sz;
     g_conf.hmap_size = (size_t) hmap_sz;
     g_conf.chunk_size = (size_t) chunk_sz;
-    if (g_conf.chunk_size < (g_conf.page_size * 3))
+    if (g_conf.chunk_size < (size_t)(g_conf.page_size * 3))
         error("chunk_size: Can't be less than (page_size * 3)");
 }
-
 
 
 /** Fill out g_conf (program configuration)
@@ -124,20 +129,31 @@ void            configure(int argc, char **argv, int *idx)
     get_options(argc, argv);
     tmp = get_available_memory();
     if (g_conf.memlimit > tmp)
-        error("--memory-limit: only %ldMB of memory are available.", tmp);
+        error("--memlimit: only %ldMB of memory are available.", tmp);
     else if (g_conf.memlimit == 0)
         g_conf.memlimit = tmp;
     g_conf.memlimit *= 1024 * 1024;
 
     // set threads
     if (g_conf.threads < 1)
-        error("--threads: cannot run with %d threads !", g_conf.threads);
+        error("--cores: cannot run with %d threads !", g_conf.threads);
+
+    // set tmpdir
+    if (g_conf.tmpdir == NULL)
+    {
+        if ((g_conf.tmpdir = getenv("TMPDIR")) == NULL)
+            g_conf.tmpdir = DEFAULT_TMPDIR;
+    }
+    if (g_conf.tmpdir != NULL)
+        if (CHUNK_PATHSIZE < strlen(g_conf.tmpdir) + strlen(CHUNK_FILENAME) + 2)
+            error("--tmpdir: '%s': path size is too long");
 
     // get hmap_size and chunk_size from available memory.
     distribute_memory();
     DLOG("------------------------------");
     DLOG("g_conf.memlimit:   %ld", g_conf.memlimit);
     DLOG("g_conf.threads:    %d",  g_conf.threads);
+    DLOG("g_conf.tmpdir:     %s",  g_conf.tmpdir);
     DLOG("g_conf.page_size:  %d",  g_conf.page_size);
     DLOG("g_conf.hmap_size:  %ld", g_conf.hmap_size);
     DLOG("g_conf.chunk_size: %ld", g_conf.chunk_size);
