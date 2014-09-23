@@ -4,8 +4,12 @@
 # include <stdlib.h>
 # include <unistd.h>
 
-# define PROGNAME "neatdict"
 # define true (1)
+
+# define PROGNAME         "neatdict"
+# define PROJECT_VERSION  "0.1a"
+# define PROJECT_URL      "http://github.com/nil0x42/neatcrack"
+
 
 # define HMAP_LOAD_FACTOR   (0.5)
 # define MEDIUM_LINE_BYTES  (5)          // a line takes at least ~= 5 bytes
@@ -16,14 +20,17 @@
 # define LAST_CHUNK     (2)
 
 # define DEFAULT_TMPDIR "/tmp"
+# define CHUNK_FILENAME "/neatdict-XXXXXX.chunk"
 # define CHUNK_PATHSIZE (256)
-# define CHUNK_FILENAME "neatdict-XXXXXX.chunk"
+
+/* should be removed */
+# include "debug.h"
 
 typedef struct      s_conf
 {
     size_t          memlimit;
     int             threads;
-    char            *tmpdir;
+    const char      *tmpdir;
     int             page_size;
     size_t          hmap_size;
     size_t          chunk_size;
@@ -39,7 +46,7 @@ typedef struct      s_file
 
 typedef struct      s_map
 {
-    void            *addr;
+    char            *addr;
     size_t          size;
 }                   t_map;
 
@@ -50,7 +57,7 @@ typedef struct      s_chunk
     char            name[CHUNK_PATHSIZE];
     char            *addr;
     size_t          size;
-    t_file          file;
+    t_file          parent;
     t_map           map;
     struct s_chunk  *next;
 }                   t_chunk;
@@ -79,7 +86,12 @@ long        get_available_memory(void);
 
 // chunk handlers
 t_chunk     *create_chunk(t_file *file, size_t size);
+void        init_chunk(t_chunk *chunk);
 int         chunkify_file(const char *pathname);
+
+// chunk handlers for debugging purposes
+void        display_chunk_infos(t_chunk *chunk);
+void        output_chunk(t_chunk *chunk);
 
 
 

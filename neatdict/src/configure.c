@@ -11,6 +11,36 @@
 t_conf          g_conf = { 0, 1, NULL, 0, 0, 0 };
 
 
+static void     display_help(void)
+{
+    printf("Usage: %s [OPTION]... [FILE]...\n"
+           "Remove duplicates from FILE(s) without sorting them.\n"
+           "\n"
+           "Options:\n"
+           "-m, --memlimit <MEGABYTES>  Limit max used memory\n"
+           "-c, --cores <NUMBER>        Use more than one thread\n"
+           "-t, --tmpdir <DIRECTORY>    Set temporary chunk container\n"
+           "-h, --help                  Display this help and exit\n"
+           "-v, --version               Output version information and exit\n"
+           "\n", PROGNAME);
+    exit(EXIT_SUCCESS);
+}
+
+static void     display_version(void)
+{
+
+    printf("%s: (neatcrack suite) %s <%s>\n"
+           "License GPLv3+: GNU GPL version 3"
+           " or later <http://gnu.org/licenses/gpl.html>\n"
+           "\n"
+           "This is free software; you are free to"
+           " change and redistribute it.\n"
+           "There is NO WARRANTY, to the extent permitted by law.\n",
+           PROGNAME, PROJECT_VERSION, PROJECT_URL);
+    exit(EXIT_SUCCESS);
+}
+
+
 static void     bad_argument(char *optname)
 {
     fprintf(stderr, "%s: invalid argument '%s' for '--%s'\n",
@@ -28,10 +58,12 @@ static void     get_options(int argc, char **argv)
         { "memlimit", required_argument, NULL, 'm' },
         { "cores",    required_argument, NULL, 'c' },
         { "tmpdir",   required_argument, NULL, 't' },
+        { "help",     no_argument,       NULL, 'h' },
+        { "version",  no_argument,       NULL, 'v' },
         { NULL,       0,                 NULL, '\0'}
     };
 
-    while ((opt = getopt_long(argc, argv, "m:c:t:", options, NULL)) >= 0)
+    while ((opt = getopt_long(argc, argv, "m:c:t:hv", options, NULL)) >= 0)
     {
         switch (opt)
         {
@@ -47,6 +79,12 @@ static void     get_options(int argc, char **argv)
                 break;
             case 't':
                 g_conf.tmpdir = optarg;
+                break;
+            case 'h':
+                display_help();
+                break;
+            case 'v':
+                display_version();
                 break;
             default:
                 fprintf(stderr, "Try '%s --help' for more information.\n",
@@ -133,6 +171,7 @@ void            configure(int argc, char **argv, int *idx)
     else if (g_conf.memlimit == 0)
         g_conf.memlimit = tmp;
     g_conf.memlimit *= 1024 * 1024;
+    /* g_conf.memlimit *= 1024; // to kilobytes for testing */
 
     // set threads
     if (g_conf.threads < 1)
@@ -145,7 +184,7 @@ void            configure(int argc, char **argv, int *idx)
             g_conf.tmpdir = DEFAULT_TMPDIR;
     }
     if (g_conf.tmpdir != NULL)
-        if (CHUNK_PATHSIZE < strlen(g_conf.tmpdir) + strlen(CHUNK_FILENAME) + 2)
+        if (strlen(g_conf.tmpdir) + strlen(CHUNK_FILENAME) >= CHUNK_PATHSIZE)
             error("--tmpdir: '%s': path size is too long");
 
     // get hmap_size and chunk_size from available memory.
