@@ -58,8 +58,10 @@ int                 chunkify_file(const char *pathname)
         file.offset += chunk_size;
         if (chunk_size == g_conf.chunk_size)
             file.offset -= g_conf.page_size;
+        if (file.offset >= file.size)
+            chunk->tag |= LAST_CHUNK;
+        init_chunk(chunk);
     }
-    chunk->tag |= LAST_CHUNK;
     close_file(&file);
     return (0);
 }
