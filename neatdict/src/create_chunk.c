@@ -9,41 +9,6 @@ extern t_chunk      *g_chunks;
 extern t_conf       g_conf;
 
 
-/* #<{(| function shall be removed |)}># */
-/* void        output_chunk(t_chunk *chunk) */
-/* { */
-/*     char    *ptr; */
-/*     size_t  off; */
-/*  */
-/*     char    *eof; */
-/*     char    *end; */
-/*     int     len; */
-/*     int     lines = 0; */
-/*  */
-/*     ptr = chunk->addr; */
-/*     off = chunk->size; */
-/*     eof = ptr + off; */
-/*     while (ptr != eof) */
-/*     { */
-/*         end = memchr(ptr, '\n', off); */
-/*         len = end - ptr; */
-/*         if (len >= off) */
-/*             break; */
-/*         off -= len; */
-/*         DLOG("%d", len); */
-/*         DLOG("%ld", (size_t)off); */
-/*         #<{(| write(1, ptr, len); |)}># */
-/*         #<{(| write(1, "\n", 1); |)}># */
-/*         ptr = end + 1; */
-/*         ++lines; */
-/*     } */
-/*     exit(1); */
-/*     #<{(| printf("\n\n\n\n\n\n\n\n\n"); |)}># */
-/*     #<{(| DLOG(""); |)}># */
-/*     #<{(| DLOG("found %d lines\n", lines); |)}># */
-/* } */
-
-
 void            output_chunk(t_chunk *chunk)
 {
     t_line      *line;
@@ -51,7 +16,6 @@ void            output_chunk(t_chunk *chunk)
     write(1, chunk->addr, chunk->size);
     /* write(1, "===SEP===\n", 10); */
 }
-
 
 
 /* function shall be removed */
