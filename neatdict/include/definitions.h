@@ -23,6 +23,8 @@
 # define CHUNK_FILENAME "/neatdict-XXXXXX.chunk"
 # define CHUNK_PATHSIZE (256)
 
+# define DISABLED_LINE  '\0'
+
 /* should be removed */
 # include "debug.h"
 
