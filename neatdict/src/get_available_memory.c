@@ -7,7 +7,6 @@
 
 #define MEMINFO_FILE    ("/proc/meminfo")
 #define BUF_SIZE        (1024)
-
 long        get_available_memory(void)
 {
     char    *buf;

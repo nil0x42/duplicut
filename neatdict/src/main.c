@@ -20,9 +20,7 @@ int         main(int argc, char **argv)
     chunk = g_chunks;
     while (chunk != NULL)
     {
-        /* display_chunk_infos(chunk); */
-        /* init_chunk(chunk); */
-        /* display_chunk_infos(chunk); */
+        display_chunk_infos(chunk);
         output_chunk(chunk);
 
         chunk = chunk->next;

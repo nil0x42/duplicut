@@ -9,11 +9,17 @@ extern t_chunk      *g_chunks;
 extern t_conf       g_conf;
 
 
-void            output_chunk(t_chunk *chunk)
+void        output_chunk(t_chunk *chunk)
 {
-    t_line      *line;
+    t_line  line;
+    size_t  offset;
 
-    write(1, chunk->addr, chunk->size);
+    offset = 0;
+    while (get_next_line(&line, chunk, &offset) != NULL)
+    {
+        write(1, line.addr, line.size);
+        write(1, "\n", 1);
+    }
     /* write(1, "===SEP===\n", 10); */
 }
 
@@ -21,7 +27,7 @@ void            output_chunk(t_chunk *chunk)
 /* function shall be removed */
 void         display_chunk_infos(t_chunk *chunk)
 {
-    DLOG("------------------------------");
+    /* DLOG("------------------------------"); */
     DLOG("chunk->fd:            '%d'", chunk->fd);
     DLOG("chunk->tag:           '%d'", chunk->tag);
     DLOG("chunk->name:          '%s'", chunk->name);

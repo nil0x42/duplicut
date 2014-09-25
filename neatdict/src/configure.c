@@ -170,8 +170,8 @@ void            configure(int argc, char **argv, int *idx)
         error("--memlimit: only %ldMB of memory are available.", tmp);
     else if (g_conf.memlimit == 0)
         g_conf.memlimit = tmp;
-    g_conf.memlimit *= 1024 * 1024;
-    /* g_conf.memlimit *= 1024; // to kilobytes for testing */
+    /* g_conf.memlimit *= 1024 * 1024; */
+    g_conf.memlimit *= 1024; // to kilobytes for testing
 
     // set threads
     if (g_conf.threads < 1)

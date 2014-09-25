@@ -37,13 +37,13 @@ t_line      *get_next_line(t_line *line, t_chunk *chunk, size_t *offset)
             delta = (size_t)(ptr - addr);
             addr = ptr + 1;
             size -= (delta + 1);
-            offset += (delta + 1);
+            *offset += (delta + 1);
         }
         else if (*addr == '\n')
         {
             addr++;
             size--;
-            offset++;
+            (*offset)++;
         }
         else
             break;
@@ -64,20 +64,5 @@ t_line      *get_next_line(t_line *line, t_chunk *chunk, size_t *offset)
         line->size = ptr - addr;
         *offset += line->size + 1;
     }
-
-
-}
-
-
-void        read_chunk_lines(t_chunk *chunk)
-{
-    t_line  line;
-    size_t  offset;
-
-    offset = 0;
-    while (get_next_line(&line, chunk, &offset) != NULL)
-    {
-        write(1, line.addr, line.size);
-        write(1, "\n", 1);
-    }
+    return (line);
 }
