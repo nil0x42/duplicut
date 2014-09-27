@@ -10,7 +10,7 @@ t_chunk     *g_chunks = NULL;
 t_conf      g_conf = {
     .memlimit = 0,
     .tmpdir = NULL,
-    .threads = 1,
+    .threads = 0,
     .page_size = 0,
     .hmap_size = 0,
     .chunk_size = 0
@@ -20,7 +20,7 @@ t_conf      g_conf = {
 /* function shall be removed */
 void         display_chunk_infos(t_chunk *chunk)
 {
-    /* DLOG("------------------------------"); */
+    DLOG("------------------------------");
     DLOG("chunk->fd:            '%d'", chunk->fd);
     DLOG("chunk->tag:           '%d'", chunk->tag);
     DLOG("chunk->name:          '%s'", chunk->name);

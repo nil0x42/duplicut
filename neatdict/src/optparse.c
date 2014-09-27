@@ -10,7 +10,7 @@ static void bad_argument(const char *name, const char *value, const char *info)
     fprintf(stderr, "%s: invalid argument '%s' for '--%s'\n",
             PROGNAME, value, name);
     if (info != NULL)
-        fprintf(stderr, "* '%s' %s\n", value, info);
+        fprintf(stderr, "(%s)\n", info);
     fprintf(stderr, "Try '%s --help' for more information.\n", PROGNAME);
     exit(EXIT_FAILURE);
 }
@@ -61,12 +61,12 @@ static void setopt_memlimit(const char *value)
         c = 'B';
     ptr = strchr(metrics, c);
     if (ptr == NULL)
-        bad_argument("memlimit", value, "is not a byte size representation");
+        bad_argument("memlimit", value, "not a byte size representation");
     c = ptr - metrics;
     while (c--)
         g_conf.memlimit *= 1024;
     if (g_conf.memlimit < 1)
-        bad_argument("memlimit", value, "is not positive");
+        bad_argument("memlimit", value, "not a positive value");
 }
 
 
@@ -77,9 +77,9 @@ static void setopt_cores(const char *value)
 
     cores = (int) strtol(value, &endptr, 10);
     if (*endptr != '\0')
-        bad_argument("cores", value, "is not a number");
+        bad_argument("cores", value, "not a number");
     else if (cores < 1)
-        bad_argument("cores", value, "is negative");
+        bad_argument("cores", value, "not a positive number");
     g_conf.threads = cores;
 }
 
@@ -115,8 +115,10 @@ void        optparse(int argc, char **argv, int *idx)
         else if (opt == 't')
             setopt_tmpdir(optarg);
         else
+        {
             fprintf(stderr, "Try '%s --help' for more information\n", PROGNAME);
             exit(EXIT_FAILURE);
+        }
     }
     *idx = optind;
 }

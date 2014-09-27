@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
+#include <stdio.h>
 #include "config.h"
 #include "chunk.h"
 #include "line.h"
@@ -21,7 +22,55 @@ static void config_tmpdir(void)
             g_conf.tmpdir = DEFAULT_TMPDIR;
     }
     if (strlen(g_conf.tmpdir) + strlen(CHUNK_FILENAME) >= CHUNK_PATHSIZE)
-        error("config: '%s' exceeds tmpdir maximum length.");
+        error("'%s' exceeds tmpdir maximum length.");
+}
+
+/** Configure how many threads to use.
+ * Concerned config variable: g_conf.threads
+ */
+static void config_cores(void)
+{
+    long    available_processors;
+
+    available_processors = sysconf(_SC_NPROCESSORS_ONLN);
+    if (available_processors < 0)
+        error("could not determine available processors");
+    else if (available_processors == 0)
+        die("unexpected '0' value for available_processors");
+    if (g_conf.threads == 0)
+        g_conf.threads = available_processors;
+    else if (g_conf.threads > available_processors)
+        error("too much threads started (max is %ld)", available_processors);
+}
+
+
+#define MEMINFO_FILE    ("/proc/meminfo")
+#define BUF_SIZE        (1024)
+static long get_available_memory(void)
+{
+    char    *buf;
+    size_t  buf_size;
+    FILE    *fp;
+    long    value;
+
+    fp = fopen(MEMINFO_FILE, "r");
+    if (fp == NULL)
+        error("cannot open %s: %s", MEMINFO_FILE, ERRNO);
+    buf_size = BUF_SIZE * sizeof(*buf);
+    buf = (char*) malloc(buf_size);
+    value = -1L;
+    while (getline(&buf, &buf_size, fp) >= 0 )
+    {
+        if (strncmp(buf, "MemAvailable", 12) != 0)
+            continue;
+        sscanf(buf, "%*s%ld", &value);
+        break;
+    }
+    fclose(fp);
+    free((void*)buf);
+    if (value == -1L)
+        error("cannot get available memory from %s", MEMINFO_FILE);
+    return (value * 1024);
 }
 
 
@@ -32,23 +81,20 @@ static void config_tmpdir(void)
  */
 static void config_memlimit(void)
 {
-    long    available_pages;
     long    max_memory;
 
     g_conf.page_size = sysconf(_SC_PAGESIZE);
     if (g_conf.page_size < 0)
-        error("config: could not determine page size");
-    available_pages = sysconf(_SC_AVPHYS_PAGES);
-    if (available_pages < 0)
-        error("config: could not determine available pages");
-    max_memory = available_pages * g_conf.page_size;
-    max_memory -= KEEP_FREE_MEMORY;
+        error("could not determine page size");
+    max_memory = get_available_memory();
     if (g_conf.memlimit == 0)
-        g_conf.memlimit = max_memory;
+        g_conf.memlimit = max_memory - KEEP_FREE_MEMORY;
+    if (g_conf.memlimit < g_conf.page_size)
+        error("not enough memory");
     else if (g_conf.memlimit > max_memory)
     {
-        max_memory /= 1024 * 1024;
-        error("config: memlimit exceeds available memory (%ldMB).", max_memory);
+        max_memory /= (1024 * 1024);
+        error("memlimit exceeds available memory (%ldMB).", max_memory);
     }
 }
 
@@ -93,7 +139,6 @@ static void     distribute_memory(void)
     double          chunk_linecost;
     double          delta;
 
-
     hmap_linecost = sizeof(t_line) * (1 / HMAP_LOAD_FACTOR);
     chunk_linecost = MEDIUM_LINE_BYTES;
     delta = chunk_linecost * (double)g_conf.threads;
@@ -108,13 +153,14 @@ static void     distribute_memory(void)
     g_conf.hmap_size = (size_t) hmap_sz;
     g_conf.chunk_size = (size_t) chunk_sz;
     if (g_conf.chunk_size < (size_t)(g_conf.page_size * 3))
-        error("chunk_size: Can't be less than (page_size * 3)");
+        error("missing memory: chunk_size can't be less than 3 pages");
 }
 
 
 void        configure(void)
 {
     config_tmpdir();
+    config_cores();
     config_memlimit();
     distribute_memory();
     DLOG("------------------------------");
