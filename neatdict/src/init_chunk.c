@@ -1,5 +1,4 @@
 #define _GNU_SOURCE
-#include <string.h>
 #include <sys/mman.h>
 #include "config.h"
 #include "chunk.h"
@@ -12,53 +11,39 @@ static void         get_chunk_boundaries(t_chunk *chunk)
     char            *ptr;
     size_t          delta;
 
-    DLOG("+++++++ CHUNK %s ++++++++", chunk->name);
     if (chunk->tag & FIRST_CHUNK)
     {
-        DLOG("C1");
         delta = 0;
         chunk->addr = chunk->map.addr;
     }
     else if (chunk->map.addr[g_conf.page_size - 1] == '\n')
     {
-        DLOG("C2");
         delta = g_conf.page_size;
         chunk->addr = &chunk->map.addr[g_conf.page_size];
     }
     else
     {
-        DLOG("C3");
         chunk->addr = memrchr(chunk->map.addr, '\n', g_conf.page_size);
         if (chunk->addr == NULL)
             error("%s: can't find start bound", chunk->name);
         chunk->addr++;
         delta = (size_t)(chunk->addr - chunk->map.addr);
     }
-    DLOG("DELTA1::%lu", delta);
-
     chunk->size = chunk->map.size - delta;
-
     if (!(chunk->tag & LAST_CHUNK))
     {
         if (chunk->addr[chunk->size - 1] == '\n')
-        {
-            DLOG("X2");
             return ;
-        }
         else
         {
-            DLOG("X3");
             ptr = memrchr(chunk->addr, '\n', chunk->size - 1);
             if (ptr == NULL)
                 error("%s: can't find end bound", chunk->name);
             ptr++;
             delta = (size_t)(ptr - chunk->addr);
-            DLOG("DELTA2::%lu", delta);
             chunk->size -= chunk->size - delta;
         }
     }
-    else
-        DLOG("X1");
 }
 
 

@@ -5,8 +5,8 @@
 # define PROJECT_VERSION    "0.1a"
 # define PROJECT_URL        "http://github.com/nil0x42/neatcrack"
 
-# define HMAP_LOAD_FACTOR   (0.4)        // fill at most 50% of the hmap
-# define MEDIUM_LINE_BYTES  (6)          // a line takes at least ~= 5 bytes
+# define HMAP_LOAD_FACTOR   (0.4)
+# define MEDIUM_LINE_BYTES  (6)
 # define KEEP_FREE_MEMORY   (0xc800000L) // 200MB RAM kept unused as security
 
 # define CHUNK_FILENAME     "/neatdict-XXXXXX.chunk"

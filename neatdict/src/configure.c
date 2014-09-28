@@ -144,7 +144,6 @@ static void     distribute_memory(void)
     delta = chunk_linecost * (double)g_conf.threads;
 
     hmap_sz = hmap_linecost / (hmap_linecost + delta) * g_conf.memlimit;
-    /* hmap_sz = get_prev_prime((long)hmap_sz); */
 
     chunk_sz = (g_conf.memlimit - hmap_sz) / g_conf.threads;
     /* chunk_sz = ((int)chunk_sz + page_sz - 1) & ~(page_sz - 1); */
@@ -152,7 +151,7 @@ static void     distribute_memory(void)
 
     // hmap_sz was bytes, convert to number of cells (t_line structs..)
     g_conf.hmap_size = (size_t)hmap_sz / sizeof(t_line);
-    g_conf.hmap_size = get_prev_prime(g_conf.hmap_size);
+    /* g_conf.hmap_size = get_prev_prime(g_conf.hmap_size); */
 
 
     g_conf.chunk_size = (size_t) chunk_sz;

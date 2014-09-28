@@ -1,6 +1,7 @@
 #ifndef CONFIG_H
 # define CONFIG_H
 
+# include <stddef.h>
 # include "definitions.h"
 
 # define DEFAULT_TMPDIR "/tmp"

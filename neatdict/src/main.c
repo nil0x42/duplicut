@@ -48,7 +48,7 @@ void        output_chunk(t_chunk *chunk)
     offset = 0;
     while (next_line(&line, chunk, &offset) != NULL)
     {
-        write(1, line.addr, line.size);
+        write(1, LINE_ADDR(line), LINE_SIZE(line));
         write(1, "\n", 1);
     }
     /* write(1, "===SEP===\n", 10); */
@@ -63,6 +63,7 @@ int         main(int argc, char **argv)
 
     optparse(argc, argv, &i);
     configure();
+    DLOG("%ld", sizeof(unsigned long long));
 
     while (i < argc)
     {
@@ -71,14 +72,5 @@ int         main(int argc, char **argv)
         i++;
     }
     hashtest();
-    /*  */
-    /* chunk = g_chunks; */
-    /* while (chunk != NULL) */
-    /* { */
-    /*     display_chunk_infos(chunk); */
-    /*     #<{(| output_chunk(chunk); |)}># */
-    /*     process_chunk(chunk); */
-    /*     chunk = chunk->next; */
-    /* } */
     return (0);
 }
