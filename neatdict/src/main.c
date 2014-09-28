@@ -54,25 +54,31 @@ void        output_chunk(t_chunk *chunk)
     /* write(1, "===SEP===\n", 10); */
 }
 
+
 int         main(int argc, char **argv)
 {
     int     i;
+    t_line  *hmap;
     t_chunk *chunk;
 
     optparse(argc, argv, &i);
     configure();
+
     while (i < argc)
     {
         DLOG("--> argv[%d]: '%s'", i, argv[i]);
         chunkify_file(argv[i]);
         i++;
     }
-    chunk = g_chunks;
-    while (chunk != NULL)
-    {
-        display_chunk_infos(chunk);
-        output_chunk(chunk);
-        chunk = chunk->next;
-    }
+    hashtest();
+    /*  */
+    /* chunk = g_chunks; */
+    /* while (chunk != NULL) */
+    /* { */
+    /*     display_chunk_infos(chunk); */
+    /*     #<{(| output_chunk(chunk); |)}># */
+    /*     process_chunk(chunk); */
+    /*     chunk = chunk->next; */
+    /* } */
     return (0);
 }
