@@ -39,15 +39,15 @@ t_line      *next_line(t_line *line, t_chunk *chunk, size_t *offset)
     ptr = memchr(addr, '\n', size);
     if (ptr == NULL)
     {
-        line->addr = addr;
-        line->size = size - *offset;
+        SET_LINE_ADDR(*line, addr);
+        SET_LINE_SIZE(*line, size - *offset);
         *offset = size;
     }
     else
     {
-        line->addr = addr;
-        line->size = ptr - addr;
-        *offset += line->size + 1;
+        SET_LINE_ADDR(*line, addr);
+        SET_LINE_SIZE(*line, ptr - addr);
+        *offset += LINE_SIZE(*line) + 1;
     }
     return (line);
 }
@@ -56,10 +56,12 @@ t_line      *next_line(t_line *line, t_chunk *chunk, size_t *offset)
 int         cmp_line(t_line *l1, t_line *l2)
 {
     int     ret;
+    int     size;
 
-    if (l1->size != l2->size)
+    size = LINE_SIZE(*l1);
+    if (LINE_SIZE(*l2) != size)
         ret = 1;
     else
-        ret = memcmp(l1->addr, l2->addr, l1->size);
+        ret = memcmp(LINE_ADDR(*l1), LINE_ADDR(*l2), size);
     return (ret);
 }

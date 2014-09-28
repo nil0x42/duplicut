@@ -3,8 +3,11 @@
 
 #include "chunk.h"
 
-# define LINE_SIZE(l) ((int)((l).size))
-# define LINE_ADDR(l) ((char*)((l).addr))
+# define LINE_SIZE(l)        ((int)((l).size))
+# define LINE_ADDR(l)        ((char*)((l).addr))
+
+# define SET_LINE_SIZE(l, v) ((l).size = v)
+# define SET_LINE_ADDR(l, v) ((l).addr = v)
 
 
 typedef struct  s_line
