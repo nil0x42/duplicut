@@ -3,11 +3,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include "chunk.h"
+#include "vars.h"
+
 
 /** Exit the program after cleaning out
  * all created objects properly.
  */
-void        exit_properly(int status)
+void            exit_properly(int status)
 {
     exit(status);
 }
@@ -16,12 +19,12 @@ void        exit_properly(int status)
  * The use of printf() inside this function causes it
  * to potentially allocate memory, which could be dangerous.
  */
-void        error(const char *fmt, ...)
+void            error(const char *fmt, ...)
 {
-    va_list ap;
+    va_list     ap;
 
     va_start(ap, fmt);
-    write(STDERR_FILENO, "error: ", 7);
+    write(STDERR_FILENO, "\nerror: ", 8);
     vdprintf(STDERR_FILENO, fmt, ap);
     write(STDERR_FILENO, "\n", 1);
     va_end(ap);
@@ -32,9 +35,9 @@ void        error(const char *fmt, ...)
  * Unlike error(), this function does not allocates
  * any additionnal memory in order to leave.
  */
-void        die(const char *msg)
+void            die(const char *msg)
 {
-    write(STDERR_FILENO, "fatal error: ", 13);
+    write(STDERR_FILENO, "\nfatal error: ", 14);
     perror(msg);
     exit_properly(1);
 }
