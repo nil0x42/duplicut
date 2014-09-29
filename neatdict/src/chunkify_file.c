@@ -1,10 +1,13 @@
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdio.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include "config.h"
 #include "chunk.h"
+#include "vars.h"
 #include "exit.h"
+#include "debug.h"
 
 
 /** Close the given `file` struct.
@@ -55,6 +58,7 @@ static void         attach_chunk(t_chunk **chunk_list, t_chunk *chunk)
 {
     t_chunk         *chunk_pos;
 
+    g_vars.num_chunks++;
     if (*chunk_list == NULL)
         *chunk_list = chunk;
     else
@@ -93,6 +97,20 @@ static t_chunk      *create_chunk(t_file *file, size_t size)
 }
 
 
+static int         chunklist_size(t_chunk *chunk_list)
+{
+    int     size;
+
+    size = 0;
+    while (chunk_list != NULL)
+    {
+        size++;
+        chunk_list = chunk_list->next;
+    }
+    return (size);
+}
+
+
 /** Create and initialize as many chunks as needed from
  * `pathname` file, and attach them to the end of `chunk_list`
  */
@@ -102,6 +120,8 @@ int                 chunkify_file(const char *pathname, t_chunk **chunk_list)
     t_chunk         *chunk;
     size_t          chunk_size;
 
+    printf("\r%d chunk(s) loaded ...", g_vars.num_chunks);
+    fflush(stdout);
     open_file(pathname, &file);
     while (file.offset < file.size)
     {
@@ -110,7 +130,6 @@ int                 chunkify_file(const char *pathname, t_chunk **chunk_list)
         else
             chunk_size = g_conf.chunk_size;
         chunk = create_chunk(&file, chunk_size);
-        attach_chunk(chunk_list, chunk);
         if (file.offset == 0)
             chunk->tag |= FIRST_CHUNK;
         file.offset += chunk_size;
@@ -119,6 +138,9 @@ int                 chunkify_file(const char *pathname, t_chunk **chunk_list)
         if (file.offset >= file.size)
             chunk->tag |= LAST_CHUNK;
         init_chunk(chunk);
+        attach_chunk(chunk_list, chunk);
+        printf("\r%d chunk(s) loaded ...", g_vars.num_chunks);
+        fflush(stdout);
     }
     close_file(&file);
     return (0);

@@ -1,11 +1,12 @@
 #include <unistd.h>
 #include <stdio.h>
 #include "config.h"
+#include "vars.h"
 #include "chunk.h"
 #include "line.h"
+#include "exit.h"
 #include "debug.h"
 
-t_chunk     *g_chunks = NULL;
 
 t_conf      g_conf = {
     .memlimit = 0,
@@ -17,41 +18,32 @@ t_conf      g_conf = {
 };
 
 
-/* function shall be removed */
+t_vars      g_vars = {
+    .chunk_list = NULL,
+    .num_chunks = 0,
+    .treated_chunks = 0
+};
+
+
 void         display_chunk_infos(t_chunk *chunk)
 {
     DLOG("------------------------------");
-    DLOG("chunk->fd:            '%d'", chunk->fd);
-    DLOG("chunk->tag:           '%d'", chunk->tag);
-    DLOG("chunk->name:          '%s'", chunk->name);
-    DLOG("chunk->addr:          '%p'", chunk->addr);
+    DLOG("chunk->fd:            '%d'",  chunk->fd);
+    DLOG("chunk->tag:           '%d'",  chunk->tag);
+    DLOG("chunk->name:          '%s'",  chunk->name);
+    DLOG("chunk->addr:          '%p'",  chunk->addr);
     DLOG("chunk->size:          '%ld'", chunk->size);
     DLOG("");
-    DLOG("chunk->parent.fd:     '%d'", chunk->parent.fd);
-    DLOG("chunk->parent.name:   '%s'", chunk->parent.name);
+    DLOG("chunk->parent.fd:     '%d'",  chunk->parent.fd);
+    DLOG("chunk->parent.name:   '%s'",  chunk->parent.name);
     DLOG("chunk->parent.offset: '%ld'", chunk->parent.offset);
     DLOG("chunk->parent.size:   '%ld'", chunk->parent.size);
     DLOG("");
-    DLOG("chunk->map.addr:      '%p'", chunk->map.addr);
+    DLOG("chunk->map.addr:      '%p'",  chunk->map.addr);
     DLOG("chunk->map.size:      '%ld'", chunk->map.size);
     DLOG("");
-    DLOG("chunk->next:          '%p'", chunk->next);
+    DLOG("chunk->next:          '%p'",  chunk->next);
     DLOG("------------------------------");
-}
-
-/* function shall be removed */
-void        output_chunk(t_chunk *chunk)
-{
-    t_line  line;
-    size_t  offset;
-
-    offset = 0;
-    while (next_line(&line, chunk, &offset) != NULL)
-    {
-        write(1, LINE_ADDR(line), LINE_SIZE(line));
-        write(1, "\n", 1);
-    }
-    /* write(1, "===SEP===\n", 10); */
 }
 
 
@@ -60,13 +52,13 @@ int         main(int argc, char **argv)
 {
     int     i;
     t_line  *hmap;
-    t_chunk *chunk_list;
     t_chunk *chunk;
 
     optparse(argc, argv, &i);
     configure();
-    chunk_list = NULL;
     while (i < argc)
-        chunkify_file(argv[i++], &chunk_list);
-    remove_duplicates(chunk_list);
+        chunkify_file(argv[i++], &g_vars.chunk_list);
+    printf("\n");
+    remove_duplicates(g_vars.chunk_list);
+    exit_properly(0);
 }

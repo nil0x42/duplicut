@@ -4,6 +4,7 @@
 #include "line.h"
 #include "hash.h"
 #include "exit.h"
+#include "vars.h"
 #include "debug.h"
 
 
@@ -75,19 +76,27 @@ void                remove_duplicates(t_chunk *main_chunk)
 {
     t_line          *hmap;
     t_chunk         *sub_chunk;
+    int             chunk_id;
 
     hmap = (t_line*) malloc(g_conf.hmap_size * sizeof(t_line));
     if (hmap == NULL)
         error("could not allocate hmap");
+    chunk_id = 1;
+    print_remaining_time();
     while (main_chunk != NULL)
     {
         populate_hmap(hmap, main_chunk);
+        g_vars.treated_chunks++;
+        print_remaining_time();
         sub_chunk = main_chunk->next;
         while (sub_chunk != NULL)
         {
             cleanout_chunk(sub_chunk, hmap);
+            g_vars.treated_chunks++;
+            print_remaining_time();
             sub_chunk = sub_chunk->next;
         }
         main_chunk = main_chunk->next;
+        chunk_id++;
     }
 }
