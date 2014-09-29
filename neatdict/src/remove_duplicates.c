@@ -1,28 +1,93 @@
-#include <stdio.h>
-#include <string.h>
-#include "definitions.h"
+#include <stdlib.h>
+#include "config.h"
+#include "chunk.h"
+#include "line.h"
+#include "hash.h"
+#include "exit.h"
 #include "debug.h"
 
-#include <unistd.h>
 
-int         remove_duplicates(char *ptr, off_t off)
+/** Populate `hmap` whith given `chunk` lines.
+ * - This function handles hash collisions and disables
+ * duplicate lines from `chunk` by tagging them with 'DISABLED_LINE'.
+ * - Unique lines are normally written into `hmap`.
+ */
+static void         populate_hmap(t_line *hmap, t_chunk *chunk)
 {
-    char    *eof;
-    char    *end;
-    int     len;
-    int     lines = 0;
+    t_line          line;
+    size_t          offset;
+    long            slot;
 
-    eof = ptr + off;
-    while (ptr != eof)
+    memset(hmap, 0, g_conf.hmap_size * sizeof(t_line));
+    offset = 0;
+    while (next_line(&line, chunk, &offset) != NULL)
     {
-        end = memchr(ptr, '\n', off);
-        len = end - ptr;
-        write(1, ptr, len + 1);
-        ptr = end + 1;
-        ++lines;
+        slot = hash(&line);
+        while (1)
+        {
+            if (LINE_SIZE(hmap[slot]) == 0)
+            {
+                hmap[slot] = line;
+                break;
+            }
+            else if (cmp_line(&line, &hmap[slot]) == 0)
+            {
+                LINE_ADDR(line)[0] = DISABLED_LINE;
+                break;
+            }
+            slot = (slot + 1) % g_conf.hmap_size;
+        }
     }
-    printf("\n\n\n\n\n\n\n\n\n");
-    DLOG("");
-    DLOG("found %d lines\n", lines);
-    return (0);
+}
+
+
+/** Disable any line from `chunk` which is already present in `hmap`
+ */
+static void         cleanout_chunk(t_chunk *chunk, t_line *hmap)
+{
+    t_line          line;
+    size_t          offset;
+    long            slot;
+
+    offset = 0;
+    while (next_line(&line, chunk, &offset) != NULL)
+    {
+        slot = hash(&line);
+        while (1)
+        {
+            if (LINE_SIZE(hmap[slot]) == 0)
+                break;
+            else if (cmp_line(&line, &hmap[slot]) == 0)
+            {
+                LINE_ADDR(line)[0] = DISABLED_LINE;
+                break;
+            }
+            slot = (slot + 1) % g_conf.hmap_size;
+        }
+    }
+}
+
+
+/** Disable all duplicate lines, taking care of the order
+ * between all chunks present in `main_chunk` linked list.
+ */
+void                remove_duplicates(t_chunk *main_chunk)
+{
+    t_line          *hmap;
+    t_chunk         *sub_chunk;
+
+    hmap = (t_line*) malloc(g_conf.hmap_size * sizeof(t_line));
+    if (hmap == NULL)
+        error("could not allocate hmap");
+    while (main_chunk != NULL)
+    {
+        populate_hmap(hmap, main_chunk);
+        sub_chunk = main_chunk->next;
+        while (sub_chunk != NULL)
+        {
+            cleanout_chunk(sub_chunk, hmap);
+            sub_chunk = sub_chunk->next;
+        }
+        main_chunk = main_chunk->next;
+    }
 }

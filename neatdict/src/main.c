@@ -55,22 +55,18 @@ void        output_chunk(t_chunk *chunk)
 }
 
 
+
 int         main(int argc, char **argv)
 {
     int     i;
     t_line  *hmap;
+    t_chunk *chunk_list;
     t_chunk *chunk;
 
     optparse(argc, argv, &i);
     configure();
-    DLOG("%ld", sizeof(unsigned long long));
-
+    chunk_list = NULL;
     while (i < argc)
-    {
-        DLOG("--> argv[%d]: '%s'", i, argv[i]);
-        chunkify_file(argv[i]);
-        i++;
-    }
-    hashtest();
-    return (0);
+        chunkify_file(argv[i++], &chunk_list);
+    remove_duplicates(chunk_list);
 }

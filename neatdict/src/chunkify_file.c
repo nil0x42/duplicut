@@ -7,6 +7,8 @@
 #include "exit.h"
 
 
+/** Close the given `file` struct.
+ */
 static void         close_file(t_file *file)
 {
     if (close(file->fd) < 0)
@@ -14,6 +16,8 @@ static void         close_file(t_file *file)
 }
 
 
+/** Open `pathname` and write related informations to `file`
+ */
 static void         open_file(const char *pathname, t_file *file)
 {
     struct stat     info;
@@ -45,17 +49,21 @@ static void         open_file(const char *pathname, t_file *file)
 }
 
 
-/** Bind the given chunk to global chunk list (g_chunks).
+/** Attach `chunk` to the end of `chunk_list`.
  */
-static void         attach_chunk(t_chunk *chunk)
+static void         attach_chunk(t_chunk **chunk_list, t_chunk *chunk)
 {
-    static t_chunk  *last_created_chunk = NULL;
+    t_chunk         *chunk_pos;
 
-    if (g_chunks == NULL)
-        g_chunks = chunk;
-    if (last_created_chunk != NULL)
-        last_created_chunk->next = chunk;
-    last_created_chunk = chunk;
+    if (*chunk_list == NULL)
+        *chunk_list = chunk;
+    else
+    {
+        chunk_pos = *chunk_list;
+        while (chunk_pos->next != NULL)
+            chunk_pos = chunk_pos->next;
+        chunk_pos->next = chunk;
+    }
 }
 
 
@@ -65,15 +73,14 @@ static void         attach_chunk(t_chunk *chunk)
  * `size` bytes of `file->fd`, starting at `file->offset`
  * offset to a temporary file.
  */
-t_chunk             *create_chunk(t_file *file, size_t size)
+static t_chunk      *create_chunk(t_file *file, size_t size)
 {
     t_chunk         *chunk;
 
     chunk = (t_chunk*) malloc(sizeof(t_chunk));
     if (chunk == NULL)
-        return (NULL);
+        die("not enough memory to allocate chunk");
     memset(chunk, 0, sizeof(t_chunk));
-
     memcpy(&chunk->parent, file, sizeof(*file));
     chunk->map.size = size;
     strcpy(chunk->name, g_conf.tmpdir);
@@ -82,12 +89,14 @@ t_chunk             *create_chunk(t_file *file, size_t size)
         error("cannot create chunk %s: %s", chunk->name, ERRNO);
     if (ftruncate(chunk->fd, chunk->map.size) < 0)
         error("cannot truncate chunk %s: %s", chunk->name, ERRNO);
-    attach_chunk(chunk);
     return (chunk);
 }
 
 
-int                 chunkify_file(const char *pathname)
+/** Create and initialize as many chunks as needed from
+ * `pathname` file, and attach them to the end of `chunk_list`
+ */
+int                 chunkify_file(const char *pathname, t_chunk **chunk_list)
 {
     t_file          file;
     t_chunk         *chunk;
@@ -101,8 +110,7 @@ int                 chunkify_file(const char *pathname)
         else
             chunk_size = g_conf.chunk_size;
         chunk = create_chunk(&file, chunk_size);
-        if (chunk == NULL)
-            abort();
+        attach_chunk(chunk_list, chunk);
         if (file.offset == 0)
             chunk->tag |= FIRST_CHUNK;
         file.offset += chunk_size;

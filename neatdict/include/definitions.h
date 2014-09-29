@@ -9,9 +9,6 @@
 # define MEDIUM_LINE_BYTES  (6)
 # define KEEP_FREE_MEMORY   (0xc800000L) // 200MB RAM kept unused as security
 
-# define CHUNK_FILENAME     "/neatdict-XXXXXX.chunk"
-# define CHUNK_PATHSIZE     (256)
-
 # define DISABLED_LINE      '\0'
 
 #endif /* DEFINITIONS_H */

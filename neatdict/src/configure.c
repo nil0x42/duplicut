@@ -25,6 +25,7 @@ static void config_tmpdir(void)
         error("'%s' exceeds tmpdir maximum length.");
 }
 
+
 /** Configure how many threads to use.
  * Concerned config variable: g_conf.threads
  */
@@ -44,8 +45,10 @@ static void config_cores(void)
 }
 
 
-#define MEMINFO_FILE    ("/proc/meminfo")
-#define BUF_SIZE        (1024)
+/** Dirty function to get currently available memory bytes
+ */
+#define MEMINFO_FILE     ("/proc/meminfo")
+#define MEMINFO_BUF_SIZE (1024)
 static long get_available_memory(void)
 {
     char    *buf;
@@ -56,7 +59,7 @@ static long get_available_memory(void)
     fp = fopen(MEMINFO_FILE, "r");
     if (fp == NULL)
         error("cannot open %s: %s", MEMINFO_FILE, ERRNO);
-    buf_size = BUF_SIZE * sizeof(*buf);
+    buf_size = MEMINFO_BUF_SIZE * sizeof(*buf);
     buf = (char*) malloc(buf_size);
     value = -1L;
     while (getline(&buf, &buf_size, fp) >= 0 )

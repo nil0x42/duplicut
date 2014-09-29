@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include "config.h"
 
+
 static void bad_argument(const char *name, const char *value, const char *info)
 {
     fprintf(stderr, "%s: invalid argument '%s' for '--%s'\n",
@@ -120,5 +121,7 @@ void        optparse(int argc, char **argv, int *idx)
             exit(EXIT_FAILURE);
         }
     }
+    if (optind == argc)
+        setopt_help(NULL);
     *idx = optind;
 }
