@@ -154,7 +154,7 @@ static void     distribute_memory(void)
 
     // hmap_sz was bytes, convert to number of cells (t_line structs..)
     g_conf.hmap_size = (size_t)hmap_sz / sizeof(t_line);
-    /* g_conf.hmap_size = get_prev_prime(g_conf.hmap_size); */
+    g_conf.hmap_size = get_prev_prime(g_conf.hmap_size);
 
 
     g_conf.chunk_size = (size_t) chunk_sz;

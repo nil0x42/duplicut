@@ -77,7 +77,7 @@ static void         attach_chunk(t_chunk **chunk_list, t_chunk *chunk)
  * `size` bytes of `file->fd`, starting at `file->offset`
  * offset to a temporary file.
  */
-static t_chunk      *create_chunk(t_file *file, size_t size)
+static t_chunk      *create_chunk(t_file *file, size_t size, t_chunk **list)
 {
     t_chunk         *chunk;
 
@@ -85,6 +85,7 @@ static t_chunk      *create_chunk(t_file *file, size_t size)
     if (chunk == NULL)
         die("not enough memory to allocate chunk");
     memset(chunk, 0, sizeof(t_chunk));
+    attach_chunk(list, chunk);
     memcpy(&chunk->parent, file, sizeof(*file));
     chunk->map.size = size;
     strcpy(chunk->name, g_conf.tmpdir);
@@ -94,20 +95,6 @@ static t_chunk      *create_chunk(t_file *file, size_t size)
     if (ftruncate(chunk->fd, chunk->map.size) < 0)
         error("cannot truncate chunk %s: %s", chunk->name, ERRNO);
     return (chunk);
-}
-
-
-static int         chunklist_size(t_chunk *chunk_list)
-{
-    int     size;
-
-    size = 0;
-    while (chunk_list != NULL)
-    {
-        size++;
-        chunk_list = chunk_list->next;
-    }
-    return (size);
 }
 
 
@@ -129,7 +116,7 @@ int                 chunkify_file(const char *pathname, t_chunk **chunk_list)
             chunk_size = file.size - file.offset;
         else
             chunk_size = g_conf.chunk_size;
-        chunk = create_chunk(&file, chunk_size);
+        chunk = create_chunk(&file, chunk_size, chunk_list);
         if (file.offset == 0)
             chunk->tag |= FIRST_CHUNK;
         file.offset += chunk_size;
@@ -138,7 +125,6 @@ int                 chunkify_file(const char *pathname, t_chunk **chunk_list)
         if (file.offset >= file.size)
             chunk->tag |= LAST_CHUNK;
         init_chunk(chunk);
-        attach_chunk(chunk_list, chunk);
         printf("\r%d chunk(s) loaded ...", g_vars.num_chunks);
         fflush(stdout);
     }

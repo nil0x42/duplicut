@@ -21,7 +21,8 @@ t_conf      g_conf = {
 t_vars      g_vars = {
     .chunk_list = NULL,
     .num_chunks = 0,
-    .treated_chunks = 0
+    .treated_chunks = 0,
+    .hmap = NULL
 };
 
 
@@ -51,8 +52,6 @@ void         display_chunk_infos(t_chunk *chunk)
 int         main(int argc, char **argv)
 {
     int     i;
-    t_line  *hmap;
-    t_chunk *chunk;
 
     optparse(argc, argv, &i);
     configure();

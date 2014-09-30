@@ -3,8 +3,38 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include <sys/mman.h>
+#include "exit.h"
 #include "chunk.h"
 #include "vars.h"
+
+
+static void     delete_chunk(t_chunk **chunk_ptr)
+{
+    t_chunk     *chunk;
+
+    chunk = *chunk_ptr;
+    if (chunk->fd >= 0)
+    {
+        close(chunk->fd);
+        if (chunk->map.addr && munmap(chunk->map.addr, chunk->map.size) < 0)
+        {
+            fputs("could not unmap chunk while exiting", stderr);
+            perror(chunk->name);
+        }
+    }
+    if (*chunk->name != '\0')
+    {
+        if (unlink(chunk->name) < 0)
+        {
+            fputs("could not unlink chunk while exiting", stderr);
+            perror(chunk->name);
+        }
+        *chunk->name = '\0';
+    }
+    *chunk_ptr = chunk->next;
+    free(chunk);
+}
 
 
 /** Exit the program after cleaning out
@@ -12,8 +42,13 @@
  */
 void            exit_properly(int status)
 {
+    if (g_vars.hmap != NULL)
+        free(g_vars.hmap);
+    while (g_vars.chunk_list != NULL)
+        delete_chunk(&g_vars.chunk_list);
     exit(status);
 }
+
 
 /** Print a formatted error message and leave the program.
  * The use of printf() inside this function causes it
@@ -30,6 +65,7 @@ void            error(const char *fmt, ...)
     va_end(ap);
     exit_properly(1);
 }
+
 
 /** Suddenly exit the program.
  * Unlike error(), this function does not allocates

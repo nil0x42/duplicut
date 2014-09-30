@@ -2,12 +2,14 @@
 # define VARS_H
 
 # include "chunk.h"
+# include "line.h"
 
 typedef struct      s_vars
 {
     t_chunk         *chunk_list;
     int             num_chunks;
     int             treated_chunks;
+    t_line          *hmap;
 }                   t_vars;
 
 extern t_vars       g_vars;
