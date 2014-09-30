@@ -39,14 +39,12 @@ t_line      *next_line(t_line *line, t_chunk *chunk, size_t *offset)
     ptr = memchr(addr, '\n', size);
     if (ptr == NULL)
     {
-        SET_LINE_ADDR(*line, addr);
-        SET_LINE_SIZE(*line, size - *offset);
+        *line = MAKE_LINE(addr, (size - *offset));
         *offset = size;
     }
     else
     {
-        SET_LINE_ADDR(*line, addr);
-        SET_LINE_SIZE(*line, ptr - addr);
+        *line = MAKE_LINE(addr, (ptr - addr));
         *offset += LINE_SIZE(*line) + 1;
     }
     return (line);
