@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <string.h>
 #include <stdio.h>
 #include "config.h"
 #include "vars.h"
@@ -48,10 +49,42 @@ void         display_chunk_infos(t_chunk *chunk)
 }
 
 
-
-int         main(int argc, char **argv)
+#define SUFFIX   (".neat")
+#define BUF_SIZE (CHUNK_FILE + 5)
+void            blabla(t_chunk *chunk)
 {
-    int     i;
+    char        *src_file;
+    char        dst_file[CHUNK_PATHSIZE + 5];
+    char        *dst_ptr;
+    size_t      *dst_size;
+    int         dst_fd;
+    size_t      dst_offset;
+
+    do
+    {
+        src_file = chunk->name;
+        memset(dst_file, 0, BUF_SIZE);
+        strcpy(dst_file, BUF_SIZE);
+        strcat(dst_file, SUFFIX);
+        dst_fd = open(dst_file, O_CREAT | O_WRONLY);
+        dst_size = chunk->parent_size + 1;
+        dst_offset = 0;
+        ftruncate(fd, chunk->parent->size + 1);
+        dst_ptr = mmap(NULL, dst_size, PROT_WRITE, MAP_SHARED,
+                       dst_fd, dst_offset);
+        while (chunk != NULL && chunk->name == src_file)
+        {
+            dstfile_writeln();
+            chunk = chunk->next;
+        }
+    }
+    while (chunk != NULL);
+}
+
+
+int             main(int argc, char **argv)
+{
+    int         i;
 
     optparse(argc, argv, &i);
     configure();
