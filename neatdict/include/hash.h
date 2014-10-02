@@ -1,7 +1,6 @@
 #ifndef HASH_H
 # define HASH_H
 
-# include "config.h"
 # include "line.h"
 
 # include "murmur3.h"

@@ -1,6 +1,7 @@
 #ifndef LINE_H
 # define LINE_H
 
+# include <stddef.h>
 # include <stdint.h>
 # include "chunk.h"
 

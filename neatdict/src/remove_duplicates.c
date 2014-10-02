@@ -1,11 +1,11 @@
 #include <stdlib.h>
+#include "definitions.h"
 #include "config.h"
 #include "chunk.h"
 #include "line.h"
 #include "hash.h"
 #include "exit.h"
 #include "vars.h"
-#include "debug.h"
 
 
 /** Populate `hmap` whith given `chunk` lines.

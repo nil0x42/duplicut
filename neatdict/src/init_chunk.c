@@ -3,7 +3,6 @@
 #include "config.h"
 #include "chunk.h"
 #include "exit.h"
-#include "debug.h"
 
 
 static void         get_chunk_boundaries(t_chunk *chunk)

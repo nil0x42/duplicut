@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <math.h>
 #include <stdio.h>
+#include "definitions.h"
 #include "config.h"
 #include "chunk.h"
 #include "line.h"
@@ -13,7 +14,7 @@
  * If undefined by command line arguments, tmpdir
  * defaults to $TMPDIR environment varialbe.
  */
-static void config_tmpdir(void)
+static void     config_tmpdir(void)
 {
     if (g_conf.tmpdir == NULL)
     {
@@ -29,15 +30,15 @@ static void config_tmpdir(void)
 /** Configure how many threads to use.
  * Concerned config variable: g_conf.threads
  */
-static void config_threads(void)
+static void     config_threads(void)
 {
-    long    available_processors;
+    long        available_processors;
 
     available_processors = sysconf(_SC_NPROCESSORS_ONLN);
     if (available_processors < 0)
         error("could not determine available processors");
     else if (available_processors == 0)
-        die("unexpected '0' value for available_processors");
+        die("unexpected '0' value for sysconf(_SC_NPROCESSORS_ONLN)");
     if (g_conf.threads == 0)
         g_conf.threads = available_processors;
     else if (g_conf.threads > available_processors)
@@ -47,19 +48,19 @@ static void config_threads(void)
 
 /** Dirty function to get currently available memory bytes
  */
-#define MEMINFO_FILE     ("/proc/meminfo")
-#define MEMINFO_BUF_SIZE (1024)
-static long get_available_memory(void)
+#define MEMINFO_FILE ("/proc/meminfo")
+#define BUF_SIZE     (1024)
+static long     get_available_memory(void)
 {
-    char    *buf;
-    size_t  buf_size;
-    FILE    *fp;
-    long    value;
+    char        *buf;
+    size_t      buf_size;
+    FILE        *fp;
+    long        value;
 
     fp = fopen(MEMINFO_FILE, "r");
     if (fp == NULL)
         error("cannot open %s: %s", MEMINFO_FILE, ERRNO);
-    buf_size = MEMINFO_BUF_SIZE * sizeof(*buf);
+    buf_size = BUF_SIZE * sizeof(*buf);
     buf = (char*) malloc(buf_size);
     value = -1L;
     while (getline(&buf, &buf_size, fp) >= 0 )
@@ -82,9 +83,9 @@ static long get_available_memory(void)
  *      g_conf.page_size
  *      g_conf.memlimit
  */
-static void config_memlimit(void)
+static void     config_memlimit(void)
 {
-    long    max_memory;
+    long        max_memory;
 
     g_conf.page_size = sysconf(_SC_PAGESIZE);
     if (g_conf.page_size < 0)
@@ -108,7 +109,7 @@ static void config_memlimit(void)
  */
 static long     get_prev_prime(long n)
 {
-    int             i;
+    int         i;
 
     n = (n - 1) | 1;
     while (n > 0)
@@ -135,12 +136,12 @@ static long     get_prev_prime(long n)
  */
 static void     distribute_memory(void)
 {
-    double          hmap_sz;
-    double          chunk_sz;
+    double      hmap_sz;
+    double      chunk_sz;
 
-    double          hmap_linecost;
-    double          chunk_linecost;
-    double          delta;
+    double      hmap_linecost;
+    double      chunk_linecost;
+    double      delta;
 
     hmap_linecost = sizeof(t_line) * (1 / HMAP_LOAD_FACTOR);
     chunk_linecost = MEDIUM_LINE_BYTES;
@@ -163,18 +164,24 @@ static void     distribute_memory(void)
 }
 
 
-void        configure(void)
+static void     dlog_obj_t_conf(t_conf *conf)
+{
+    DLOG("------------------------------");
+    DLOG("conf->memlimit:   %ld", conf->memlimit);
+    DLOG("conf->threads:    %d",  conf->threads);
+    DLOG("conf->tmpdir:     %s",  conf->tmpdir);
+    DLOG("conf->page_size:  %d",  conf->page_size);
+    DLOG("conf->hmap_size:  %ld", conf->hmap_size);
+    DLOG("conf->chunk_size: %ld", conf->chunk_size);
+    DLOG("------------------------------");
+}
+
+
+void            configure(void)
 {
     config_tmpdir();
     config_threads();
     config_memlimit();
     distribute_memory();
-    DLOG("------------------------------");
-    DLOG("g_conf.memlimit:   %ld", g_conf.memlimit);
-    DLOG("g_conf.threads:    %d",  g_conf.threads);
-    DLOG("g_conf.tmpdir:     %s",  g_conf.tmpdir);
-    DLOG("g_conf.page_size:  %d",  g_conf.page_size);
-    DLOG("g_conf.hmap_size:  %ld", g_conf.hmap_size);
-    DLOG("g_conf.chunk_size: %ld", g_conf.chunk_size);
-    DLOG("------------------------------");
+    dlog_obj_t_conf(&g_conf);
 }

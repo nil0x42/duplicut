@@ -1,14 +1,11 @@
 #ifndef CHUNK_H
 # define CHUNK_H
 
-# include "definitions.h"
-
 # define FIRST_CHUNK    (1)
 # define LAST_CHUNK     (2)
 
 # define CHUNK_FILENAME ("/neatdict-XXXXXX.chunk")
 # define CHUNK_PATHSIZE (256)
-
 
 typedef struct      s_file
 {

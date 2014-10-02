@@ -1,4 +1,5 @@
 #include "hash.h"
+# include "config.h"
 
 
 static inline void      fasthash(t_line *line, long *out)

@@ -4,6 +4,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "config.h"
+#include "definitions.h"
 
 
 static void bad_argument(const char *name, const char *value, const char *info)

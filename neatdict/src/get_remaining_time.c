@@ -60,17 +60,7 @@ char            *time_repr(int seconds)
 }
 
 
-static int      factorial(int n)
-{
-    int         sum;
-
-    sum = 0;
-    while (n)
-        sum += n--;
-    return (sum);
-}
-
-
+# define FACTORIAL(n) (n * (n + 1) / 2)
 static int      get_remaining_time(int base_time, int cur_time)
 {
     double      chunk_time;
@@ -78,7 +68,7 @@ static int      get_remaining_time(int base_time, int cur_time)
     int         remaining;
 
     chunk_time = (double)(cur_time - base_time) / (double)g_vars.treated_chunks;
-    missing_chunks = factorial(g_vars.num_chunks) - g_vars.treated_chunks;
+    missing_chunks = FACTORIAL(g_vars.num_chunks) - g_vars.treated_chunks;
     if (missing_chunks == 0)
         remaining = 0;
     else

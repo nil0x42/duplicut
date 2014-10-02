@@ -11,4 +11,7 @@
 
 # define DISABLED_LINE      '\0'
 
+// filehandle.c
+void            check_files(char **array, int len);
+
 #endif /* DEFINITIONS_H */

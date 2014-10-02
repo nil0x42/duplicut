@@ -1,5 +1,6 @@
 #include <string.h>
 #include "line.h"
+#include "definitions.h"
 
 
 t_line      *next_line(t_line *line, t_chunk *chunk, size_t *offset)
