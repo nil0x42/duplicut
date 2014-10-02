@@ -6,9 +6,9 @@
 
 typedef size_t  t_line;
 
-#  define LINE_SIZE(line)    ((uint8_t)line)
-#  define LINE_ADDR(line)    ((char*)(line >> 8))
-#  define MAKE_LINE(ptr, sz) ((size_t)((((uintptr_t)ptr) << 8) + (uint8_t)sz))
+#  define LINE_SIZE(ln)         ((uint8_t)ln)
+#  define LINE_ADDR(ln)         ((char*)(ln >> 8))
+#  define SET_LINE(ln, ptr, sz) (ln = ((((uintptr_t)ptr) << 8) + (uint8_t)sz))
 
 // line_utils.c
 int             cmp_line(t_line *l1, t_line *l2);
