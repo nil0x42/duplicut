@@ -29,7 +29,7 @@ static void config_tmpdir(void)
 /** Configure how many threads to use.
  * Concerned config variable: g_conf.threads
  */
-static void config_cores(void)
+static void config_threads(void)
 {
     long    available_processors;
 
@@ -166,7 +166,7 @@ static void     distribute_memory(void)
 void        configure(void)
 {
     config_tmpdir();
-    config_cores();
+    config_threads();
     config_memlimit();
     distribute_memory();
     DLOG("------------------------------");

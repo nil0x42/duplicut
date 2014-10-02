@@ -25,8 +25,8 @@ static void setopt_help(const char *value)
            "\n"
            "Options:\n"
            "-m, --memlimit <VALUE>    Limit max used memory\n"
-           "-c, --cores <NUMBER>      Use more than one thread\n"
-           "-t, --tmpdir <DIRECTORY>  Set temporary chunk container\n"
+           "-t, --threads <NUMBER>    Max threads to use\n"
+           "-T, --tmpdir <DIRECTORY>  Set temporary chunk dir (DEPRECATED)\n"
            "-h, --help                Display this help and exit\n"
            "-v, --version             Output version information and exit\n"
            "\n", PROGNAME);
@@ -71,17 +71,17 @@ static void setopt_memlimit(const char *value)
 }
 
 
-static void setopt_cores(const char *value)
+static void setopt_threads(const char *value)
 {
     char        *endptr;
-    int         cores;
+    int         threads;
 
-    cores = (int) strtol(value, &endptr, 10);
+    threads = (int) strtol(value, &endptr, 10);
     if (*endptr != '\0')
-        bad_argument("cores", value, "not a number");
-    else if (cores < 1)
-        bad_argument("cores", value, "not a positive number");
-    g_conf.threads = cores;
+        bad_argument("threads", value, "not a number");
+    else if (threads < 1)
+        bad_argument("threads", value, "not a positive number");
+    g_conf.threads = threads;
 }
 
 
@@ -103,7 +103,7 @@ void        optparse(int argc, char **argv, int *idx)
         { NULL,       0,                 NULL, '\0'}
     };
 
-    while ((opt = getopt_long(argc, argv, "hvm:c:t:", options, NULL)) >= 0)
+    while ((opt = getopt_long(argc, argv, "hvm:t:T:", options, NULL)) >= 0)
     {
         if (opt == 'h')
             setopt_help(optarg);
@@ -111,9 +111,9 @@ void        optparse(int argc, char **argv, int *idx)
             setopt_version(optarg);
         else if (opt == 'm')
             setopt_memlimit(optarg);
-        else if (opt == 'c')
-            setopt_cores(optarg);
         else if (opt == 't')
+            setopt_threads(optarg);
+        else if (opt == 'T')
             setopt_tmpdir(optarg);
         else
         {
