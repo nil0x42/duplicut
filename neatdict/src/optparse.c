@@ -24,11 +24,11 @@ static void setopt_help(const char *value)
            "Remove duplicates from FILE(s) without sorting them.\n"
            "\n"
            "Options:\n"
-           "-m, --memlimit <MEGABYTES>  Limit max used memory\n"
-           "-c, --cores <NUMBER>        Use more than one thread\n"
-           "-t, --tmpdir <DIRECTORY>    Set temporary chunk container\n"
-           "-h, --help                  Display this help and exit\n"
-           "-v, --version               Output version information and exit\n"
+           "-m, --memlimit <VALUE>    Limit max used memory\n"
+           "-c, --cores <NUMBER>      Use more than one thread\n"
+           "-t, --tmpdir <DIRECTORY>  Set temporary chunk container\n"
+           "-h, --help                Display this help and exit\n"
+           "-v, --version             Output version information and exit\n"
            "\n", PROGNAME);
     exit(EXIT_SUCCESS);
 }
