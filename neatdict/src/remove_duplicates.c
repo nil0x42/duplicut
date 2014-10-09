@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <sys/mman.h>
 #include "definitions.h"
 #include "config.h"
 #include "chunk.h"
@@ -26,7 +27,7 @@ static void         populate_hmap(t_line *hmap, t_chunk *chunk)
         slot = hash(&line);
         while (1)
         {
-            if (LINE_SIZE(hmap[slot]) == 0)
+            if (!LINE_ISSET(hmap[slot]))
             {
                 hmap[slot] = line;
                 break;
@@ -50,13 +51,14 @@ static void         cleanout_chunk(t_chunk *chunk, t_line *hmap)
     size_t          offset;
     long            slot;
 
+    load_chunk(chunk);
     offset = 0;
     while (next_line(&line, chunk, &offset) != NULL)
     {
         slot = hash(&line);
         while (1)
         {
-            if (LINE_SIZE(hmap[slot]) == 0)
+            if (!LINE_ISSET(hmap[slot]))
                 break;
             else if (cmp_line(&line, &hmap[slot]) == 0)
             {
@@ -66,6 +68,7 @@ static void         cleanout_chunk(t_chunk *chunk, t_line *hmap)
             slot = (slot + 1) % g_conf.hmap_size;
         }
     }
+    unload_chunk(chunk);
 }
 
 
@@ -78,10 +81,13 @@ void                remove_duplicates(t_chunk *main_chunk)
 
     g_vars.hmap = (t_line*) malloc(g_conf.hmap_size * sizeof(t_line));
     if (g_vars.hmap == NULL)
-        error("could not allocate hmap");
+        error("cannot malloc() hash map: %s", ERRNO);
+    /* if (mlock(g_vars.hmap, (g_conf.hmap_size * sizeof(t_line))) < 0) */
+    /*     error("cannot mlock() hash map: %s", ERRNO); */
     print_remaining_time();
     while (main_chunk != NULL)
     {
+        load_chunk(main_chunk);
         populate_hmap(g_vars.hmap, main_chunk);
         g_vars.treated_chunks++;
         print_remaining_time();
@@ -93,6 +99,7 @@ void                remove_duplicates(t_chunk *main_chunk)
             print_remaining_time();
             sub_chunk = sub_chunk->next;
         }
+        unload_chunk(main_chunk);
         main_chunk = main_chunk->next;
     }
 }

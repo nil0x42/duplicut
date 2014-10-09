@@ -7,6 +7,7 @@
 
 typedef size_t  t_line;
 
+#  define LINE_ISSET(ln)        (ln != 0)
 #  define LINE_SIZE(ln)         ((uint8_t)ln)
 #  define LINE_ADDR(ln)         ((char*)(ln >> 8))
 #  define SET_LINE(ln, ptr, sz) (ln = ((((uintptr_t)ptr) << 8) + (uint8_t)sz))

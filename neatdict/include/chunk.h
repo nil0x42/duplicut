@@ -25,6 +25,7 @@ typedef struct      s_chunk
 {
     // int             fd;
     // char            name[CHUNK_PATHSIZE];
+    int             id;
     int             tag;
     char            *addr;
     size_t          size;
@@ -34,11 +35,12 @@ typedef struct      s_chunk
 }                   t_chunk;
 
 
+// chunk.c
+void                load_chunk(t_chunk *chunk);
+void                unload_chunk(t_chunk *chunk);
+
 // chunkify_file.c
 int                 chunkify_file(const char *pathname, t_chunk **chunk_list);
-
-// init_chunk.c
-void                init_chunk(t_chunk *chunk);
 
 // remove_duplicates.c
 void                remove_duplicates(t_chunk *main_chunk);

@@ -26,26 +26,6 @@ t_vars      g_vars = {
     .hmap = NULL
 };
 
-
-static void     dlog_obj_t_chunk(t_chunk *chunk)
-{
-    DLOG("------------------------------");
-    DLOG("chunk->tag:           '%d'",  chunk->tag);
-    DLOG("chunk->addr:          '%p'",  chunk->addr);
-    DLOG("chunk->size:          '%ld'", chunk->size);
-    DLOG("");
-    DLOG("chunk->file.fd:       '%d'",  chunk->file.fd);
-    DLOG("chunk->file.name:     '%s'",  chunk->file.name);
-    DLOG("chunk->file.offset:   '%ld'", chunk->file.offset);
-    DLOG("chunk->file.size:     '%ld'", chunk->file.size);
-    DLOG("");
-    DLOG("chunk->map.addr:      '%p'",  chunk->map.addr);
-    DLOG("chunk->map.size:      '%ld'", chunk->map.size);
-    DLOG("");
-    DLOG("chunk->next:          '%p'",  chunk->next);
-    DLOG("------------------------------");
-}
-
 int             main(int argc, char **argv)
 {
     int         i;
