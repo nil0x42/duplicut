@@ -27,7 +27,6 @@ static void setopt_help(const char *value)
            "Options:\n"
            "-m, --memlimit <VALUE>    Limit max used memory\n"
            "-t, --threads <NUMBER>    Max threads to use\n"
-           "-T, --tmpdir <DIRECTORY>  Set temporary chunk dir (DEPRECATED)\n"
            "-h, --help                Display this help and exit\n"
            "-v, --version             Output version information and exit\n"
            "\n", PROGNAME);
@@ -86,12 +85,6 @@ static void setopt_threads(const char *value)
 }
 
 
-static void setopt_tmpdir(const char *value)
-{
-    g_conf.tmpdir = value;
-}
-
-
 void        optparse(int argc, char **argv, int *idx)
 {
     int             opt;
@@ -100,11 +93,10 @@ void        optparse(int argc, char **argv, int *idx)
         { "version",  no_argument,       NULL, 'v' },
         { "memlimit", required_argument, NULL, 'm' },
         { "cores",    required_argument, NULL, 'c' },
-        { "tmpdir",   required_argument, NULL, 't' },
         { NULL,       0,                 NULL, '\0'}
     };
 
-    while ((opt = getopt_long(argc, argv, "hvm:t:T:", options, NULL)) >= 0)
+    while ((opt = getopt_long(argc, argv, "hvm:t:", options, NULL)) >= 0)
     {
         if (opt == 'h')
             setopt_help(optarg);
@@ -114,8 +106,6 @@ void        optparse(int argc, char **argv, int *idx)
             setopt_memlimit(optarg);
         else if (opt == 't')
             setopt_threads(optarg);
-        else if (opt == 'T')
-            setopt_tmpdir(optarg);
         else
         {
             fprintf(stderr, "Try '%s --help' for more information\n", PROGNAME);

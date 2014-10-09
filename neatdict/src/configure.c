@@ -10,23 +10,6 @@
 #include "debug.h"
 
 
-/** Configure tmpdir variable.
- * If undefined by command line arguments, tmpdir
- * defaults to $TMPDIR environment varialbe.
- */
-static void     config_tmpdir(void)
-{
-    if (g_conf.tmpdir == NULL)
-    {
-        g_conf.tmpdir = getenv("TMPDIR");
-        if (g_conf.tmpdir == NULL)
-            g_conf.tmpdir = DEFAULT_TMPDIR;
-    }
-    if (strlen(g_conf.tmpdir) + strlen(CHUNK_FILENAME) >= CHUNK_PATHSIZE)
-        error("'%s' exceeds tmpdir maximum length.");
-}
-
-
 /** Configure how many threads to use.
  * Concerned config variable: g_conf.threads
  */
@@ -169,7 +152,6 @@ static void     dlog_obj_t_conf(t_conf *conf)
     DLOG("------------------------------");
     DLOG("conf->memlimit:   %ld", conf->memlimit);
     DLOG("conf->threads:    %d",  conf->threads);
-    DLOG("conf->tmpdir:     %s",  conf->tmpdir);
     DLOG("conf->page_size:  %d",  conf->page_size);
     DLOG("conf->hmap_size:  %ld", conf->hmap_size);
     DLOG("conf->chunk_size: %ld", conf->chunk_size);
@@ -179,7 +161,6 @@ static void     dlog_obj_t_conf(t_conf *conf)
 
 void            configure(void)
 {
-    config_tmpdir();
     config_threads();
     config_memlimit();
     distribute_memory();
