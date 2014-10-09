@@ -1,0 +1,9 @@
+the following command fails:
+    ./neatdict -m 300k test/x
+
+it seems that it happens because bound_chunk is called more than once for
+each chunk, and a chunk which already contains DISABLED_LINE flags may
+be harder to bound.
+
+A solution consists in changing chunk->addr/chunk->size to
+chunk->start/chunk->end (size_t objs) which acts as boundaries.
