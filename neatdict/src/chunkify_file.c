@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -71,10 +72,7 @@ static void         attach_chunk(t_chunk **chunk_list, t_chunk *chunk)
 
 
 /** Create a new chunk based on a portion of file.
- * This function appends the new allocated chunk
- * to `g_chunks`. It is created by copying
- * `size` bytes of `file->fd`, starting at `file->offset`
- * offset to a temporary file.
+ * It appends the new allocated chunk to `g_chunks`.
  */
 static t_chunk      *create_chunk(t_file *file, size_t size, t_chunk **list)
 {
@@ -85,20 +83,62 @@ static t_chunk      *create_chunk(t_file *file, size_t size, t_chunk **list)
         die("not enough memory to allocate chunk");
     memset(chunk, 0, sizeof(t_chunk));
     attach_chunk(list, chunk);
-    memcpy(&chunk->parent, file, sizeof(*file));
+    memcpy(&chunk->file, file, sizeof(*file));
     chunk->map.size = size;
-    strcpy(chunk->name, g_conf.tmpdir);
-    strcat(chunk->name, CHUNK_FILENAME);
-    if ((chunk->fd = mkstemps(chunk->name, 6)) < 0)
-        error("cannot create chunk %s: %s", chunk->name, ERRNO);
-    if (ftruncate(chunk->fd, chunk->map.size) < 0)
-        error("cannot truncate chunk %s: %s", chunk->name, ERRNO);
     return (chunk);
 }
 
 
-/** Create and initialize as many chunks as needed from
- * `pathname` file, and attach them to the end of `chunk_list`
+/** Determine real bounaries for the given chunk.
+ * (Because chunks are created from memory mappings, so
+ * real bounaries shall be related to start/end of a
+ * specific line of the wordlist).
+ */
+static void         bound_chunk(t_chunk *chunk)
+{
+    char            *ptr;
+    size_t          delta;
+
+    if (chunk->tag & FIRST_CHUNK)
+    {
+        delta = 0;
+        chunk->addr = chunk->map.addr;
+    }
+    else if (chunk->map.addr[g_conf.page_size - 1] == '\n')
+    {
+        delta = g_conf.page_size;
+        chunk->addr = &chunk->map.addr[g_conf.page_size];
+    }
+    else
+    {
+        chunk->addr = memrchr(chunk->map.addr, '\n', g_conf.page_size);
+        if (chunk->addr == NULL)
+            error("%s: can't find start bound", chunk->file.name);
+        chunk->addr++;
+        delta = (size_t)(chunk->addr - chunk->map.addr);
+    }
+    chunk->size = chunk->map.size - delta;
+    if (!(chunk->tag & LAST_CHUNK))
+    {
+        if (chunk->addr[chunk->size - 1] == '\n')
+            return ;
+        else
+        {
+            ptr = memrchr(chunk->addr, '\n', chunk->size - 1);
+            if (ptr == NULL)
+                error("%s: can't find end bound", chunk->file.name);
+            ptr++;
+            delta = (size_t)(ptr - chunk->addr);
+            chunk->size -= chunk->size - delta;
+        }
+    }
+}
+
+
+/** Split the given file into as many chunks as needed according
+ * to current memory repartition rules.
+ * Each chunk is allocated, initialized, and finally, attached
+ * to the end of `chunk_list`
  */
 int                 chunkify_file(const char *pathname, t_chunk **chunk_list)
 {
@@ -106,8 +146,8 @@ int                 chunkify_file(const char *pathname, t_chunk **chunk_list)
     t_chunk         *chunk;
     size_t          chunk_size;
 
-    printf("\r%d chunk(s) loaded ...", g_vars.num_chunks);
-    fflush(stdout);
+    /* printf("\r%d chunk(s) loaded ...", g_vars.num_chunks); */
+    /* fflush(stdout); */
     open_file(pathname, &file);
     while (file.offset < file.size)
     {
@@ -123,9 +163,9 @@ int                 chunkify_file(const char *pathname, t_chunk **chunk_list)
             file.offset -= g_conf.page_size;
         if (file.offset >= file.size)
             chunk->tag |= LAST_CHUNK;
-        init_chunk(chunk);
-        printf("\r%d chunk(s) loaded ...", g_vars.num_chunks);
-        fflush(stdout);
+        bound_chunk(chunk);
+        /* printf("\r%d chunk(s) loaded ...", g_vars.num_chunks); */
+        /* fflush(stdout); */
     }
     close_file(&file);
     return (0);

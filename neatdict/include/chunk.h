@@ -23,15 +23,16 @@ typedef struct      s_map
 
 typedef struct      s_chunk
 {
-    int             fd;
+    // int             fd;
+    // char            name[CHUNK_PATHSIZE];
     int             tag;
-    char            name[CHUNK_PATHSIZE];
     char            *addr;
     size_t          size;
-    t_file          parent;
+    t_file          file;
     t_map           map;
     struct s_chunk  *next;
 }                   t_chunk;
+
 
 // chunkify_file.c
 int                 chunkify_file(const char *pathname, t_chunk **chunk_list);

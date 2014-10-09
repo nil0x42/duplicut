@@ -30,16 +30,14 @@ t_vars      g_vars = {
 static void     dlog_obj_t_chunk(t_chunk *chunk)
 {
     DLOG("------------------------------");
-    DLOG("chunk->fd:            '%d'",  chunk->fd);
     DLOG("chunk->tag:           '%d'",  chunk->tag);
-    DLOG("chunk->name:          '%s'",  chunk->name);
     DLOG("chunk->addr:          '%p'",  chunk->addr);
     DLOG("chunk->size:          '%ld'", chunk->size);
     DLOG("");
-    DLOG("chunk->parent.fd:     '%d'",  chunk->parent.fd);
-    DLOG("chunk->parent.name:   '%s'",  chunk->parent.name);
-    DLOG("chunk->parent.offset: '%ld'", chunk->parent.offset);
-    DLOG("chunk->parent.size:   '%ld'", chunk->parent.size);
+    DLOG("chunk->file.fd:       '%d'",  chunk->file.fd);
+    DLOG("chunk->file.name:     '%s'",  chunk->file.name);
+    DLOG("chunk->file.offset:   '%ld'", chunk->file.offset);
+    DLOG("chunk->file.size:     '%ld'", chunk->file.size);
     DLOG("");
     DLOG("chunk->map.addr:      '%p'",  chunk->map.addr);
     DLOG("chunk->map.size:      '%ld'", chunk->map.size);
@@ -47,7 +45,6 @@ static void     dlog_obj_t_chunk(t_chunk *chunk)
     DLOG("chunk->next:          '%p'",  chunk->next);
     DLOG("------------------------------");
 }
-
 
 int             main(int argc, char **argv)
 {
