@@ -8,7 +8,8 @@ static void     dlog_obj_t_chunk(t_chunk *chunk)
 {
     DLOG("------------------------------");
     DLOG("chunk->tag:           '%d'",  chunk->tag);
-    DLOG("chunk->addr:          '%p'",  chunk->addr);
+    DLOG("chunk->id:            '%d'",  chunk->id);
+    DLOG("chunk->offset:        '%ld'", chunk->offset);
     DLOG("chunk->size:          '%ld'", chunk->size);
     DLOG("");
     DLOG("chunk->file.fd:       '%d'",  chunk->file.fd);
@@ -39,7 +40,7 @@ t_line      *next_line(t_line *line, t_chunk *chunk, size_t *offset)
     /*     DLOG("------------------------------"); */
     /*     DLOG("------------------------------"); */
     /* } */
-    addr = (char*)(chunk->addr + *offset);
+    addr = (char*)(&chunk->map.addr[chunk->offset] + *offset);
     size = (size_t)(chunk->size - *offset);
     while (1)
     {

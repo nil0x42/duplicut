@@ -4,9 +4,6 @@
 # define FIRST_CHUNK    (1)
 # define LAST_CHUNK     (2)
 
-# define CHUNK_FILENAME ("/neatdict-XXXXXX.chunk")
-# define CHUNK_PATHSIZE (256)
-
 typedef struct      s_file
 {
     int             fd;
@@ -27,7 +24,8 @@ typedef struct      s_chunk
     // char            name[CHUNK_PATHSIZE];
     int             id;
     int             tag;
-    char            *addr;
+    // char            *addr;
+    size_t          offset;
     size_t          size;
     t_file          file;
     t_map           map;
@@ -38,6 +36,9 @@ typedef struct      s_chunk
 // chunk.c
 void                load_chunk(t_chunk *chunk);
 void                unload_chunk(t_chunk *chunk);
+
+// bound_chunk.c
+void                bound_chunk(t_chunk *chunk);
 
 // chunkify_file.c
 int                 chunkify_file(const char *pathname, t_chunk **chunk_list);
