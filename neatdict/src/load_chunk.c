@@ -2,7 +2,7 @@
 #include "chunk.h"
 #include "config.h"
 #include "exit.h"
-#include "debug.h"
+/* #include "debug.h" */
 
 
 void                load_chunk(t_chunk *chunk)

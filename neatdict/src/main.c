@@ -1,6 +1,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
+#include "definitions.h"
 #include "config.h"
 #include "vars.h"
 #include "chunk.h"
@@ -11,8 +12,8 @@
 
 t_conf      g_conf = {
     .memlimit = 0,
-    .tmpdir = NULL,
     .threads = 0,
+    .line_max_size = DEFAULT_LINE_MAX_SIZE,
     .page_size = 0,
     .hmap_size = 0,
     .chunk_size = 0

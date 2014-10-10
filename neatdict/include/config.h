@@ -2,14 +2,15 @@
 # define CONFIG_H
 
 # include <stddef.h>
+# include <limits.h>
 
-# define DEFAULT_TMPDIR "/tmp"
+# define DEFAULT_LINE_MAX_SIZE (16)
 
 typedef struct  s_conf
 {
     long        memlimit;
-    const char  *tmpdir;
     int         threads;
+    int         line_max_size;
     int         page_size;
     size_t      hmap_size;
     size_t      chunk_size;

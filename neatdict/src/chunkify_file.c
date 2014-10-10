@@ -8,7 +8,6 @@
 #include "chunk.h"
 #include "vars.h"
 #include "exit.h"
-#include "debug.h"
 
 
 /** Close the given `file` struct.
