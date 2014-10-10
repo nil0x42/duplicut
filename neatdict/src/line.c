@@ -24,6 +24,7 @@ static void     dlog_obj_t_chunk(t_chunk *chunk)
     DLOG("------------------------------");
 }
 
+
 t_line      *next_line(t_line *line, t_chunk *chunk, size_t *offset)
 {
     char    *ptr;
@@ -33,13 +34,6 @@ t_line      *next_line(t_line *line, t_chunk *chunk, size_t *offset)
 
     if (*offset >= chunk->size)
         return (NULL);
-    /* if (chunk->id != 34982) */
-    /* { */
-    /*     dlog_obj_t_chunk(chunk); */
-    /*     DLOG("offset=%lu", *offset); */
-    /*     DLOG("------------------------------"); */
-    /*     DLOG("------------------------------"); */
-    /* } */
     addr = (char*)(&chunk->map.addr[chunk->offset] + *offset);
     size = (size_t)(chunk->size - *offset);
     while (1)

@@ -21,7 +21,8 @@ void                load_chunk(t_chunk *chunk)
     // // commented because addr changes after each load
     /* if (chunk->addr == NULL) */
     /*     bound_chunk(chunk); */
-    bound_chunk(chunk);
+    if (chunk->size == 0)
+        bound_chunk(chunk);
 }
 
 
