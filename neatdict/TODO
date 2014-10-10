@@ -1,2 +1,1 @@
-next_line() should verify line size, and compare it to max allow line size
-(according to --line-max-size option
+check that next_line() correctly ignores lines > g_conf.line_max_size

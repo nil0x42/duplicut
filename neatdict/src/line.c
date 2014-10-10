@@ -2,6 +2,7 @@
 #include "line.h"
 #include "definitions.h"
 #include "debug.h"
+#include "config.h"
 
 
 static void     dlog_obj_t_chunk(t_chunk *chunk)
@@ -31,6 +32,7 @@ t_line      *next_line(t_line *line, t_chunk *chunk, size_t *offset)
     char    *addr;
     size_t  size;
     size_t  delta;
+    size_t  line_size;
 
     if (*offset >= chunk->size)
         return (NULL);
@@ -55,20 +57,25 @@ t_line      *next_line(t_line *line, t_chunk *chunk, size_t *offset)
             (*offset)++;
         }
         else
-            break;
+        {
+            ptr = memchr(addr, '\n', size);
+            if (ptr == NULL)
+            {
+                SET_LINE(*line, addr, (size - *offset));
+                *offset = size;
+                break;
+            }
+            else if ((line_size = (size_t)(ptr - addr)) > g_conf.line_max_size)
+                *offset += line_size + 1;
+            else
+            {
+                SET_LINE(*line, addr, line_size);
+                *offset += line_size + 1;
+                break;
+            }
+        }
         if (*offset >= chunk->size)
             return (NULL);
-    }
-    ptr = memchr(addr, '\n', size);
-    if (ptr == NULL)
-    {
-        SET_LINE(*line, addr, (size - *offset));
-        *offset = size;
-    }
-    else
-    {
-        SET_LINE(*line, addr, (ptr - addr));
-        *offset += LINE_SIZE(*line) + 1;
     }
     return (line);
 }

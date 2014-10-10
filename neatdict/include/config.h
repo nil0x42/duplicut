@@ -10,7 +10,7 @@ typedef struct  s_conf
 {
     long        memlimit;
     int         threads;
-    int         line_max_size;
+    size_t      line_max_size;
     int         page_size;
     size_t      hmap_size;
     size_t      chunk_size;
