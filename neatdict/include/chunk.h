@@ -43,7 +43,10 @@ void                bound_chunk(t_chunk *chunk);
 // chunkify_file.c
 int                 chunkify_file(const char *pathname, t_chunk **chunk_list);
 
+// tag_duplicates.c
+void                tag_duplicates(t_chunk *main_chunk);
+
 // remove_duplicates.c
-void                remove_duplicates(t_chunk *main_chunk);
+void                remove_duplicates(t_chunk *chunk);
 
 #endif /* CHUNK_H */
