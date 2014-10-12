@@ -36,6 +36,7 @@ int             main(int argc, char **argv)
     while (i < argc)
         chunkify_file(argv[i++], &g_vars.chunk_list);
     printf("\n");
+    tag_duplicates(g_vars.chunk_list);
     remove_duplicates(g_vars.chunk_list);
     exit_properly(0);
 }

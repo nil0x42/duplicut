@@ -1,105 +1,72 @@
 #include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
 #include <sys/mman.h>
-#include "definitions.h"
-#include "config.h"
 #include "chunk.h"
 #include "line.h"
-#include "hash.h"
 #include "exit.h"
-#include "vars.h"
+#include "debug.h"
 
 
-/** Populate `hmap` whith given `chunk` lines.
- * - This function handles hash collisions and disables
- * duplicate lines from `chunk` by tagging them with 'DISABLED_LINE'.
- * - Unique lines are normally written into `hmap`.
+/** Rewrite file without invalid lines, and return new file size
  */
-static void         populate_hmap(t_line *hmap, t_chunk *chunk)
+static size_t   cleanout_file(char *file_addr, size_t file_size)
 {
-    t_line          line;
-    size_t          offset;
-    long            slot;
+    char        *src;
+    char        *dst;
+    size_t      new_size;
+    size_t      offset;
+    t_line      line;
+    size_t      line_size;
 
-    memset(hmap, 0, g_conf.hmap_size * sizeof(t_line));
+    new_size = 0;
     offset = 0;
-    while (next_line(&line, chunk, &offset) != NULL)
+    dst = file_addr;
+    while (next_line(file_addr, file_size, &line, &offset) != NULL)
     {
-        slot = hash(&line);
-        while (1)
+        src = LINE_ADDR(line);
+        line_size = LINE_SIZE(line);
+        /* write(1, src, line_size); */
+        /* write(1, "\n", 1); */
+        memcpy(dst, src, line_size);
+        dst += line_size;
+        new_size += line_size;
+        // add newline if possible
+        if (new_size != file_size)
         {
-            if (!LINE_ISSET(hmap[slot]))
-            {
-                hmap[slot] = line;
-                break;
-            }
-            else if (cmp_line(&line, &hmap[slot]) == 0)
-            {
-                LINE_ADDR(line)[0] = DISABLED_LINE;
-                break;
-            }
-            slot = (slot + 1) % g_conf.hmap_size;
+            *dst = '\n';
+            dst++;
+            new_size++;
         }
     }
+    DLOG("old size = %ld", file_size);
+    DLOG("new size = %ld", new_size);
+    return (new_size);
 }
 
 
-/** Disable any line from `chunk` which is already present in `hmap`
- */
-static void         cleanout_chunk(t_chunk *chunk, t_line *hmap)
+void            remove_duplicates(t_chunk *chunk)
 {
-    t_line          line;
-    size_t          offset;
-    long            slot;
+    char        *pathname;
+    char        *addr;
+    size_t      new_size;
 
-    load_chunk(chunk);
-    offset = 0;
-    while (next_line(&line, chunk, &offset) != NULL)
+    while (chunk != NULL)
     {
-        slot = hash(&line);
-        while (1)
-        {
-            if (!LINE_ISSET(hmap[slot]))
-                break;
-            else if (cmp_line(&line, &hmap[slot]) == 0)
-            {
-                LINE_ADDR(line)[0] = DISABLED_LINE;
-                break;
-            }
-            slot = (slot + 1) % g_conf.hmap_size;
-        }
-    }
-    unload_chunk(chunk);
-}
-
-
-/** Disable all duplicate lines, taking care of the order
- * between all chunks present in `main_chunk` linked list.
- */
-void                remove_duplicates(t_chunk *main_chunk)
-{
-    t_chunk         *sub_chunk;
-
-    g_vars.hmap = (t_line*) malloc(g_conf.hmap_size * sizeof(t_line));
-    if (g_vars.hmap == NULL)
-        error("cannot malloc() hash map: %s", ERRNO);
-    /* if (mlock(g_vars.hmap, (g_conf.hmap_size * sizeof(t_line))) < 0) */
-    /*     error("cannot mlock() hash map: %s", ERRNO); */
-    print_remaining_time();
-    while (main_chunk != NULL)
-    {
-        load_chunk(main_chunk);
-        populate_hmap(g_vars.hmap, main_chunk);
-        g_vars.treated_chunks++;
-        print_remaining_time();
-        sub_chunk = main_chunk->next;
-        while (sub_chunk != NULL)
-        {
-            cleanout_chunk(sub_chunk, g_vars.hmap);
-            g_vars.treated_chunks++;
-            print_remaining_time();
-            sub_chunk = sub_chunk->next;
-        }
-        unload_chunk(main_chunk);
-        main_chunk = main_chunk->next;
+        pathname = (char*) chunk->file.name;
+        addr = mmap(NULL, chunk->file.size, (PROT_READ | PROT_WRITE),
+                MAP_SHARED, chunk->file.fd, 0);
+        if (addr == MAP_FAILED)
+            error("cannot cleanout %s tags: mmap(): %s",
+                    pathname, ERRNO);
+        new_size = cleanout_file(addr, chunk->file.size);
+        if (ftruncate(chunk->file.fd, new_size) < 0)
+            error("cannot cleanout %s tags: ftruncate(): %s",
+                    pathname, ERRNO);
+        if (munmap(addr, chunk->file.size) < 0)
+            error("cannot cleanout %s tags: munmap(): %s",
+                    pathname, ERRNO);
+        while (chunk != NULL && chunk->file.name == pathname)
+            chunk = chunk->next;
     }
 }
