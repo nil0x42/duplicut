@@ -26,7 +26,8 @@ static void     dlog_obj_t_chunk(t_chunk *chunk)
 }
 
 
-t_line      *next_line(t_line *line, t_chunk *chunk, size_t *offset)
+t_line      *next_line(char *buf_addr, size_t buf_size,
+        t_line *line, size_t *offset)
 {
     char    *ptr;
     char    *addr;
@@ -34,10 +35,10 @@ t_line      *next_line(t_line *line, t_chunk *chunk, size_t *offset)
     size_t  delta;
     size_t  line_size;
 
-    if (*offset >= chunk->size)
+    if (*offset >= buf_size)
         return (NULL);
-    addr = (char*)(&chunk->map.addr[chunk->offset] + *offset);
-    size = (size_t)(chunk->size - *offset);
+    addr = (char*)(buf_addr + *offset);
+    size = (size_t)(buf_size - *offset);
     while (1)
     {
         if (*addr == DISABLED_LINE)
@@ -48,7 +49,7 @@ t_line      *next_line(t_line *line, t_chunk *chunk, size_t *offset)
             delta = (size_t)(ptr - addr);
             addr = ptr + 1;
             size -= (delta + 1);
-            *offset += (delta + 1);
+            (*offset) += (delta + 1);
         }
         else if (*addr == '\n')
         {
@@ -56,25 +57,26 @@ t_line      *next_line(t_line *line, t_chunk *chunk, size_t *offset)
             size--;
             (*offset)++;
         }
+        else if ((ptr = memchr(addr, '\n', size)) == NULL)
+        {
+            SET_LINE(*line, addr, (size - *offset));
+            (*offset) = size;
+            break;
+        }
+        else if ((line_size = (size_t)(ptr - addr)) > g_conf.line_max_size)
+        {
+            /* DLOG("%.*s", line_size, addr); */
+            addr += line_size + 1;
+            size -= line_size + 1;
+            (*offset) += line_size + 1;
+        }
         else
         {
-            ptr = memchr(addr, '\n', size);
-            if (ptr == NULL)
-            {
-                SET_LINE(*line, addr, (size - *offset));
-                *offset = size;
-                break;
-            }
-            else if ((line_size = (size_t)(ptr - addr)) > g_conf.line_max_size)
-                *offset += line_size + 1;
-            else
-            {
-                SET_LINE(*line, addr, line_size);
-                *offset += line_size + 1;
-                break;
-            }
+            SET_LINE(*line, addr, line_size);
+            *offset += line_size + 1;
+            break;
         }
-        if (*offset >= chunk->size)
+        if (*offset >= buf_size)
             return (NULL);
     }
     return (line);
