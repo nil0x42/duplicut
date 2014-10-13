@@ -2,7 +2,7 @@ SHELL = /bin/sh
 CC    = clang
  
 CFLAGS       = -lm -std=gnu99 -Iinclude -march=native -Wall -Wextra -pedantic
-DEBUGFLAGS   = -O0 -D DEBUG -g3
+DEBUGFLAGS   = -O0 -D DEBUG -g3 -Wno-gnu-statement-expression
 RELEASEFLAGS = -O2 -D NDEBUG
  
 TARGET  = neatdict
