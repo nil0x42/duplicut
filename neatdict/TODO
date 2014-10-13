@@ -1,1 +1,2 @@
-check that next_line() correctly ignores lines > g_conf.line_max_size
+- Add files backup system, unless --no-backup specified.
+- Implement multi threading and work queue for chunks.
