@@ -1,0 +1,6 @@
+Features:
+  * Add file backup mechanism (and --no-backup option).
+  * Implement multi threading and work queue for chunk cleanup tasks.
+
+Unittest:
+  * Add a result comparator script.

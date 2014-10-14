@@ -1,2 +1,0 @@
-- Add files backup system, unless --no-backup specified.
-- Implement multi threading and work queue for chunks.
