@@ -5,7 +5,7 @@ CFLAGS       = -lm -std=gnu99 -Iinclude -march=native -Wall -Wextra -pedantic
 DEBUGFLAGS   = -O0 -D DEBUG -g3 -Wno-gnu-statement-expression
 RELEASEFLAGS = -O2 -D NDEBUG
  
-TARGET  = neatdict
+TARGET  = duplicut
 SOURCES = $(wildcard src/*.c)
 COMMON  = include/definitions.h include/debug.h
 HEADERS = $(wildcard include/*.h)

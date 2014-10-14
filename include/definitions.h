@@ -1,9 +1,9 @@
 #ifndef DEFINITIONS_H
 # define DEFINITIONS_H
 
-# define PROGNAME           "neatdict"
+# define PROGNAME           "duplicut"
 # define PROJECT_VERSION    "0.1a"
-# define PROJECT_URL        "http://github.com/nil0x42/neatcrack"
+# define PROJECT_URL        "http://github.com/nil0x42/duplicut"
 
 # define HMAP_LOAD_FACTOR   (0.5)
 # define MEDIUM_LINE_BYTES  (6)
