@@ -5,6 +5,14 @@ without sorting it.
 
 [![Build Status](https://secure.travis-ci.org/nil0x42/duplicut.png?branch=master)](http://travis-ci.org/nil0x42/duplicut)
 
+
+#### Quick start:
+```sh
+make release
+cp <WORDLIST> <WORDLIST>.backup
+./duplicut <WORDLIST>
+```
+
 ---------------------------------------------------------------------
 #### Overview ####
 
