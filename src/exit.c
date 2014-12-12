@@ -43,7 +43,9 @@
 void            exit_properly(int status)
 {
     if (g_vars.hmap != NULL)
+    {
         free(g_vars.hmap);
+    }
     /* while (g_vars.chunk_list != NULL) */
     /*     delete_chunk(&g_vars.chunk_list); */
     exit(status);

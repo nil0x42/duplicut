@@ -57,16 +57,24 @@ void            remove_duplicates(t_chunk *chunk)
         addr = mmap(NULL, chunk->file.size, (PROT_READ | PROT_WRITE),
                 MAP_SHARED, chunk->file.fd, 0);
         if (addr == MAP_FAILED)
+        {
             error("cannot cleanout %s tags: mmap(): %s",
                     pathname, ERRNO);
+        }
         new_size = cleanout_file(addr, chunk->file.size);
         if (ftruncate(chunk->file.fd, new_size) < 0)
+        {
             error("cannot cleanout %s tags: ftruncate(): %s",
                     pathname, ERRNO);
+        }
         if (munmap(addr, chunk->file.size) < 0)
+        {
             error("cannot cleanout %s tags: munmap(): %s",
                     pathname, ERRNO);
+        }
         while (chunk != NULL && chunk->file.name == pathname)
+        {
             chunk = chunk->next;
+        }
     }
 }

@@ -19,13 +19,21 @@ static void     config_threads(void)
 
     available_processors = sysconf(_SC_NPROCESSORS_ONLN);
     if (available_processors < 0)
+    {
         error("could not determine available processors");
+    }
     else if (available_processors == 0)
+    {
         die("unexpected '0' value for sysconf(_SC_NPROCESSORS_ONLN)");
+    }
     if (g_conf.threads == 0)
+    {
         g_conf.threads = available_processors;
+    }
     else if (g_conf.threads > available_processors)
+    {
         error("too much threads started (max is %ld)", available_processors);
+    }
 }
 
 
@@ -42,21 +50,27 @@ static long     get_available_memory(void)
 
     fp = fopen(MEMINFO_FILE, "r");
     if (fp == NULL)
+    {
         error("cannot open %s: %s", MEMINFO_FILE, ERRNO);
+    }
     buf_size = BUF_SIZE * sizeof(*buf);
     buf = (char*) malloc(buf_size);
     value = -1L;
     while (getline(&buf, &buf_size, fp) >= 0 )
     {
         if (strncmp(buf, "MemAvailable", 12) != 0)
+        {
             continue;
+        }
         sscanf(buf, "%*s%ld", &value);
         break;
     }
     fclose(fp);
     free((void*)buf);
     if (value == -1L)
+    {
         error("cannot get available memory from %s", MEMINFO_FILE);
+    }
     return (value * 1024);
 }
 
@@ -72,12 +86,18 @@ static void     config_memlimit(void)
 
     g_conf.page_size = sysconf(_SC_PAGESIZE);
     if (g_conf.page_size < 0)
+    {
         error("could not determine page size");
+    }
     max_memory = get_available_memory();
     if (g_conf.memlimit == 0)
+    {
         g_conf.memlimit = max_memory - KEEP_FREE_MEMORY;
+    }
     if (g_conf.memlimit < g_conf.page_size)
+    {
         error("not enough memory");
+    }
     else if (g_conf.memlimit > max_memory)
     {
         max_memory /= (1024 * 1024);
@@ -101,12 +121,18 @@ static long     get_prev_prime(long n)
         while (i && i <= sqrt(n))
         {
             if (n % i == 0)
+            {
                 i = 0;
+            }
             else
+            {
                 i += 2;
+            }
         }
         if (i)
+        {
             return (n);
+        }
         n -= 2;
     }
     return (n);
@@ -143,7 +169,9 @@ static void     distribute_memory(void)
 
     g_conf.chunk_size = (size_t) chunk_sz;
     if (g_conf.chunk_size < (size_t)(g_conf.page_size * 3))
+    {
         error("missing memory: chunk_size can't be less than 3 pages");
+    }
 }
 
 

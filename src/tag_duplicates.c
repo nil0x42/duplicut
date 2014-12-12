@@ -63,7 +63,9 @@ static void         cleanout_chunk(t_chunk *chunk, t_line *hmap)
         while (1)
         {
             if (!LINE_ISSET(hmap[slot]))
+            {
                 break;
+            }
             else if (cmp_line(&line, &hmap[slot]) == 0)
             {
                 LINE_ADDR(line)[0] = DISABLED_LINE;
@@ -87,7 +89,9 @@ void                tag_duplicates(t_chunk *main_chunk)
 
     g_vars.hmap = (t_line*) malloc(g_conf.hmap_size * sizeof(t_line));
     if (g_vars.hmap == NULL)
+    {
         error("cannot malloc() hash map: %s", ERRNO);
+    }
     /* if (mlock(g_vars.hmap, (g_conf.hmap_size * sizeof(t_line))) < 0) */
     /*     error("cannot mlock() hash map: %s", ERRNO); */
     print_remaining_time();

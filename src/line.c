@@ -36,7 +36,9 @@ t_line      *next_line(char *buf_addr, size_t buf_size,
     size_t  line_size;
 
     if (*offset >= buf_size)
+    {
         return (NULL);
+    }
     addr = (char*)(buf_addr + *offset);
     size = (size_t)(buf_size - *offset);
     while (1)
@@ -45,7 +47,9 @@ t_line      *next_line(char *buf_addr, size_t buf_size,
         {
             ptr = memchr(addr, '\n', size);
             if (ptr == NULL)
+            {
                 return (NULL);
+            }
             delta = (size_t)(ptr - addr);
             addr = ptr + 1;
             size -= (delta + 1);
@@ -77,7 +81,9 @@ t_line      *next_line(char *buf_addr, size_t buf_size,
             break;
         }
         if (*offset >= buf_size)
+        {
             return (NULL);
+        }
     }
     return (line);
 }
@@ -90,8 +96,12 @@ int         cmp_line(t_line *l1, t_line *l2)
 
     size = LINE_SIZE(*l1);
     if (LINE_SIZE(*l2) != size)
+    {
         ret = 1;
+    }
     else
+    {
         ret = memcmp(LINE_ADDR(*l1), LINE_ADDR(*l2), size);
+    }
     return (ret);
 }

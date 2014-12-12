@@ -11,8 +11,10 @@ void                load_chunk(t_chunk *chunk)
     chunk->map.addr = mmap(NULL, chunk->map.size, (PROT_READ | PROT_WRITE),
             MAP_SHARED, chunk->file.fd, chunk->file.offset);
     if (chunk->map.addr == MAP_FAILED)
+    {
         error("cannot mmap() chunk %d@%s: %s",
                 chunk->id, chunk->file.name, ERRNO);
+    }
     /* if (mlock(chunk->map.addr, chunk->map.size) < 0) */
     /*     error("cannot mlock() chunk %d@%s: %s", */
     /*             chunk->id, chunk->file.name, ERRNO); */
@@ -22,7 +24,9 @@ void                load_chunk(t_chunk *chunk)
     /* if (chunk->addr == NULL) */
     /*     bound_chunk(chunk); */
     if (chunk->size == 0)
+    {
         bound_chunk(chunk);
+    }
 }
 
 
@@ -32,6 +36,8 @@ void                unload_chunk(t_chunk *chunk)
     /*     error("cannot munlock() chunk %d@%s: %s", */
     /*             chunk->id, chunk->file.name, ERRNO); */
     if (munmap(chunk->map.addr, chunk->map.size) < 0)
+    {
         error("cannot munmap() chunk %d@%s: %s",
                 chunk->id, chunk->file.name, ERRNO);
+    }
 }

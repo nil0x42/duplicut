@@ -27,6 +27,7 @@ t_vars      g_vars = {
     .hmap = NULL
 };
 
+
 int             main(int argc, char **argv)
 {
     int         i;
@@ -34,7 +35,9 @@ int             main(int argc, char **argv)
     optparse(argc, argv, &i);
     configure();
     while (i < argc)
+    {
         chunkify_file(argv[i++], &g_vars.chunk_list);
+    }
     printf("\n");
     tag_duplicates(g_vars.chunk_list);
     remove_duplicates(g_vars.chunk_list);

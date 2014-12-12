@@ -31,7 +31,9 @@ char            *time_repr(int seconds)
     if (metrics < 2 && seconds >= HOUR)
     {
         if (metrics == 1)
+        {
             ptr += sprintf(ptr, ", ");
+        }
         unit = seconds / HOUR;
         repr = (unit == 1) ? "hour" : "hours";
         ptr += sprintf(ptr, "%d %s", unit, repr);
@@ -41,7 +43,9 @@ char            *time_repr(int seconds)
     if (metrics < 2 && seconds >= MINUTE)
     {
         if (metrics == 1)
+        {
             ptr += sprintf(ptr, ", ");
+        }
         unit = seconds / MINUTE;
         repr = (unit == 1) ? "minute" : "minutes";
         ptr += sprintf(ptr, "%d %s", unit, repr);
@@ -51,7 +55,9 @@ char            *time_repr(int seconds)
     if (metrics < 2 && seconds >= 0)
     {
         if (metrics == 1)
+        {
             ptr += sprintf(ptr, ", ");
+        }
         repr = (unit == 1) ? "second" : "seconds";
         ptr += sprintf(ptr, "%d %s", seconds, repr);
     }
@@ -70,12 +76,16 @@ static int      get_remaining_time(int base_time, int cur_time)
     chunk_time = (double)(cur_time - base_time) / (double)g_vars.treated_chunks;
     missing_chunks = FACTORIAL(g_vars.num_chunks) - g_vars.treated_chunks;
     if (missing_chunks == 0)
+    {
         remaining = 0;
+    }
     else
     {
         remaining = (int)(chunk_time * (double)missing_chunks);
         if (remaining == 0)
+        {
             remaining = -1;
+        }
     }
     return (remaining);
 }
@@ -95,7 +105,9 @@ void            print_remaining_time(void)
     }
     cur_time = time(NULL);
     if (cur_time == base_time)
+    {
         return;
+    }
     remaining = get_remaining_time(base_time, cur_time);
     if (remaining == 0)
     {
@@ -107,7 +119,9 @@ void            print_remaining_time(void)
         prev_remaining = 0;
     }
     else if (remaining < 0)
+    {
         return;
+    }
     else if (prev_remaining == 0 || remaining < prev_remaining)
     {
         printf("\rRemoving duplicates ... %s\r", time_repr(remaining));

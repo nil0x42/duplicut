@@ -15,7 +15,9 @@
 static void         close_file(t_file *file)
 {
     if (close(file->fd) < 0)
+    {
         die("close()");
+    }
 }
 
 
@@ -27,7 +29,9 @@ static void         open_file(const char *pathname, t_file *file)
 
     file->fd = open(pathname, O_RDWR);
     if (file->fd < 0)
+    {
         error("cannot open %s: %s", pathname, ERRNO);
+    }
     else if (fstat(file->fd, &info) < 0)
     {
         close_file(file);
@@ -60,12 +64,16 @@ static void         attach_chunk(t_chunk **chunk_list, t_chunk *chunk)
 
     g_vars.num_chunks++;
     if (*chunk_list == NULL)
+    {
         *chunk_list = chunk;
+    }
     else
     {
         chunk_pos = *chunk_list;
         while (chunk_pos->next != NULL)
+        {
             chunk_pos = chunk_pos->next;
+        }
         chunk_pos->next = chunk;
     }
 }
@@ -80,7 +88,9 @@ static t_chunk      *create_chunk(t_file *file, size_t size, t_chunk **list)
 
     chunk = (t_chunk*) malloc(sizeof(t_chunk));
     if (chunk == NULL)
+    {
         die("not enough memory to allocate chunk");
+    }
     memset(chunk, 0, sizeof(t_chunk));
     attach_chunk(list, chunk);
     memcpy(&chunk->file, file, sizeof(*file));
@@ -108,18 +118,28 @@ int                 chunkify_file(const char *pathname, t_chunk **chunk_list)
     while (file.offset < file.size)
     {
         if (g_conf.chunk_size > file.size - file.offset)
+        {
             chunk_size = file.size - file.offset;
+        }
         else
+        {
             chunk_size = g_conf.chunk_size;
+        }
         chunk = create_chunk(&file, chunk_size, chunk_list);
         chunk->id = id;
         if (file.offset == 0)
+        {
             chunk->tag |= FIRST_CHUNK;
+        }
         file.offset += chunk_size;
         if (chunk_size == g_conf.chunk_size)
+        {
             file.offset -= g_conf.page_size;
+        }
         if (file.offset >= file.size)
+        {
             chunk->tag |= LAST_CHUNK;
+        }
         /* dlog_obj_t_chunk(chunk); */
         printf("\r%d chunk(s) loaded ...", g_vars.num_chunks);
         fflush(stdout);
