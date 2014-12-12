@@ -4,7 +4,7 @@
 # include <stddef.h>
 # include <limits.h>
 
-# define DEFAULT_LINE_MAX_SIZE (16)
+# define DEFAULT_LINE_MAX_SIZE (24)
 
 typedef struct  s_conf
 {
