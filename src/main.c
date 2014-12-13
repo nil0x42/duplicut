@@ -1,6 +1,8 @@
+#include <stdlib.h>
 #include <stdio.h>
 #include "config.h"
 #include "vars.h"
+#include "hmap.h"
 
 
 t_conf      g_conf = {
@@ -32,6 +34,7 @@ int         main(int argc, char **argv)
         chunkify_file(argv[i++], &g_vars.chunk_list);
     }
     printf("\n");
+    atexit(delete_hmap);
     tag_duplicates(g_vars.chunk_list);
     remove_duplicates(g_vars.chunk_list);
     return (0);

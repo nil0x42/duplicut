@@ -7,6 +7,7 @@
 #include "hash.h"
 #include "error.h"
 #include "vars.h"
+#include "hmap.h"
 
 
 /** Populate `hmap` whith given `chunk` lines.
@@ -87,13 +88,7 @@ void                tag_duplicates(t_chunk *main_chunk)
 {
     t_chunk         *sub_chunk;
 
-    g_vars.hmap = (t_line*) malloc(g_conf.hmap_size * sizeof(t_line));
-    if (g_vars.hmap == NULL)
-    {
-        error("cannot malloc() hash map: %s", ERRNO);
-    }
-    /* if (mlock(g_vars.hmap, (g_conf.hmap_size * sizeof(t_line))) < 0) */
-    /*     error("cannot mlock() hash map: %s", ERRNO); */
+    g_vars.hmap = create_hmap();
     print_remaining_time();
     while (main_chunk != NULL)
     {
