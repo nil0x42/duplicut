@@ -2,15 +2,10 @@
 #include <string.h>
 #include "chunk.h"
 #include "config.h"
-#include "exit.h"
 
 
 /** Get real chunk offset (start boundary).
  */
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
 static void         get_chunk_offset(t_chunk *chunk)
 {
     char            *ptr;
@@ -30,12 +25,6 @@ static void         get_chunk_offset(t_chunk *chunk)
         {
             chunk->offset = 0;
             return ;
-            /* int fd = open("/tmp/xxx", O_TRUNC | O_WRONLY | O_CREAT, 0666); */
-            /* if (fd < 0) */
-            /*     error(ERRNO); */
-            /* write(fd, chunk->map.addr, chunk->map.size); */
-            /* error("%d@%s: can't find start boundary", */
-            /*         chunk->id, chunk->file.name); */
         }
         ptr += 1;
         chunk->offset = (size_t)(ptr - chunk->map.addr);
@@ -64,8 +53,6 @@ static void         get_chunk_size(t_chunk *chunk)
             if (ptr == NULL)
             {
                 return ;
-                /* error("%d@%s: can't find end boundary", */
-                /*         chunk->id, chunk->file.name); */
             }
             ptr += 1;
             chunk->size -= chunk->size - (size_t)(ptr - chunk_addr);
