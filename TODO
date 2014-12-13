@@ -6,3 +6,6 @@ Features:
 Unittest:
   * Add a result comparator script.
   * Test wordlists with nullbytes.
+
+Compilation:
+  * Add link time optimisations.
