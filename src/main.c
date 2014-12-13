@@ -1,13 +1,6 @@
-#include <unistd.h>
-#include <string.h>
 #include <stdio.h>
-#include "definitions.h"
 #include "config.h"
 #include "vars.h"
-#include "chunk.h"
-#include "line.h"
-#include "exit.h"
-#include "debug.h"
 
 
 t_conf      g_conf = {
@@ -28,9 +21,9 @@ t_vars      g_vars = {
 };
 
 
-int             main(int argc, char **argv)
+int         main(int argc, char **argv)
 {
-    int         i;
+    int     i;
 
     optparse(argc, argv, &i);
     configure();
@@ -41,5 +34,5 @@ int             main(int argc, char **argv)
     printf("\n");
     tag_duplicates(g_vars.chunk_list);
     remove_duplicates(g_vars.chunk_list);
-    exit_properly(0);
+    return (0);
 }

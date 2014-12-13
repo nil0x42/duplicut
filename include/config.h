@@ -2,7 +2,6 @@
 # define CONFIG_H
 
 # include <stddef.h>
-# include <limits.h>
 
 # define DEFAULT_LINE_MAX_SIZE (24)
 

@@ -1,4 +1,4 @@
-#include "exit.h"
+#include "error.h"
 
 
 static void     stat_file(char *pathname)

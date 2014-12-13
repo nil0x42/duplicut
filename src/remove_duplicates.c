@@ -4,7 +4,7 @@
 #include <sys/mman.h>
 #include "chunk.h"
 #include "line.h"
-#include "exit.h"
+#include "error.h"
 #include "debug.h"
 
 

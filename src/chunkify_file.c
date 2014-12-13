@@ -7,7 +7,7 @@
 #include "config.h"
 #include "chunk.h"
 #include "vars.h"
-#include "exit.h"
+#include "error.h"
 
 
 /** Close the given `file` struct.

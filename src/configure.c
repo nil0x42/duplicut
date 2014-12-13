@@ -6,7 +6,7 @@
 #include "config.h"
 #include "chunk.h"
 #include "line.h"
-#include "exit.h"
+#include "error.h"
 #include "debug.h"
 
 
@@ -192,5 +192,6 @@ void            configure(void)
     config_threads();
     config_memlimit();
     distribute_memory();
+
     dlog_obj_t_conf(&g_conf);
 }

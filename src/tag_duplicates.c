@@ -5,7 +5,7 @@
 #include "chunk.h"
 #include "line.h"
 #include "hash.h"
-#include "exit.h"
+#include "error.h"
 #include "vars.h"
 
 
