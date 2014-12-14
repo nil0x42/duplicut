@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "definitions.h"
 #include "config.h"
+#include "meminfo.h"
 #include "chunk.h"
 #include "line.h"
 #include "error.h"
@@ -37,44 +38,6 @@ static void     config_threads(void)
 }
 
 
-/** Dirty function to get currently available memory bytes
- */
-#define MEMINFO_FILE ("/proc/meminfo")
-#define BUF_SIZE     (1024)
-static long     get_available_memory(void)
-{
-    char        *buf;
-    size_t      buf_size;
-    FILE        *fp;
-    long        value;
-
-    fp = fopen(MEMINFO_FILE, "r");
-    if (fp == NULL)
-    {
-        error("cannot open %s: %s", MEMINFO_FILE, ERRNO);
-    }
-    buf_size = BUF_SIZE * sizeof(*buf);
-    buf = (char*) malloc(buf_size);
-    value = -1L;
-    while (getline(&buf, &buf_size, fp) >= 0 )
-    {
-        if (strncmp(buf, "MemAvailable", 12) != 0)
-        {
-            continue;
-        }
-        sscanf(buf, "%*s%ld", &value);
-        break;
-    }
-    fclose(fp);
-    free((void*)buf);
-    if (value == -1L)
-    {
-        error("cannot get available memory from %s", MEMINFO_FILE);
-    }
-    return (value * 1024);
-}
-
-
 /** Configure max used memory.
  * It checks and sets the following g_conf values:
  *      g_conf.page_size
@@ -89,7 +52,11 @@ static void     config_memlimit(void)
     {
         error("could not determine page size");
     }
-    max_memory = get_available_memory();
+    max_memory = meminfo("MemAvailable");
+    if (max_memory < 0)
+    {
+        error("meminfo(): Cannot get MemAvailable");
+    }
     if (g_conf.memlimit == 0)
     {
         g_conf.memlimit = max_memory - KEEP_FREE_MEMORY;
