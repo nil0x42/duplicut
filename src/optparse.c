@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include "config.h"
 #include "definitions.h"
+#include "bytesize.h"
 
 
 static void bad_argument(const char *name, const char *value, const char *info)
@@ -54,30 +55,10 @@ static void setopt_version(const char *value)
 
 static void setopt_memlimit(const char *value)
 {
-    char        *endptr;
-    char        metrics[] = "BKMGT";
-    char        *ptr;
-    int         c;
-
-    g_conf.memlimit = strtol(value, &endptr, 10);
-    c = toupper(*endptr);
-    if (c == '\0' || c == 'O')
-    {
-        c = 'B';
-    }
-    ptr = strchr(metrics, c);
-    if (ptr == NULL)
-    {
-        bad_argument("memlimit", value, "not a byte size representation");
-    }
-    c = ptr - metrics;
-    while (c--)
-    {
-        g_conf.memlimit *= 1024;
-    }
+    g_conf.memlimit = bytesize(value);
     if (g_conf.memlimit < 1)
     {
-        bad_argument("memlimit", value, "not a positive value");
+        bad_argument("memlimit", value, "invalid byte size representation");
     }
 }
 
