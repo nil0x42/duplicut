@@ -1,6 +1,7 @@
 SHELL        = /bin/sh
  
-CFLAGS       = -lm -Iinclude -march=native -Wall -Wextra -pedantic
+CFLAGS       = -Iinclude -march=native -Wall -Wextra -pedantic
+LDFLAGS      = -lm
 RELEASEFLAGS = -O2 -D NDEBUG
 DEBUGFLAGS   = -O0 -D DEBUG -std=gnu99 -g3 -Wno-gnu-statement-expression
  
@@ -20,15 +21,15 @@ all: $(TARGET)
 $(TARGET): CFLAGS += $(DEBUGFLAGS)
 $(TARGET): $(OBJECTS) $(COMMON)
 	-ctags -R .
-	$(CC) $(FLAGS) $(CFLAGS) $(DEBUGFLAGS) -o $(TARGET) $(OBJECTS)
+	$(CC) $(FLAGS) $(CFLAGS) $(DEBUGFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
 
 release: CFLAGS += $(RELEASEFLAGS)
 release: fclean $(SOURCES) $(HEADERS) $(COMMON)
-	$(CC) $(FLAGS) $(CFLAGS) $(RELEASEFLAGS) -o $(TARGET) $(SOURCES)
+	$(CC) $(FLAGS) $(CFLAGS) $(RELEASEFLAGS) -o $(TARGET) $(SOURCES) $(LDFLAGS)
 
 objects/%.o: src/%.c
 	mkdir -p `dirname $@`
-	$(CC) $(FLAGS) $(CFLAGS) -c $< -o $@
+	$(CC) $(FLAGS) $(CFLAGS) -c $< -o $@ $(LDFLAGS)
 
 profile: CFLAGS += -pg
 profile: fclean $(TARGET)
