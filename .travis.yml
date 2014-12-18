@@ -5,7 +5,8 @@ compiler:
     - clang
 
 env:
-    - TEST=user-interface.sh
+    - ARCH=x64 TEST=user-interface.sh
+    - ARCH=x86 TEST=user-interface.sh
 
 script:
     - ./test/run.sh
