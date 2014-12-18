@@ -1,5 +1,11 @@
 language: c
+
 compiler:
-  - gcc
-  - clang
-script: ./test/build.sh
+    - gcc
+    - clang
+
+env:
+    - TEST=user-interface.sh
+
+script:
+    - ./test/run.sh
