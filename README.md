@@ -34,7 +34,8 @@ Usage:
     - Written in pure C code to be the fastest possible.
     - Clever memory management based on file chunk mappings.
     - Compressed hash map items on 64 bit platforms.
-    - Multi threaded application for fast chunk comparisons.
+    - **[TODO]:** Multi threaded application for fast chunk comparisons.
+    - **[TODO]:** Make use of huge pages for performance enhancement.
 
 * **Limitations**:
     - Any line longer than 255 chars is ignored.
