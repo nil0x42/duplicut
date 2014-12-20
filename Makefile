@@ -58,6 +58,6 @@ fclean: distclean
 
 re: fclean all
  
-.PHONY: all release profile tags \
+.PHONY: all release profile \
         clean distclean \
         install install-strip uninstall
