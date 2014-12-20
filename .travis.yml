@@ -13,5 +13,8 @@ env:
     - ARCH=x64 TEST=user-interface.sh
     - ARCH=x86 TEST=user-interface.sh
 
+    - ARCH=x64 TEST=makefile.sh
+    - ARCH=x86 TEST=makefile.sh
+
 script:
     - ./test/run.sh
