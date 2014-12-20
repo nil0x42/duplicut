@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+import re
 
 if len(sys.argv) != 4:
     print("Usage: %s <wordlist> <max-line-size> <output>" % sys.argv[0])
@@ -21,7 +22,11 @@ ADD_ENDING_NEWLINE = True if content.endswith("\n") else False
 output = open(sys.argv[3], 'w')
 
 
-lines = content.splitlines()
+# use re.split(), because str.spllitlines() assumes
+# that single "\r" are newline chars too..
+lines = re.split("\r\n|\n", content)
+
+
 uniques = []
 for index, line in enumerate(lines):
     if not line:
