@@ -1,0 +1,74 @@
+
+
+$I: input_file
+==============
+
+si un argument definit le fichier a utiliser en input,
+l utiliser.
+
+sinon, utiliser STDIN, seulement si c est pas un tty.
+
+!!: input peut ne pas etre un fichier regulier
+
+
+
+$O: output_file
+===============
+
+utiliser --output (obligatoire).
+
+!!: output peut ne pas etre un fichier regulier
+
+
+
+$X: tmp_file
+============
+le fichier utilise en interne comme output.
+si $O est reg, $X pointe vers la meme struct que
+$O, sinon, c est un autre fichier temporaire,
+cree pour servir de conteneur temporaire.
+Dans ce dernier cas, on devra copier $X dans $O
+a la fin de duplicut avec read/write, puis supprimer
+$X.
+
+
+
+IMPORTANT:
+==========
+on a un DEFINE qui gere le cas ou input est nonreg et depasse
+une certaine taille.
+
+ont doit gerer le cas ou $I et $O font reference au meme fichier,
+en comparant les couples stat::`device_num + inode_num`
+
+
+CAS POSSIBLES:
+==============
+
+echo "foo" | duplicut -o /dev/stdout
+-----------------------------------------------------------
+    $I = STDIN (nonreg);
+    $O = STDOUT (nonreg);
+    $X = $TMPFILE;
+
+    on copie $I vers $X avec read/write.
+    (car pour mmap, les deux doivent etre reg)
+
+
+
+echo "foo" | duplicut -o output.txt
+-----------------------------------------------------------
+    $I = STDIN (nonreg);
+    $O = output.txt (reg);
+    $X = $O;
+
+    on copie $I vers $X avec read/write.
+    (car pour mmap, les deux doivent etre reg)
+    
+
+duplicut in.txt -o out.txt
+    
+
+
+
+outfile_
