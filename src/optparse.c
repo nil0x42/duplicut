@@ -103,6 +103,12 @@ static void setopt_line_max_size(const char *value)
 }
 
 
+static void setopt_output(const char *value)
+{
+    ;
+}
+
+
 void        optparse(int argc, char **argv, int *idx)
 {
     int             opt;
@@ -112,10 +118,11 @@ void        optparse(int argc, char **argv, int *idx)
         { "memlimit",      required_argument, NULL, 'm' },
         { "threads",       required_argument, NULL, 't' },
         { "line-max-size", required_argument, NULL, 'l' },
+        { "output",        required_argument, NULL, 'o' },
         { NULL,            0,                 NULL, '\0'}
     };
 
-    while ((opt = getopt_long(argc, argv, "hvm:t:l:", options, NULL)) >= 0)
+    while ((opt = getopt_long(argc, argv, "hvm:t:l:o:", options, NULL)) >= 0)
     {
         if (opt == 'h')
         {
