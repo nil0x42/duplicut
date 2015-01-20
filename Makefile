@@ -1,6 +1,6 @@
 SHELL        = /bin/sh
  
-CFLAGS       = -Iinclude -march=native -Wall -Wextra -pedantic
+CFLAGS       = -Iinclude -mtune=native -Wall -Wextra -pedantic
 LDFLAGS      = -lm
 RELEASEFLAGS = -O2 -D NDEBUG
 DEBUGFLAGS   = -O0 -D DEBUG -std=gnu99 -g3 -Wno-gnu-statement-expression
