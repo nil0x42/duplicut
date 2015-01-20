@@ -1,9 +1,9 @@
 SHELL        = /bin/sh
  
-CFLAGS       = -Iinclude -mtune=native -Wall -Wextra -pedantic
+CFLAGS       = -Iinclude -mtune=native -Wall -Wextra
 LDFLAGS      = -lm
 RELEASEFLAGS = -O2 -D NDEBUG
-DEBUGFLAGS   = -O0 -D DEBUG -std=gnu99 -g3 -Wno-gnu-statement-expression
+DEBUGFLAGS   = -O0 -D DEBUG -std=gnu99 -g3
  
 TARGET       = duplicut
 SOURCES      = $(wildcard src/*.c)
