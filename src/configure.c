@@ -52,10 +52,10 @@ static void     config_memlimit(void)
     {
         error("could not determine page size");
     }
-    max_memory = meminfo("MemAvailable");
+    max_memory = meminfo(MEMAVAILABLE);
     if (max_memory < 0)
     {
-        error("meminfo(): Cannot get MemAvailable");
+        error("meminfo(): Cannot determine available memory");
     }
     if (g_conf.memlimit == 0)
     {
