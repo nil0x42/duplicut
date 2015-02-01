@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include "optparse.h"
 #include "config.h"
 #include "vars.h"
 #include "hmap.h"
