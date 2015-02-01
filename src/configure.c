@@ -12,7 +12,8 @@
 
 
 /** Configure how many threads to use.
- * Concerned config variable: g_conf.threads
+ * Concerned config variable:
+ *      g_conf.threads
  */
 static void     config_threads(void)
 {
@@ -142,23 +143,18 @@ static void     distribute_memory(void)
 }
 
 
-static void     dlog_obj_t_conf(t_conf *conf)
-{
-    DLOG("------------------------------");
-    DLOG("conf->memlimit:   %ld", conf->memlimit);
-    DLOG("conf->threads:    %d",  conf->threads);
-    DLOG("conf->page_size:  %d",  conf->page_size);
-    DLOG("conf->hmap_size:  %ld", conf->hmap_size);
-    DLOG("conf->chunk_size: %ld", conf->chunk_size);
-    DLOG("------------------------------");
-}
-
-
 void            configure(void)
 {
     config_threads();
     config_memlimit();
+
     distribute_memory();
 
-    dlog_obj_t_conf(&g_conf);
+    DLOG("------------------------------");
+    DLOG("conf->memlimit:   %ld", g_conf.memlimit);
+    DLOG("conf->threads:    %d",  g_conf.threads);
+    DLOG("conf->page_size:  %d",  g_conf.page_size);
+    DLOG("conf->hmap_size:  %ld", g_conf.hmap_size);
+    DLOG("conf->chunk_size: %ld", g_conf.chunk_size);
+    DLOG("------------------------------");
 }
