@@ -24,16 +24,19 @@ static void bad_argument(const char *name, const char *value, const char *info)
 static void setopt_help(const char *value)
 {
     (void)value;
-    printf("Usage: %s [OPTION]... [FILE]...\n"
+    printf("Usage: %s [OPTION]... [INFILE] -o [OUTFILE]\n"
            "Remove duplicates from FILE(s) without sorting them.\n"
            "\n"
            "Options:\n"
+           "-o, --output <FILE>        Write result to <FILE>\n"
            "-m, --memlimit <VALUE>     Limit max used memory (default max)\n"
            "-t, --threads <NUM>        Max threads to use (default max)\n"
            "-l, --line-max-size <NUM>  Max line size (default %d)\n"
            "-h, --help                 Display this help and exit\n"
            "-v, --version              Output version information and exit\n"
-           "\n", PROGNAME, DEFAULT_LINE_MAX_SIZE);
+           "\n"
+           "Example: %s wordlist.txt -o new-wordlist.txt\n"
+           "\n", PROGNAME, DEFAULT_LINE_MAX_SIZE, PROGNAME);
     exit(EXIT_SUCCESS);
 }
 
