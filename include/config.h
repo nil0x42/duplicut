@@ -15,12 +15,12 @@ typedef struct  s_conf
     size_t      chunk_size;
 }               t_conf;
 
+/** Global configuration vars.
+ * Actually initialized on main.c
+ */
 extern t_conf   g_conf;
 
-// config.c
+/* source file: configure.c */
 void            configure(void);
-
-// optparse.c
-void            optparse(int argc, char **argv, int *idx);
 
 #endif /* CONFIG_H */
