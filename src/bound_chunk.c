@@ -1,4 +1,3 @@
-#define _GNU_SOURCE
 #include "memrchr.h"
 #include "chunk.h"
 #include "config.h"

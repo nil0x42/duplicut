@@ -25,7 +25,7 @@ static void setopt_help(const char *value)
 {
     (void)value;
     printf("Usage: %s [OPTION]... [INFILE] -o [OUTFILE]\n"
-           "Remove duplicates from FILE(s) without sorting them.\n"
+           "Remove duplicate lines from INFILE without sorting.\n"
            "\n"
            "Options:\n"
            "-o, --output <FILE>        Write result to <FILE>\n"
@@ -125,15 +125,11 @@ void        optparse(int argc, char **argv, int *idx)
         { NULL,            0,                 NULL, '\0'}
     };
 
-    while ((opt = getopt_long(argc, argv, "hvm:t:l:o:", options, NULL)) >= 0)
+    while ((opt = getopt_long(argc, argv, "o:m:t:l:hv", options, NULL)) >= 0)
     {
-        if (opt == 'h')
+        if (opt == 'o')
         {
-            setopt_help(optarg);
-        }
-        else if (opt == 'v')
-        {
-            setopt_version(optarg);
+            setopt_output(optarg);
         }
         else if (opt == 'm')
         {
@@ -146,6 +142,14 @@ void        optparse(int argc, char **argv, int *idx)
         else if (opt == 'l')
         {
             setopt_line_max_size(optarg);
+        }
+        else if (opt == 'h')
+        {
+            setopt_help(optarg);
+        }
+        else if (opt == 'v')
+        {
+            setopt_version(optarg);
         }
         else
         {

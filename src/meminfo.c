@@ -4,9 +4,6 @@
 #include "error.h"
 #include "bytesize.h"
 
-#define PROC_MEMINFO_FILE   ("/proc/meminfo")
-#define BUF_SIZE            (1024)
-
 
 # ifdef __APPLE__ /* Mac OS X case (host_statistics64()) */
 
@@ -40,7 +37,9 @@ static long meminfo_memavailable(void)
     return ((int64_t)vm_stats.free_count * (int64_t)page_size);
 }
 
-# else /* Unix default case (/proc/meminfo) */
+# else /* Unix default case (through /proc/meminfo) */
+#  define PROC_MEMINFO_FILE   ("/proc/meminfo")
+#  define BUF_SIZE            (1024)
 
 /** Retrieve value from given /proc/meminfo line.
  */
@@ -135,8 +134,7 @@ static long meminfo_memavailable(void)
  * If it fails to retrieve information, the function
  * returns -1.
  */
-/* long        meminfo(enum e_meminfo_param info) */
-long    meminfo(int info)
+long    meminfo(enum e_meminfo_param info)
 {
     switch (info)
     {
