@@ -119,10 +119,10 @@ static long meminfo_memavailable(void)
 {
     long result;
 
-    result = meminfo("MemAvailable");
+    result = proc_meminfo("MemAvailable");
     if (result < 0)
     {
-        result = meminfo("MemFree");
+        result = proc_meminfo("MemFree");
     }
     return (result);
 }
