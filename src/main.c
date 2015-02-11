@@ -6,7 +6,7 @@
 #include "hmap.h"
 
 
-t_conf      g_conf = {
+struct conf g_conf = {
     .memlimit = 0,
     .threads = 0,
     .line_max_size = DEFAULT_LINE_MAX_SIZE,
@@ -26,15 +26,8 @@ t_vars      g_vars = {
 
 int         main(int argc, char **argv)
 {
-    int     i;
-
-    optparse(argc, argv, &i);
+    optparse(argc, argv);
     configure();
-    while (i < argc)
-    {
-        chunkify_file(argv[i++], &g_vars.chunk_list);
-    }
-    printf("\n");
     atexit(delete_hmap);
     tag_duplicates(g_vars.chunk_list);
     remove_duplicates(g_vars.chunk_list);

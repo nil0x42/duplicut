@@ -3,13 +3,13 @@
 
 typedef void (*t_setopt_fn)(const char*);
 
-struct              optmap
+struct          optmap
 {
-    char            id;
-    t_setopt_fn     setopt;
+    char        id;
+    t_setopt_fn setopt;
 };
 
 /* source file: optparse.c */
-void                optparse(int argc, char **argv, int *idx);
+void            optparse(int argc, char **argv);
 
 #endif /* !OPTPARSE_H */

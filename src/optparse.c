@@ -9,6 +9,23 @@
 #include "bytesize.h"
 
 
+/** Arguments cofiguration for getopt_long().
+ */
+#define OPTSTRING "o:m:t:l:hv"
+
+static struct option    g_options[] = {
+    { "output",        required_argument, NULL, 'o' },
+    { "memlimit",      required_argument, NULL, 'm' },
+    { "threads",       required_argument, NULL, 't' },
+    { "line-max-size", required_argument, NULL, 'l' },
+    { "help",          no_argument,       NULL, 'h' },
+    { "version",       no_argument,       NULL, 'v' },
+    { NULL,            0,                 NULL, '\0'}
+};
+
+
+/** Error handler in case of invalid argument.
+ */
 static void bad_argument(const char *name, const char *value, const char *info)
 {
     fprintf(stderr, "%s: invalid argument '%s' for '--%s'\n",
@@ -17,11 +34,24 @@ static void bad_argument(const char *name, const char *value, const char *info)
     {
         fprintf(stderr, "(%s)\n", info);
     }
-    fprintf(stderr, "Try '%s --help' for more information.\n", PROGNAME);
+    fprintf(stderr, "Try '%s --help' for more information.\n",
+            PROGNAME);
     exit(EXIT_FAILURE);
 }
 
 
+/** Set input file (main argument) [MANDATORY]
+ * --> The source file
+ */
+static void setopt_input(const char *value)
+{
+    ;
+}
+
+
+/** Set output file (-o option) [MANDATORY]
+ * --> The destination file
+ */
 static void setopt_output(const char *value)
 {
     ;
@@ -30,10 +60,16 @@ static void setopt_output(const char *value)
 
 static void setopt_memlimit(const char *value)
 {
-    g_conf.memlimit = bytesize(value);
-    if (g_conf.memlimit < 1)
+    long    result;
+
+    result = bytesize(value);
+    if (result < 1)
     {
         bad_argument("memlimit", value, "invalid byte size representation");
+    }
+    else
+    {
+        g_conf.memlimit = result;
     }
 }
 
@@ -52,7 +88,7 @@ static void setopt_threads(const char *value)
     {
         bad_argument("threads", value, "not a positive number");
     }
-    g_conf.threads = threads;
+    g_conf.threads = (unsigned int) threads;
 }
 
 
@@ -74,7 +110,7 @@ static void setopt_line_max_size(const char *value)
     {
         bad_argument("line_max_size", value, "max value is 255");
     }
-    g_conf.line_max_size = line_max_size;
+    g_conf.line_max_size = (unsigned int) line_max_size;
 }
 
 
@@ -113,20 +149,13 @@ static void setopt_version(const char *value)
 }
 
 
-void        optparse(int argc, char **argv, int *idx)
+/** Setter for option arguments.
+ * It handler all parameters which are retrieved by getopt_long().
+ */
+static void setopt(int opt, const char *value)
 {
-    int             opt;
-    struct option   options[] = {
-        { "output",        required_argument, NULL, 'o' },
-        { "memlimit",      required_argument, NULL, 'm' },
-        { "threads",       required_argument, NULL, 't' },
-        { "line-max-size", required_argument, NULL, 'l' },
-        { "help",          no_argument,       NULL, 'h' },
-        { "version",       no_argument,       NULL, 'v' },
-        { NULL,            0,                 NULL, '\0'}
-    };
-    int             i;
-    struct optmap   optmap[] = {
+    int                     i;
+    static struct optmap    optmap[] = {
         { 'o', setopt_output },
         { 'm', setopt_memlimit },
         { 't', setopt_threads },
@@ -136,22 +165,42 @@ void        optparse(int argc, char **argv, int *idx)
         { '\0', NULL }
     };
 
-    while ((opt = getopt_long(argc, argv, "o:m:t:l:hv", options, NULL)) >= 0)
+    i = 0;
+    while (optmap[i].id != '\0')
     {
-        for (i=0; optmap[i].id; i++)
-        {
-            if (opt == optmap[i].id)
-                break ;
-        }
-        if (optmap[i].id)
-            optmap[i].setopt(optarg);
-        else
-        {
-            fprintf(stderr, "Try '%s --help' for more information\n", PROGNAME);
-            exit(EXIT_FAILURE);
-        }
+        if (optmap[i].id == opt)
+            break ;
+        ++i;
     }
-    if (optind == argc)
+    if (optmap[i].id != '\0')
+        optmap[i].setopt(value);
+    else
+    {
+        fprintf(stderr, "Try '%s --help' for more information\n", PROGNAME);
+        exit(EXIT_FAILURE);
+    }
+}
+
+
+/** Set options by filling out g_conf globale.
+ * It first uses setopt() in order to set option arguments,
+ * then handles main argument (input file) separately,
+ * throught setopt_input().
+ */
+void        optparse(int argc, char **argv)
+{
+    int             opt;
+
+    while ((opt = getopt_long(argc, argv, OPTSTRING, g_options, NULL)) >= 0)
+    {
+        setopt(opt, optarg);
+    }
+    if (optind == argc - 1)
+    {
+        setopt_input(optarg);
+    }
+    else
+    {
         setopt_help(NULL);
-    *idx = optind;
+    }
 }
