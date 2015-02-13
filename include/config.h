@@ -5,6 +5,7 @@
 
 # define DEFAULT_LINE_MAX_SIZE (24)
 
+
 struct              conf
 {
     long            memlimit;

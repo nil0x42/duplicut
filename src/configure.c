@@ -12,56 +12,53 @@
 
 
 /** Configure how many threads to use.
- * Concerned config variable:
- *      g_conf.threads
+ *      --> g_conf.threads
  */
 static void     config_threads(void)
 {
-    long        available_processors;
+    long        max_threads;
 
-    available_processors = sysconf(_SC_NPROCESSORS_ONLN);
-    if (available_processors < 0)
-    {
-        error("could not determine available processors");
-    }
-    else if (available_processors == 0)
-    {
-        die("unexpected '0' value for sysconf(_SC_NPROCESSORS_ONLN)");
-    }
+    max_threads = sysconf(_SC_NPROCESSORS_ONLN);
+    if (max_threads < 0)
+        error("sysconf(_SC_NPROCESSORS_ONLN): %s", ERRNO);
+    else if (max_threads == 0)
+        die("sysconf(_SC_NPROCESSORS_ONLN): Unexpected return: 0");
+
     if (g_conf.threads == 0)
-    {
-        g_conf.threads = available_processors;
-    }
-    else if (g_conf.threads > available_processors)
-    {
-        error("too much threads started (max is %ld)", available_processors);
-    }
+        g_conf.threads = max_threads;
+    else if (g_conf.threads > max_threads)
+        error("Cannot use more than %ld threads", max_threads);
+}
+
+
+/** Get memory page size.
+ *      --> g_conf.page_size
+ */
+static void     config_page_size(void)
+{
+    int         page_size;
+
+    page_size = sysconf(_SC_PAGESIZE);
+    if (page_size < 0)
+        error("sysconf(_SC_PAGESIZE): %s", ERRNO);
+    g_conf.page_size = page_size;
 }
 
 
 /** Configure max used memory.
- * It checks and sets the following g_conf values:
- *      g_conf.page_size
- *      g_conf.memlimit
+ *      --> g_conf.memlimit
  */
 static void     config_memlimit(void)
 {
     long        max_memory;
 
-    g_conf.page_size = sysconf(_SC_PAGESIZE);
-    if (g_conf.page_size < 0)
-    {
-        error("could not determine page size");
-    }
     max_memory = meminfo(MEMAVAILABLE);
     if (max_memory < 0)
-    {
-        error("meminfo(): Cannot determine available memory");
-    }
+        error("meminfo(MEMAVAILABLE): Cannot determine available memory");
+
     if (g_conf.memlimit == 0)
-    {
-        g_conf.memlimit = max_memory - KEEP_FREE_MEMORY;
-    }
+        g_conf.memlimit = max_memory;
+
     if (g_conf.memlimit < g_conf.page_size)
     {
         error("not enough memory");
@@ -74,7 +71,7 @@ static void     config_memlimit(void)
 }
 
 
-/** Gives the nearest prime number <= `n`.
+/** Return the nearest prime number <= `n`.
  * Used in order to settle hmap size with a prime value.
  * It ensures an optimal hash repartition.
  */
@@ -89,18 +86,12 @@ static long     get_prev_prime(long n)
         while (i && i <= sqrt(n))
         {
             if (n % i == 0)
-            {
                 i = 0;
-            }
             else
-            {
                 i += 2;
-            }
         }
         if (i)
-        {
             return (n);
-        }
         n -= 2;
     }
     return (n);
@@ -146,15 +137,19 @@ static void     distribute_memory(void)
 void            configure(void)
 {
     config_threads();
+    config_page_size();
+
     config_memlimit();
 
     distribute_memory();
 
+    DLOG("--------configure()-----------");
     DLOG("------------------------------");
-    DLOG("conf->memlimit:   %ld", g_conf.memlimit);
-    DLOG("conf->threads:    %d",  g_conf.threads);
-    DLOG("conf->page_size:  %d",  g_conf.page_size);
-    DLOG("conf->hmap_size:  %ld", g_conf.hmap_size);
-    DLOG("conf->chunk_size: %ld", g_conf.chunk_size);
+    DLOG("conf->memlimit:      %ld", g_conf.memlimit);
+    DLOG("conf->threads:       %u", g_conf.threads);
+    DLOG("conf->line_max_size: %u", g_conf.line_max_size);
+    DLOG("conf->page_size:     %d", g_conf.page_size);
+    DLOG("conf->hmap_size:     %ld", g_conf.hmap_size);
+    DLOG("conf->chunk_size:    %ld", g_conf.chunk_size);
     DLOG("------------------------------");
 }
