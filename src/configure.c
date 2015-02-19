@@ -1,10 +1,9 @@
-#include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
 #include <stdio.h>
 #include "definitions.h"
 #include "config.h"
-#include "meminfo.h"
+#include "memstate.h"
 #include "chunk.h"
 #include "line.h"
 #include "error.h"
@@ -28,46 +27,6 @@ static void     config_threads(void)
         g_conf.threads = max_threads;
     else if (g_conf.threads > max_threads)
         error("Cannot use more than %ld threads", max_threads);
-}
-
-
-/** Get memory page size.
- *      --> g_conf.page_size
- */
-static void     config_page_size(void)
-{
-    int         page_size;
-
-    page_size = sysconf(_SC_PAGESIZE);
-    if (page_size < 0)
-        error("sysconf(_SC_PAGESIZE): %s", ERRNO);
-    g_conf.page_size = page_size;
-}
-
-
-/** Configure max used memory.
- *      --> g_conf.memlimit
- */
-static void     config_memlimit(void)
-{
-    long        max_memory;
-
-    max_memory = meminfo(MEMAVAILABLE);
-    if (max_memory < 0)
-        error("meminfo(MEMAVAILABLE): Cannot determine available memory");
-
-    if (g_conf.memlimit == 0)
-        g_conf.memlimit = max_memory;
-
-    if (g_conf.memlimit < g_conf.page_size)
-    {
-        error("not enough memory");
-    }
-    else if (g_conf.memlimit > max_memory)
-    {
-        max_memory /= (1024 * 1024);
-        error("memlimit exceeds available memory (%ldMB).", max_memory);
-    }
 }
 
 
@@ -95,6 +54,16 @@ static long     get_prev_prime(long n)
         n -= 2;
     }
     return (n);
+}
+
+
+static void     config_hmap_size(struct memstate *memstate)
+{
+    long        max_size;
+
+    max_size = memstate->mem_available * HMAP_MAX_SIZE;
+
+
 }
 
 
@@ -136,16 +105,17 @@ static void     distribute_memory(void)
 
 void            configure(void)
 {
-    config_threads();
-    config_page_size();
+    struct memstate memstate;
 
-    config_memlimit();
+    init_memstate(&memstate);
+
+    config_threads();
+    config_hmap_size(&memstate);
 
     distribute_memory();
 
     DLOG("--------configure()-----------");
     DLOG("------------------------------");
-    DLOG("conf->memlimit:      %ld", g_conf.memlimit);
     DLOG("conf->threads:       %u", g_conf.threads);
     DLOG("conf->line_max_size: %u", g_conf.line_max_size);
     DLOG("conf->page_size:     %d", g_conf.page_size);

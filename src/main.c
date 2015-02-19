@@ -7,10 +7,10 @@
 
 
 struct conf g_conf = {
-    .memlimit = 0,
+    .infile = {0},
+    .outfile = {0},
     .threads = 0,
     .line_max_size = DEFAULT_LINE_MAX_SIZE,
-    .page_size = 0,
     .hmap_size = 0,
     .chunk_size = 0
 };

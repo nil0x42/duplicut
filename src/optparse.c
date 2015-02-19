@@ -7,15 +7,15 @@
 #include "config.h"
 #include "definitions.h"
 #include "bytesize.h"
+#include "error.h"
 
 
 /** Arguments cofiguration for getopt_long().
  */
-#define OPTSTRING "o:m:t:l:hv"
+#define OPTSTRING "o:t:l:hv"
 
 static struct option    g_options[] = {
-    { "output",        required_argument, NULL, 'o' },
-    { "memlimit",      required_argument, NULL, 'm' },
+    { "outfile",       required_argument, NULL, 'o' },
     { "threads",       required_argument, NULL, 't' },
     { "line-max-size", required_argument, NULL, 'l' },
     { "help",          no_argument,       NULL, 'h' },
@@ -43,34 +43,20 @@ static void bad_argument(const char *name, const char *value, const char *info)
 /** Set input file (main argument) [MANDATORY]
  * --> The source file
  */
-static void setopt_input(const char *value)
+static void setopt_infile(const char *value)
 {
-    ;
+    if (!open_infile(value))
+        error("cannot open input file %s: %s", value, ERRNO);
 }
 
 
 /** Set output file (-o option) [MANDATORY]
  * --> The destination file
  */
-static void setopt_output(const char *value)
+static void setopt_outfile(const char *value)
 {
-    ;
-}
-
-
-static void setopt_memlimit(const char *value)
-{
-    long    result;
-
-    result = bytesize(value);
-    if (result < 1)
-    {
-        bad_argument("memlimit", value, "invalid byte size representation");
-    }
-    else
-    {
-        g_conf.memlimit = result;
-    }
+    if (!open_outfile(value))
+        bad_argument("outfile", value, ERRNO);
 }
 
 
@@ -121,8 +107,7 @@ static void setopt_help(const char *value)
            "Remove duplicate lines from INFILE without sorting.\n"
            "\n"
            "Options:\n"
-           "-o, --output <FILE>        Write result to <FILE>\n"
-           "-m, --memlimit <VALUE>     Limit max used memory (default max)\n"
+           "-o, --outfile <FILE>       Write result to <FILE>\n"
            "-t, --threads <NUM>        Max threads to use (default max)\n"
            "-l, --line-max-size <NUM>  Max line size (default %d)\n"
            "-h, --help                 Display this help and exit\n"
@@ -157,7 +142,6 @@ static void setopt(int opt, const char *value)
     int                     i;
     static struct optmap    optmap[] = {
         { 'o', setopt_output },
-        { 'm', setopt_memlimit },
         { 't', setopt_threads },
         { 'l', setopt_line_max_size },
         { 'h', setopt_help },
@@ -172,8 +156,11 @@ static void setopt(int opt, const char *value)
             break ;
         ++i;
     }
+
     if (optmap[i].id != '\0')
+    {
         optmap[i].setopt(value);
+    }
     else
     {
         fprintf(stderr, "Try '%s --help' for more information\n", PROGNAME);
@@ -192,15 +179,23 @@ void        optparse(int argc, char **argv)
     int             opt;
 
     while ((opt = getopt_long(argc, argv, OPTSTRING, g_options, NULL)) >= 0)
-    {
         setopt(opt, optarg);
-    }
+
+    /* STDIN can be used as infile (priority to --infile arg if exists) */
     if (optind == argc - 1)
     {
-        setopt_input(optarg);
+        DLOG("using %s as input file", optarg);
+        setopt_infile(optarg);
+    }
+    else if (optind == argc && !isatty(STDIN_FILENO))
+    {
+        DLOG("using STDIN as input file");
+        setopt_infile("/dev/stdin");
     }
     else
-    {
         setopt_help(NULL);
-    }
+
+    /* outfile is mandatory */
+    if (!file_isset(&g_conf.outfile))
+        error("mandatory argument: --outfile");
 }

@@ -56,3 +56,15 @@ void        infile_load(const char *name)
         
     }
 }
+
+
+enum e_file_type {
+    INPUT_FILE,
+    OUTPUT_FILE
+};
+
+
+void        load_file(const char *name, enum e_file_type file_type)
+{
+    ;
+}
