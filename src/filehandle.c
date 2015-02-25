@@ -1,70 +1,129 @@
+#include <stdlib.h>
 #include <unistd.h>
+#include <stdio.h>
 #include <fcntl.h>
-#include "file.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include "filehandle.h"
+#include "definitions.h"
 #include "error.h"
-#include "debug.h"
+
+# define FILE_ISSET(_f) ((_f)->fd < 0)
+# define BUF_SIZE       (4096)
+
+static t_file   g_infile = {-1};
+static t_file   g_outfile = {-1};
+static t_file   g_tmpfile = {-1};
 
 
-#define IS_LOADED(_f) (_f.fd >= 0)
-#define USE_STDIN() (!isatty(STDIN_FILENO))
-
-static t_file   g_infile = {
-    .fd = -1,
-    .name = NULL,
-    .info = {0}
-};
-
-
-/** Load duplicut input file.
- * If `name` is NULL, stdin is used instead.
- * If both STDIN and infile are provided, STDIN takes priority.
+/** Safely close given t_file*
  */
-void        infile_load(const char *name)
+static void     close_file(t_file *file)
 {
-    /* singleton check */
-    if (IS_LOADED(g_infile))
+    if (FILE_ISSET(file))
     {
-        error("infile_load(): Function called twice !");
-    }
-
-    /* get g_infile.fd */
-    if (USE_STDIN())
-    {
-        if (name != NULL)
-        {
-            DLOG("Both STDIN and `infile` provided. Using STDIN.");
-        }
-        g_infile.fd = STDIN_FILENO;
-    }
-    else
-    {
-        if (name == NULL)
-        {
-            error("`infile` argument must be specified");
-        }
-        g_infile.fd = open(name, O_RDONLY);
-        if (g_infile.fd < 0)
-        {
-            error("cannot open %s: %s", name, ERRNO);
-        }
-    }
-
-    /* fill in g_infile from fd */
-    g_infile.name = name;
-    if (fstat(g_infile.fd, &g_infile.info) < 0)
-    {
-        
+        if (close(file->fd) < 0)
+            warning("cannot close %s: %s", file->name, ERRNO);
+        file->fd = -1;
     }
 }
 
 
-enum e_file_type {
-    INPUT_FILE,
-    OUTPUT_FILE
-};
-
-
-void        load_file(const char *name, enum e_file_type file_type)
+/** Destructor callback for optentially open files
+ */
+static void     close_all(void)
 {
-    ;
+    close_file(&g_infile);
+    close_file(&g_outfile);
+
+    if (FILE_ISSET(&g_tmpfile))
+    {
+        close_file(&g_tmpfile);
+        if (unlink(g_tmpfile.name) < 0)
+            warning("cannot unlink %s: %s", g_tmpfile.name, ERRNO);
+    }
+}
+
+
+/** Initialize a t_file with given file name
+ * It fills name, fd with open(), and info with fstat.
+ */
+static int      open_file(t_file *file, const char *name, int flags)
+{
+    if ((file->fd = open(name, flags, 0666)) < 0)
+        error("couldn't open %s: %s", file->name, ERRNO);
+
+    if (fstat(file->fd, &(file->info)) < 0)
+        error("could't stat %s: %s", file->name, ERRNO);
+
+    file->name = name;
+}
+
+
+/** Specific opener for g_tmpfile, which also uses mkstemp.
+ */
+static void     create_tmpfile(void)
+{
+    int     fd;
+    char    template[] = PROGNAME "_tmpfile.XXXXXX";
+
+    if ((g_tmpfile.fd = mkstemp(template)) < 0)
+        error("couldn't create tmpfile '%s': %s", template, ERRNO);
+}
+
+
+/** Copy a file in another
+ */
+static void     file_copy(int dst_fd, int src_fd)
+{
+    char        buffer[BUF_SIZE];
+    ssize_t     nread;
+
+    while ((nread = read(src_fd, buffer, BUF_SIZE)) > 0)
+    {
+        char    *dst_ptr = buffer;
+        ssize_t nwrite;
+
+        do
+        {
+            if ((nwrite = write(dst_fd, dst_ptr, nread)) >= 0)
+            {
+                nread -= nwrite;
+                dst_ptr += nwrite;
+            }
+            else if (errno != EINTR)
+            {
+                error("file_copy() -> write(): %s", ERRNO);
+            }
+        } while (nread > 0);
+    }
+    if (nread != 0)
+        error("file_copy() -> read(): %s", ERRNO);
+}
+
+
+/** Handle src/dst files, and return an usable fd for mmap()
+ * Can deal with non-regular files
+ * Registers cleanup functions with atexit()
+ */
+int             filehandle(const char *infile_name, const char *outfile_name)
+{
+    int     dst_fd;
+
+    atexit(close_all);
+    open_file(&g_infile, infile_name, O_RDONLY);
+    open_file(&g_outfile, outfile_name, O_TRUNC | O_CREAT | O_EXCL | O_RDWR);
+
+    if (S_ISREG(g_outfile.info.st_mode))
+    {
+        dst_fd = g_outfile.fd;
+    }
+    else
+    {
+        create_tmpfile();
+        dst_fd = g_tmpfile.fd;
+    }
+
+    file_copy(dst_fd, g_infile.fd);
+    close_file(&g_infile);
 }
