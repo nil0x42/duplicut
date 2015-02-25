@@ -6,6 +6,7 @@
 #include "memstate.h"
 #include "chunk.h"
 #include "line.h"
+#include "filehandle.h"
 #include "error.h"
 #include "debug.h"
 
@@ -57,52 +58,28 @@ static long     get_prev_prime(long n)
 }
 
 
-static void     config_hmap_size(struct memstate *memstate)
+/** Configure hmap_size.
+ * This values needs to know file size and current memstate
+ * in order to determine an optimal hash map size.
+ * It also uses a prime number as final value, thanks to get_prev_prime().
+ */
+static void     config_hmap_size(t_file *file, struct memstate *memstate)
 {
     long        max_size;
+    long        hmap_size;
 
-    max_size = memstate->mem_available * HMAP_MAX_SIZE;
+    hmap_size = file->info.st_size / MEDIUM_LINE_BYTES;
 
+    max_size = (memstate->mem_available * HMAP_MAX_SIZE) / sizeof(t_line);
+    if (hmap_size > max_size)
+        hmap_size = max_size;
 
+    g_conf.hmap_size = get_prev_prime(hmap_size);
 }
 
 
-/** Get an optimal memory repartition
- * between hasmap and chunk size according
- * to available memory.
+/** Configure `g_conf` vars after argument parsing
  */
-static void     distribute_memory(void)
-{
-    double      hmap_sz;
-    double      chunk_sz;
-
-    double      hmap_linecost;
-    double      chunk_linecost;
-    double      delta;
-
-    hmap_linecost = sizeof(t_line) * (1 / HMAP_LOAD_FACTOR);
-    chunk_linecost = MEDIUM_LINE_BYTES;
-    delta = chunk_linecost * (double)g_conf.threads;
-
-    hmap_sz = hmap_linecost / (hmap_linecost + delta) * g_conf.memlimit;
-
-    chunk_sz = (g_conf.memlimit - hmap_sz) / g_conf.threads;
-    /* chunk_sz = ((int)chunk_sz + page_sz - 1) & ~(page_sz - 1); */
-    chunk_sz = (int)(chunk_sz) - ((int)chunk_sz % g_conf.page_size);
-
-    // hmap_sz was bytes, convert to number of cells (t_line structs..)
-    g_conf.hmap_size = (size_t)hmap_sz / sizeof(t_line);
-    g_conf.hmap_size = get_prev_prime(g_conf.hmap_size);
-
-
-    g_conf.chunk_size = (size_t) chunk_sz;
-    if (g_conf.chunk_size < (size_t)(g_conf.page_size * 3))
-    {
-        error("missing memory: chunk_size can't be less than 3 pages");
-    }
-}
-
-
 void            configure(void)
 {
     struct memstate memstate;
@@ -110,12 +87,12 @@ void            configure(void)
     init_memstate(&memstate);
 
     config_threads();
-    config_hmap_size(&memstate);
-
-    distribute_memory();
+    config_hmap_size(g_file, &memstate);
 
     DLOG("--------configure()-----------");
     DLOG("------------------------------");
+    DLOG("conf->infile_name:   %s", g_conf.infile_name);
+    DLOG("conf->outfile_name:  %s", g_conf.outfile_name);
     DLOG("conf->threads:       %u", g_conf.threads);
     DLOG("conf->line_max_size: %u", g_conf.line_max_size);
     DLOG("conf->page_size:     %d", g_conf.page_size);

@@ -4,6 +4,7 @@
 #include "config.h"
 #include "vars.h"
 #include "hmap.h"
+#include "filehandle.h"
 
 
 struct conf g_conf = {
@@ -16,6 +17,9 @@ struct conf g_conf = {
 };
 
 
+t_file      *g_file = NULL;
+
+
 t_vars      g_vars = {
     .chunk_list = NULL,
     .num_chunks = 0,
@@ -26,14 +30,10 @@ t_vars      g_vars = {
 
 int         main(int argc, char **argv)
 {
-    int     dstfile_fd;
-
     optparse(argc, argv);
+    g_file = filehandle(g_conf.infile_name, g_conf.outfile_name);
     configure();
-    dstfile_fd = filehandle(g_conf.infile_name, g_conf.outfile_name);
 
-
-    atexit(delete_hmap);
     tag_duplicates(g_vars.chunk_list);
     remove_duplicates(g_vars.chunk_list);
     return (0);
