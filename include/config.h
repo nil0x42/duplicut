@@ -8,6 +8,8 @@
 
 struct              conf
 {
+    const char      *infile_name;
+    const char      *outfile_name;
     unsigned int    threads;
     unsigned int    line_max_size;
     size_t          hmap_size;
@@ -21,23 +23,6 @@ extern struct conf  g_conf;
 
 /* source file: configure.c */
 void                configure(void);
-
-
-union xx
-{
-    int integer;
-    int integer2;
-    int integer3;
-    int integer4;
-    int integer5;
-    int integer6;
-    int integer7;
-    int integer8;
-    int integer9;
-    int integer10;
-    char chr;
-    float floating_number;
-};
 
 
 #endif /* CONFIG_H */

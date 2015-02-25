@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <getopt.h>
 #include <string.h>
@@ -8,6 +9,7 @@
 #include "definitions.h"
 #include "bytesize.h"
 #include "error.h"
+#include "debug.h"
 
 
 /** Arguments cofiguration for getopt_long().
@@ -45,8 +47,7 @@ static void bad_argument(const char *name, const char *value, const char *info)
  */
 static void setopt_infile(const char *value)
 {
-    if (!open_infile(value))
-        error("cannot open input file %s: %s", value, ERRNO);
+    g_conf.infile_name = value;
 }
 
 
@@ -55,8 +56,7 @@ static void setopt_infile(const char *value)
  */
 static void setopt_outfile(const char *value)
 {
-    if (!open_outfile(value))
-        bad_argument("outfile", value, ERRNO);
+    g_conf.outfile_name = value;
 }
 
 
@@ -141,7 +141,7 @@ static void setopt(int opt, const char *value)
 {
     int                     i;
     static struct optmap    optmap[] = {
-        { 'o', setopt_output },
+        { 'o', setopt_outfile },
         { 't', setopt_threads },
         { 'l', setopt_line_max_size },
         { 'h', setopt_help },
@@ -196,6 +196,6 @@ void        optparse(int argc, char **argv)
         setopt_help(NULL);
 
     /* outfile is mandatory */
-    if (!file_isset(&g_conf.outfile))
+    if (g_conf.outfile_name == NULL)
         error("mandatory argument: --outfile");
 }
