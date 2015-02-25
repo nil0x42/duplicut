@@ -4,6 +4,24 @@
 #include <stdarg.h>
 
 
+/** Print a formatted warning message without leaving the program.
+ * The use of printf() inside this function causes it
+ * to potentially allocate memory.
+ * Unlike error() and die(), this function do not leave the program,
+ * making it safe for use in atexit() callbacks.
+ */
+void            warning(const char *fmt, ...)
+{
+    va_list     ap;
+
+    va_start(ap, fmt);
+    write(STDERR_FILENO, "warning: ", 9);
+    vdprintf(STDERR_FILENO, fmt, ap);
+    write(STDERR_FILENO, "\n", 1);
+    va_end(ap);
+}
+
+
 /** Print a formatted error message and leave the program.
  * The use of printf() inside this function causes it
  * to potentially allocate memory.

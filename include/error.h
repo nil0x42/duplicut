@@ -6,6 +6,7 @@
 
 # define ERRNO (strerror(errno))
 
+void        warning(const char *fmt, ...);
 void        error(const char *fmt, ...);
 void        die(const char *msg);
 
