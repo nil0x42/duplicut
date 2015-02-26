@@ -31,7 +31,7 @@ t_vars      g_vars = {
 int         main(int argc, char **argv)
 {
     optparse(argc, argv);
-    g_file = filehandle(g_conf.infile_name, g_conf.outfile_name);
+    g_file = filehandle_init(g_conf.infile_name, g_conf.outfile_name);
     configure();
 
     tag_duplicates(g_vars.chunk_list);
