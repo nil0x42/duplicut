@@ -30,11 +30,15 @@ t_vars      g_vars = {
 
 int         main(int argc, char **argv)
 {
-    optparse(argc, argv);
+    optparse(argc, argv); /* set g_conf options */
     g_file = filehandle_init(g_conf.infile_name, g_conf.outfile_name);
-    configure();
+    configure(); /* configure g_conf options */
 
-    tag_duplicates(g_vars.chunk_list);
-    remove_duplicates(g_vars.chunk_list);
+    create_hmap();
+
+    tag_duplicates(g_file);
+    /* remove_duplicates(g_vars.chunk_list); */
+
+    filehandle_finish();
     return (0);
 }

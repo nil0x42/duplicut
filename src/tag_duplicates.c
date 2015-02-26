@@ -1,13 +1,13 @@
 #include <stdlib.h>
-#include <sys/mman.h>
-#include "definitions.h"
+#include "filehandle.h"
 #include "config.h"
+#include "thpool.h"
 #include "chunk.h"
-#include "line.h"
-#include "hash.h"
 #include "error.h"
+#include "hash.h"
+#include "line.h"
 #include "vars.h"
-#include "hmap.h"
+#include "definitions.h"
 
 
 /** Populate `hmap` whith given `chunk` lines.
@@ -15,28 +15,29 @@
  * duplicate lines from `chunk` by tagging them with 'DISABLED_LINE'.
  * - Unique lines are normally written into `hmap`.
  */
-static void         populate_hmap(t_line *hmap, t_chunk *chunk)
+static void         populate_hmap(t_chunk *chunk)
 {
-    t_line          line;
-    size_t          offset;
-    long            slot;
-    char            *chunk_head;
+    t_line      *hmap;
+    t_line      line;
+    long        slot;
 
+    hmap = g_vars.hmap;
     memset(hmap, 0, g_conf.hmap_size * sizeof(t_line));
-    offset = 0;
-    chunk_head = &chunk->map.addr[chunk->offset];
-    while (next_line(chunk_head, chunk->size, &line, &offset) != NULL)
+
+    while (get_next_line(&line, chunk))
     {
-        slot = hash(&line);
+        slot = hash(&line) % g_conf.hmap_size;
         while (1)
         {
             if (!LINE_ISSET(hmap[slot]))
             {
+                /* use first free slot */
                 hmap[slot] = line;
                 break;
             }
             else if (cmp_line(&line, &hmap[slot]) == 0)
             {
+                /* if line already in hmap, zero tag duplicate */
                 LINE_ADDR(line)[0] = DISABLED_LINE;
                 break;
             }
@@ -46,65 +47,64 @@ static void         populate_hmap(t_line *hmap, t_chunk *chunk)
 }
 
 
-/** Disable any line from `chunk` which is already present in `hmap`
+/** zero mark lines in chunk if they exist in hmap
+ * Main work for threads in pool.
  */
-static void         cleanout_chunk(t_chunk *chunk, t_line *hmap)
+static void         cleanout_chunk(t_chunk *chunk)
 {
-    t_line          line;
-    size_t          offset;
-    long            slot;
-    char            *chunk_head;
+    t_line      line;
+    long        slot;
 
-    load_chunk(chunk);
-    offset = 0;
-    chunk_head = &chunk->map.addr[chunk->offset];
-    while (next_line(chunk_head, chunk->size, &line, &offset) != NULL)
+    while (get_next_line(&line, chunk))
     {
-        slot = hash(&line);
-        while (1)
+        slot = hash(&line) % g_conf.hmap_size;
+        while (LINE_ISSET(g_vars.hmap[slot]))
         {
-            if (!LINE_ISSET(hmap[slot]))
+            if (cmp_line(&line, &g_vars.hmap[slot]) == 0)
             {
-                break;
-            }
-            else if (cmp_line(&line, &hmap[slot]) == 0)
-            {
+                /* apply zero tag */
                 LINE_ADDR(line)[0] = DISABLED_LINE;
                 break;
             }
+            /* archaic open addressing */
             slot = (slot + 1) % g_conf.hmap_size;
         }
     }
-    unload_chunk(chunk);
+    free(chunk);
 }
 
 
-/** Disable all duplicate lines, taking care of the order
- * between all chunks present in `main_chunk` linked list.
- * NOTE: duplicate lines are disabled by writing `DISABLED_LINE`
- * char at line's first char.
+/** For each chunk following `parent`, add a cleanout_chunk() worker.
  */
-void                tag_duplicates(t_chunk *main_chunk)
+static void         populate_thpool(threadpool thpool, const t_chunk *parent)
 {
-    t_chunk         *sub_chunk;
+    t_chunk     chunk;
 
-    g_vars.hmap = create_hmap();
-    print_remaining_time();
-    while (main_chunk != NULL)
+    memcpy(&chunk, parent, sizeof(t_chunk));
+    while (get_next_chunk(&chunk, g_file))
     {
-        load_chunk(main_chunk);
-        populate_hmap(g_vars.hmap, main_chunk);
-        g_vars.treated_chunks++;
-        print_remaining_time();
-        sub_chunk = main_chunk->next;
-        while (sub_chunk != NULL)
-        {
-            cleanout_chunk(sub_chunk, g_vars.hmap);
-            g_vars.treated_chunks++;
-            print_remaining_time();
-            sub_chunk = sub_chunk->next;
-        }
-        unload_chunk(main_chunk);
-        main_chunk = main_chunk->next;
+        t_chunk *worker_chunk = malloc(sizeof(t_chunk));
+        if (worker_chunk == NULL)
+            die("could not malloc() worker_chunk");
+        thpool_add_work(thpool, (void*)cleanout_chunk, worker_chunk);
     }
+}
+
+
+/** For each chunk, load it into hmap and remove all duplicates
+ * in following chunks through `populate_thpool()`.
+ */
+void                tag_duplicates(t_file *file)
+{
+    threadpool  thpool = thpool_init(g_conf.threads);
+    t_chunk     main_chunk = {0};
+
+    while (get_next_chunk(&main_chunk, g_file))
+    {
+        populate_hmap(&main_chunk);
+        populate_thpool(thpool, &main_chunk);
+        thpool_wait(thpool);
+    }
+
+    thpool_destroy(thpool);
 }
