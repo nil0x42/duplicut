@@ -8,6 +8,7 @@ typedef struct  s_file
     int         fd;
     const char  *name;
     struct stat info;
+    char        *addr; /* mmap address (if any) */
 }               t_file;
 
 
