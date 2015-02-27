@@ -78,6 +78,25 @@ static void     config_hmap_size(t_file *file, struct memstate *memstate)
 }
 
 
+/** Configure chunk_size.
+ * Mostly based on hmap_size * MEDIUM_LINE_BYTES.
+ * Add repartition so chunk_size is a portion of file size.
+ */
+static void     config_chunk_size(t_file *file)
+{
+    double      file_size;
+    double      portions;
+    double      chunk_size;
+
+    file_size = (double) file->info.st_size;
+    chunk_size = (double) g_conf.hmap_size * MEDIUM_LINE_BYTES;
+    portions = round(file_size / chunk_size);
+    chunk_size = file_size / portions;
+
+    g_conf.chunk_size = (size_t) ceil(chunk_size);
+}
+
+
 /** Configure `g_conf` vars after argument parsing
  */
 void            configure(void)
@@ -88,6 +107,7 @@ void            configure(void)
 
     config_threads();
     config_hmap_size(g_file, &memstate);
+    config_chunk_size(g_file);
 
     DLOG("--------configure()-----------");
     DLOG("------------------------------");
