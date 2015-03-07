@@ -1,6 +1,6 @@
 #include <string.h>
 #include "line.h"
-#include "definitions.h"
+#include "const.h"
 #include "debug.h"
 #include "chunk.h"
 #include "config.h"

@@ -7,7 +7,7 @@
 #include "hash.h"
 #include "line.h"
 #include "vars.h"
-#include "definitions.h"
+#include "const.h"
 
 
 /** Populate `hmap` whith given `chunk` lines.

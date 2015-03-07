@@ -1,7 +1,7 @@
 #include <unistd.h>
 #include <math.h>
 #include <stdio.h>
-#include "definitions.h"
+#include "const.h"
 #include "config.h"
 #include "memstate.h"
 #include "chunk.h"

@@ -6,7 +6,7 @@
 #include <ctype.h>
 #include "optparse.h"
 #include "config.h"
-#include "definitions.h"
+#include "const.h"
 #include "bytesize.h"
 #include "error.h"
 #include "debug.h"

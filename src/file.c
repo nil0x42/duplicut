@@ -4,7 +4,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include "file.h"
-#include "definitions.h"
+#include "const.h"
 #include "error.h"
 
 # define FILE_ISSET(_f) ((_f)->fd < 0)
