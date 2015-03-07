@@ -31,8 +31,10 @@ t_vars      g_vars = {
 int         main(int argc, char **argv)
 {
     optparse(argc, argv); /* set g_conf options */
+
     g_file = filehandle_init(g_conf.infile_name, g_conf.outfile_name);
     configure(); /* configure g_conf options */
+
 
     create_hmap();
 
