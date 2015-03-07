@@ -99,7 +99,7 @@ static void     config_chunk_size(t_file *file)
 
 /** Configure `g_conf` vars after argument parsing
  */
-void            configure(void)
+void            config(void)
 {
     struct memstate memstate;
 
@@ -109,7 +109,7 @@ void            configure(void)
     config_hmap_size(g_file, &memstate);
     config_chunk_size(g_file);
 
-    DLOG("--------configure()-----------");
+    DLOG("----------config()------------");
     DLOG("------------------------------");
     DLOG("conf->infile_name:   %s", g_conf.infile_name);
     DLOG("conf->outfile_name:  %s", g_conf.outfile_name);

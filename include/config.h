@@ -21,8 +21,8 @@ struct              conf
  */
 extern struct conf  g_conf;
 
-/* source file: configure.c */
-void                configure(void);
+/* source file: config.c */
+void                config(void);
 
 
 #endif /* CONFIG_H */
