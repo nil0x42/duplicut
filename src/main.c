@@ -4,7 +4,7 @@
 #include "config.h"
 #include "vars.h"
 #include "hmap.h"
-#include "filehandle.h"
+#include "file.h"
 
 
 struct conf g_conf = {
@@ -32,7 +32,7 @@ int         main(int argc, char **argv)
 {
     optparse(argc, argv); /* set g_conf options */
 
-    g_file = filehandle_init(g_conf.infile_name, g_conf.outfile_name);
+    g_file = file_init(g_conf.infile_name, g_conf.outfile_name);
     config(); /* configure g_conf options */
 
 
@@ -41,6 +41,6 @@ int         main(int argc, char **argv)
     tag_duplicates(g_file);
     /* remove_duplicates(g_vars.chunk_list); */
 
-    filehandle_finish();
+    file_destroy();
     return (0);
 }

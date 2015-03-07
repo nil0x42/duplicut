@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include "filehandle.h"
+#include "file.h"
 #include "config.h"
 #include "thpool.h"
 #include "chunk.h"

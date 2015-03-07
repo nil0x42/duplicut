@@ -6,7 +6,7 @@
 #include "memstate.h"
 #include "chunk.h"
 #include "line.h"
-#include "filehandle.h"
+#include "file.h"
 #include "error.h"
 #include "debug.h"
 

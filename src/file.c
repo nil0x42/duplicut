@@ -3,7 +3,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
-#include "filehandle.h"
+#include "file.h"
 #include "definitions.h"
 #include "error.h"
 
@@ -110,13 +110,13 @@ static void file_copy(int dst_fd, int src_fd)
 }
 
 
-/** filehandle constructor.
+/** file constructor.
  * Handle src/dst files, and return a t_file* for use by duplicut.
  * Can deal with non-regular files
  * Registers cleanup functions with atexit()
  * returned file has `addr` attribute memory maped.
  */
-t_file      *filehandle_init(const char *infile_name, const char *outfile_name)
+t_file      *file_init(const char *infile_name, const char *outfile_name)
 {
     t_file  *file;
 
@@ -144,11 +144,11 @@ t_file      *filehandle_init(const char *infile_name, const char *outfile_name)
 }
 
 
-/** filehandle destructor
+/** file destructor
  * If tmpfile, copy it info outfile
  * Call close_all() for cleanout.
  */
-void        filehandle_finish(void)
+void        file_destroy(void)
 {
     t_file  *file;
 
