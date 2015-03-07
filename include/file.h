@@ -1,22 +1,18 @@
-#ifndef FILE_H
-# define FILE_H
+#pragma once
 
-# include <sys/stat.h>
+#include <sys/stat.h>
 
-typedef struct  s_file
+struct file
 {
     int         fd;
     const char  *name;
     struct stat info;
     char        *addr; /* mmap address (if any) */
-}               t_file;
+};
 
-
-extern t_file   *g_file;
-
+/* File object used for duplicate removal. */
+extern struct file  *g_file;
 
 /* source file: file.c */
-t_file  *file_init(const char *infile_name, const char *outfile_name);
-void    file_destroy(void);
-
-#endif /* !FILE_H */
+void    init_file(const char *infile_name, const char *outfile_name);
+void    destroy_file(void);

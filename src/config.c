@@ -25,7 +25,7 @@ static void     config_threads(void)
         die("sysconf(_SC_NPROCESSORS_ONLN): Unexpected return: 0");
 
     if (g_conf.threads == 0)
-        g_conf.threads = max_threads;
+        g_conf.threads = (unsigned int) max_threads;
     else if (g_conf.threads > max_threads)
         error("Cannot use more than %ld threads", max_threads);
 }
@@ -63,18 +63,19 @@ static long     get_prev_prime(long n)
  * in order to determine an optimal hash map size.
  * It also uses a prime number as final value, thanks to get_prev_prime().
  */
-static void     config_hmap_size(t_file *file, struct memstate *memstate)
+static void     config_hmap_size(struct file *file, struct memstate *memstate)
 {
     long        max_size;
     long        hmap_size;
 
     hmap_size = file->info.st_size / MEDIUM_LINE_BYTES;
 
-    max_size = (memstate->mem_available * HMAP_MAX_SIZE) / sizeof(t_line);
+    max_size = (long) ((double) memstate->mem_available * HMAP_MAX_SIZE);
+    max_size /= sizeof(t_line);
     if (hmap_size > max_size)
         hmap_size = max_size;
 
-    g_conf.hmap_size = get_prev_prime(hmap_size);
+    g_conf.hmap_size = (size_t) get_prev_prime(hmap_size);
 }
 
 
@@ -82,7 +83,7 @@ static void     config_hmap_size(t_file *file, struct memstate *memstate)
  * Mostly based on hmap_size * MEDIUM_LINE_BYTES.
  * Add repartition so chunk_size is a portion of file size.
  */
-static void     config_chunk_size(t_file *file)
+static void     config_chunk_size(struct file *file)
 {
     double      file_size;
     double      portions;
@@ -115,7 +116,6 @@ void            config(void)
     DLOG("conf->outfile_name:  %s", g_conf.outfile_name);
     DLOG("conf->threads:       %u", g_conf.threads);
     DLOG("conf->line_max_size: %u", g_conf.line_max_size);
-    DLOG("conf->page_size:     %d", g_conf.page_size);
     DLOG("conf->hmap_size:     %ld", g_conf.hmap_size);
     DLOG("conf->chunk_size:    %ld", g_conf.chunk_size);
     DLOG("------------------------------");

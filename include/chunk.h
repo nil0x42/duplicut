@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdbool.h>
 #include "file.h"
 
 
@@ -9,6 +10,6 @@ typedef struct  chunk
     char        *endptr;
 }               t_chunk;
 
-
-/* source file: tag_duplicates.c */
-void            tag_duplicates(t_file *file);
+/* source file: chunk.c */
+bool        get_next_chunk(t_chunk *chunk, struct file *file);
+void        cleanout_chunk(t_chunk *chunk);

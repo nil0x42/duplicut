@@ -1,9 +1,8 @@
-#ifndef CONFIG_H
-# define CONFIG_H
+#pragma once
 
-# include <stddef.h>
+#include <stddef.h>
 
-# define DEFAULT_LINE_MAX_SIZE (24)
+#define DEFAULT_LINE_MAX_SIZE (24)
 
 
 struct              conf
@@ -23,6 +22,3 @@ extern struct conf  g_conf;
 
 /* source file: config.c */
 void                config(void);
-
-
-#endif /* CONFIG_H */
