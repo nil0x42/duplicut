@@ -1,16 +1,21 @@
+TARGET       = duplicut
+
 SHELL        = /bin/sh
  
-CFLAGS       = -Iinclude -mtune=native -Wall -Wextra
-LDFLAGS      = -lm
+CFLAGS       = -Iinclude -Wall -Wextra \
+               -Wdisabled-optimization -Winline \
+               -Wconversion -Wsign-conversion  -Wunsuffixed-float-constants \
+               -Wdouble-promotion -Wunknown-pragmas \
+               -Wno-unknown-warning-option \
+               -mtune=native -ffast-math
+LDFLAGS      = -lm -pthread
 RELEASEFLAGS = -O2 -D NDEBUG
 DEBUGFLAGS   = -O0 -D DEBUG -std=gnu99 -g3
  
-TARGET       = duplicut
-SOURCES      = $(wildcard src/*.c)
-COMMON       = include/definitions.h include/debug.h
-HEADERS      = $(wildcard include/*.h)
-OBJECTS      = $(patsubst src/%.c, objects/%.o, $(SOURCES))
-
+SOURCES      = main.c optparse.c config.c file.c chunk.c hmap.c hash.c \
+               fasthash.c
+COMMON       = include/const.h include/debug.h
+OBJECTS      = $(patsubst %.c, objects/%.o, $(SOURCES))
  
 PREFIX       = $(DESTDIR)/usr/local
 BINDIR       = $(PREFIX)/bin
@@ -24,16 +29,15 @@ $(TARGET): $(OBJECTS) $(COMMON)
 	$(CC) $(FLAGS) $(CFLAGS) $(DEBUGFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
 
 release: CFLAGS += $(RELEASEFLAGS)
-release: fclean $(SOURCES) $(HEADERS) $(COMMON)
+release: fclean $(SOURCES) $(COMMON)
 	$(CC) $(FLAGS) $(CFLAGS) $(RELEASEFLAGS) -o $(TARGET) $(SOURCES) $(LDFLAGS)
-
-objects/%.o: src/%.c
-	mkdir -p `dirname $@`
-	$(CC) $(FLAGS) $(CFLAGS) -c $< -o $@ $(LDFLAGS)
 
 profile: CFLAGS += -pg
 profile: fclean $(TARGET)
 
+objects/%.o: src/%.c
+	mkdir -p `dirname $@`
+	$(CC) $(FLAGS) $(CFLAGS) -c $< -o $@
  
 install: release
 	install -D $(TARGET) $(BINDIR)/$(TARGET)
@@ -43,10 +47,9 @@ install-strip: release
 
 uninstall:
 	rm $(BINDIR)/$(TARGET)
- 
 
 clean:
-	-rm -rf objects
+	-rm -rf objects/
 	-rm -f gmon.out
 	-rm -f tags
  
@@ -54,7 +57,6 @@ distclean: clean
 	-rm -f $(TARGET)
 
 fclean: distclean
-
 
 re: fclean all
  
