@@ -5,7 +5,7 @@
  *               work. For usage, check the thpool.h file or README.md
  *
  *//** @file thpool.h *//*
- * 
+ *
  ********************************/
 
 
@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <errno.h>
-#include <time.h> 
+#include <time.h>
 
 #include "thpool.h"
 
@@ -72,7 +72,7 @@ typedef struct thpool_{
 	int        num_threads_alive;        /* threads currently alive   */
 	int        num_threads_working;      /* threads currently working */
 	pthread_mutex_t  thcount_lock;       /* used for thread count etc */
-	jobqueue*  jobqueue_p;               /* pointer to the job queue  */    
+	jobqueue*  jobqueue_p;               /* pointer to the job queue  */
 } thpool_;
 
 
@@ -184,7 +184,7 @@ void thpool_wait(thpool_* thpool_p){
 	time_t start, end;
 	double tpassed = 0.0;
 	time (&start);
-	while (tpassed < timeout && 
+	while (tpassed < timeout &&
 			(thpool_p->jobqueue_p->len || thpool_p->num_threads_working))
 	{
 		time (&end);
@@ -271,6 +271,7 @@ void thpool_pause(thpool_* thpool_p) {
 
 /* Resume all threads in threadpool */
 void thpool_resume(thpool_* thpool_p) {
+    (void) thpool_p;
 	threads_on_hold = 0;
 }
 
