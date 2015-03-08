@@ -5,7 +5,6 @@
 
 # include "murmur3.h"
 # include "fasthash.h"
-# include "xxhash.h"
 
 # define SEED (0)
 
