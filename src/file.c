@@ -6,9 +6,11 @@
 #include "file.h"
 #include "const.h"
 #include "error.h"
+#include "debug.h"
 
 # define FILE_ISSET(_f) ((_f)->fd < 0)
 # define BUF_SIZE       (4096)
+
 
 static struct file  g_infile;
 static struct file  g_outfile;
@@ -126,7 +128,7 @@ void        init_file(const char *infile_name, const char *outfile_name)
 
     atexit(close_all);
     open_file(&g_infile, infile_name, O_RDONLY);
-    open_file(&g_outfile, outfile_name, O_TRUNC | O_CREAT | O_EXCL | O_RDWR);
+    open_file(&g_outfile, outfile_name, O_TRUNC | O_CREAT | O_RDWR);
 
     if (S_ISREG(g_outfile.info.st_mode))
     {
@@ -141,10 +143,22 @@ void        init_file(const char *infile_name, const char *outfile_name)
     file_copy(file->fd, g_infile.fd);
     close_file(&g_infile);
 
+    if (fstat(file->fd, &(file->info)) < 0)
+        error("could't stat %s: %s", file->name, ERRNO);
+
     file->addr = mmap(NULL, (size_t) file->info.st_size,
             (PROT_READ | PROT_WRITE), MAP_PRIVATE, file->fd, 0);
 
     g_file = file;
+
+    DLOG("");
+    DLOG("---------- g_file ------------");
+    DLOG("g_file->fd:           %d", g_file->fd);
+    DLOG("g_file->name:         %s", g_file->name);
+    DLOG("g_file->addr:         %p", g_file->addr);
+    DLOG("g_file->info.st_size: %ld", g_file->info.st_size);
+    DLOG("------------------------------");
+    DLOG("");
 }
 
 

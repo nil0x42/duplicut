@@ -2,11 +2,12 @@
 #include <string.h>
 #include "optparse.h"
 #include "config.h"
-#include "hmap.h"
-#include "chunk.h"
-#include "file.h"
 #include "thpool.h"
+#include "file.h"
+#include "chunk.h"
+#include "hmap.h"
 #include "error.h"
+#include "debug.h"
 
 
 struct conf g_conf = {
@@ -20,7 +21,6 @@ struct conf g_conf = {
 
 struct file *g_file;
 struct hmap g_hmap;
-
 
 
 /** For each chunk following `parent`, add a cleanout_chunk() worker.
@@ -45,14 +45,17 @@ static void     populate_thpool(threadpool thpool, const t_chunk *parent)
  */
 static void     tag_duplicates(void)
 {
-    threadpool  thpool = thpool_init((int) g_conf.threads);
+    threadpool  thpool = thpool_init(g_conf.threads);
     t_chunk     main_chunk = {
         .ptr = NULL,
         .endptr = NULL
     };
 
+    DLOG("tag_duplicates()");
+
     while (get_next_chunk(&main_chunk, g_file))
     {
+        DLOG("  main_chunk = %p / %p", main_chunk.ptr, main_chunk.endptr);
         populate_hmap(&main_chunk);
         populate_thpool(thpool, &main_chunk);
         thpool_wait(thpool);

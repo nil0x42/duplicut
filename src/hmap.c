@@ -3,10 +3,12 @@
 #include "hash.h"
 #include "const.h"
 #include "error.h"
+#include "debug.h"
 
 
 void        init_hmap(size_t size)
 {
+    DLOG("init_hmap()");
     t_line  *area;
 
     if (g_hmap.ptr != NULL)

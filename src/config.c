@@ -70,7 +70,7 @@ static void     config_hmap_size(struct file *file, struct memstate *memstate)
 
     hmap_size = file->info.st_size / MEDIUM_LINE_BYTES;
 
-    max_size = (long) ((double) memstate->mem_available * HMAP_MAX_SIZE);
+    max_size = memstate->mem_available * HMAP_MAX_SIZE;
     max_size /= sizeof(t_line);
     if (hmap_size > max_size)
         hmap_size = max_size;
@@ -110,13 +110,14 @@ void            config(void)
     config_hmap_size(g_file, &memstate);
     config_chunk_size(g_file);
 
-    DLOG("----------config()------------");
+    DLOG("");
+    DLOG("---------- g_conf ------------");
+    DLOG("g_conf.infile_name:   %s", g_conf.infile_name);
+    DLOG("g_conf.outfile_name:  %s", g_conf.outfile_name);
+    DLOG("g_conf.threads:       %u", g_conf.threads);
+    DLOG("g_conf.line_max_size: %u", g_conf.line_max_size);
+    DLOG("g_conf.hmap_size:     %ld", g_conf.hmap_size);
+    DLOG("g_conf.chunk_size:    %ld", g_conf.chunk_size);
     DLOG("------------------------------");
-    DLOG("conf->infile_name:   %s", g_conf.infile_name);
-    DLOG("conf->outfile_name:  %s", g_conf.outfile_name);
-    DLOG("conf->threads:       %u", g_conf.threads);
-    DLOG("conf->line_max_size: %u", g_conf.line_max_size);
-    DLOG("conf->hmap_size:     %ld", g_conf.hmap_size);
-    DLOG("conf->chunk_size:    %ld", g_conf.chunk_size);
-    DLOG("------------------------------");
+    DLOG("");
 }

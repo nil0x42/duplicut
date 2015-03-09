@@ -5,7 +5,7 @@
  *               work. For usage, check the thpool.h file or README.md
  *
  *//** @file thpool.h *//*
- *
+ * 
  ********************************/
 
 
@@ -13,9 +13,10 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <pthread.h>
 #include <errno.h>
-#include <time.h>
+#include <time.h> 
 
 #include "thpool.h"
 
@@ -69,10 +70,10 @@ typedef struct thread{
 /* Threadpool */
 typedef struct thpool_{
 	thread**   threads;                  /* pointer to threads        */
-	int        num_threads_alive;        /* threads currently alive   */
-	int        num_threads_working;      /* threads currently working */
+	volatile int num_threads_alive;      /* threads currently alive   */
+	volatile int num_threads_working;    /* threads currently working */
 	pthread_mutex_t  thcount_lock;       /* used for thread count etc */
-	jobqueue*  jobqueue_p;               /* pointer to the job queue  */
+	jobqueue*  jobqueue_p;               /* pointer to the job queue  */    
 } thpool_;
 
 
@@ -184,7 +185,7 @@ void thpool_wait(thpool_* thpool_p){
 	time_t start, end;
 	double tpassed = 0.0;
 	time (&start);
-	while (tpassed < timeout &&
+	while (tpassed < timeout && 
 			(thpool_p->jobqueue_p->len || thpool_p->num_threads_working))
 	{
 		time (&end);
@@ -271,7 +272,6 @@ void thpool_pause(thpool_* thpool_p) {
 
 /* Resume all threads in threadpool */
 void thpool_resume(thpool_* thpool_p) {
-    (void) thpool_p;
 	threads_on_hold = 0;
 }
 
@@ -395,7 +395,12 @@ static int jobqueue_init(thpool_* thpool_p){
 	if (thpool_p->jobqueue_p == NULL){
 		return -1;
 	}
+    memset(thpool_p->jobqueue_p, 0, sizeof(struct jobqueue));
 	thpool_p->jobqueue_p->has_jobs = (struct bsem*)malloc(sizeof(struct bsem));
+	if (thpool_p->jobqueue_p->has_jobs == NULL){
+		return -1;
+	}
+    memset(thpool_p->jobqueue_p->has_jobs, 0, sizeof(struct bsem));
 	bsem_init(thpool_p->jobqueue_p->has_jobs, 0);
 	jobqueue_clear(thpool_p);
 	return 0;

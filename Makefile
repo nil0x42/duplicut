@@ -31,8 +31,8 @@ $(TARGET): $(OBJECTS) $(COMMON)
 	$(CC) $(FLAGS) $(CFLAGS) $(DEBUGFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
 
 release: CFLAGS += $(RELEASEFLAGS)
-release: fclean $(SOURCES) $(COMMON)
-	$(CC) $(FLAGS) $(CFLAGS) $(RELEASEFLAGS) -o $(TARGET) $(SOURCES) $(LDFLAGS)
+release: fclean $(OBJECTS) $(COMMON)
+	$(CC) $(FLAGS) $(CFLAGS) $(RELEASEFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
 
 profile: CFLAGS += -pg
 profile: fclean $(TARGET)
