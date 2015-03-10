@@ -12,7 +12,7 @@ LDFLAGS      = -lm -pthread
 RELEASEFLAGS = -O2 -D NDEBUG
 DEBUGFLAGS   = -O0 -D DEBUG -std=gnu99 -g3
  
-SOURCES      = main.c thpool.c file.c chunk.c line.c \
+SOURCES      = main.c thpool.c file.c chunk.c line.c tag_duplicates.c \
 			   optparse.c config.c error.c memstate.c meminfo.c bytesize.c \
 			   hmap.c hash.c fasthash.c murmur3.c \
 
