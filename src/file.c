@@ -3,12 +3,13 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+#include <sys/types.h>
 #include "file.h"
 #include "const.h"
 #include "error.h"
 #include "debug.h"
 
-# define FILE_ISSET(_f) ((_f)->fd < 0)
+# define FILE_ISSET(_f) ((_f)->fd >= 0)
 # define BUF_SIZE       (4096)
 
 
@@ -144,10 +145,18 @@ void        init_file(const char *infile_name, const char *outfile_name)
     close_file(&g_infile);
 
     if (fstat(file->fd, &(file->info)) < 0)
-        error("could't stat %s: %s", file->name, ERRNO);
+        error("couldn't stat %s: %s", file->name, ERRNO);
+
+    if (file->info.st_size == 0)
+    {
+        DLOG("[*] outfile is empty");
+        exit(0);
+    }
 
     file->addr = mmap(NULL, (size_t) file->info.st_size,
-            (PROT_READ | PROT_WRITE), MAP_PRIVATE, file->fd, 0);
+            (PROT_READ | PROT_WRITE), MAP_SHARED, file->fd, 0);
+    if (file->addr == MAP_FAILED)
+        error("couldn't mmap %s: %s", file->name, ERRNO);
 
     g_file = file;
 
@@ -164,6 +173,7 @@ void        init_file(const char *infile_name, const char *outfile_name)
 
 /** file destructor
  * If tmpfile, copy it info outfile
+ * truncate file with new size.
  * Call close_all() for cleanout.
  */
 void        destroy_file(void)
@@ -171,17 +181,22 @@ void        destroy_file(void)
     struct file     *file;
 
     if (FILE_ISSET(&g_tmpfile))
-    {
         file = &g_tmpfile;
-        file_copy(g_tmpfile.fd, g_outfile.fd);
-    }
     else
-    {
         file = &g_outfile;
-    }
 
-    if (munmap(file->addr, (size_t) file->info.st_size))
+    /* if (msync(file->addr, file->info.st_size, MS_SYNC | MS_INVALIDATE) < 0) */
+    /*     error("cannot msync() %s: %s", file->name, ERRNO); */
+    if (munmap(file->addr, (size_t) file->info.st_size) < 0)
         error("cannot munmap() %s: %s", file->name, ERRNO);
+    if (ftruncate(file->fd, file->info.st_size) < 0)
+        error("cannot ftruncate() %s: %s", file->name, ERRNO);
+
+    if (FILE_ISSET(&g_tmpfile))
+    {
+        lseek(g_tmpfile.fd, 0, SEEK_SET);
+        file_copy(g_outfile.fd, g_tmpfile.fd);
+    }
 
     close_all();
 }
