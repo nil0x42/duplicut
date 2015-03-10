@@ -1,13 +1,12 @@
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include "optparse.h"
 #include "config.h"
-#include "thpool.h"
 #include "file.h"
-#include "chunk.h"
 #include "hmap.h"
+#include "tag_duplicates.h"
 #include "error.h"
-#include "debug.h"
 
 
 struct conf g_conf = {
@@ -20,48 +19,34 @@ struct conf g_conf = {
 };
 
 struct file *g_file;
+
 struct hmap g_hmap;
 
 
-/** For each chunk following `parent`, add a cleanout_chunk() worker.
+/** Rewrite file without zero-tagged lines, and update file size.
  */
-static void     populate_thpool(threadpool thpool, const t_chunk *parent)
+static void     remove_duplicates(void)
 {
-    t_chunk     chunk;
+    t_chunk     file_chunk;
+    t_line      line;
+    size_t      line_size;
+    char        *dst;
 
-    memcpy(&chunk, parent, sizeof(t_chunk));
-    while (get_next_chunk(&chunk, g_file))
+    file_chunk.ptr = g_file->addr;
+    file_chunk.endptr = g_file->addr + g_file->info.st_size;
+
+    dst = file_chunk.ptr;
+    while (get_next_line(&line, &file_chunk))
     {
-        t_chunk *worker_chunk = malloc(sizeof(t_chunk));
-        if (worker_chunk == NULL)
-            die("could not malloc() worker_chunk");
-        thpool_add_work(thpool, (void*)cleanout_chunk, worker_chunk);
-    }
-}
-
-
-/** For each chunk, load it into hmap and remove all duplicates
- * in following chunks through `populate_thpool()`.
- */
-static void     tag_duplicates(void)
-{
-    threadpool  thpool = thpool_init(g_conf.threads);
-    t_chunk     main_chunk = {
-        .ptr = NULL,
-        .endptr = NULL
-    };
-
-    DLOG("tag_duplicates()");
-
-    while (get_next_chunk(&main_chunk, g_file))
-    {
-        DLOG("  main_chunk = %p / %p", main_chunk.ptr, main_chunk.endptr);
-        populate_hmap(&main_chunk);
-        populate_thpool(thpool, &main_chunk);
-        thpool_wait(thpool);
+        line_size = LINE_SIZE(line);
+        memcpy(dst, LINE_ADDR(line), line_size);
+        dst += line_size;
+        if (dst != file_chunk.endptr)
+            *dst++ = '\n';
     }
 
-    thpool_destroy(thpool);
+    /* update file size */
+    g_file->info.st_size = dst - g_file->addr;
 }
 
 
@@ -76,7 +61,7 @@ int             main(int argc, char **argv)
     tag_duplicates();
     destroy_hmap();
 
-    /* remove_duplicates(g_vars.chunk_list); */
+    remove_duplicates();
     destroy_file();
     return (0);
 }
