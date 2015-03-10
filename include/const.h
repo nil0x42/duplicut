@@ -15,3 +15,6 @@
 
 /* this char is written at start of lines as a `removal mark` */
 #define DISABLED_LINE       '\0'
+
+/* enable/disable multithreading feature */
+#define MULTITHREADING      (0)
