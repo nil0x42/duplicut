@@ -29,7 +29,7 @@ bool        get_next_chunk(t_chunk *chunk, struct file *file)
     else
     {
         ptr = chunk->endptr;
-        remaining_size = ptr - file->addr;
+        remaining_size = ptr - file->addr - file->info.st_size;
     }
 
     if (remaining_size <= 0)
@@ -43,6 +43,8 @@ bool        get_next_chunk(t_chunk *chunk, struct file *file)
     else
         endptr = ptr + g_conf.chunk_size;
 
+    chunk->ptr = ptr;
+    chunk->endptr = endptr;
     return (true);
 }
 
