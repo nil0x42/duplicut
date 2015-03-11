@@ -16,5 +16,8 @@ env:
     - ARCH=x64 TEST=makefile.sh
     - ARCH=x86 TEST=makefile.sh
 
+    - ARCH=x64 TEST=nonreg.sh
+    - ARCH=x86 TEST=nonreg.sh
+
 script:
     - ./test/run.sh

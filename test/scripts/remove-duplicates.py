@@ -11,8 +11,8 @@ if len(sys.argv) != 4:
 wordlist = open(sys.argv[1], 'r')
 content = wordlist.read()
 wordlist.close()
-if not content:
-    sys.exit(0)
+# if not content:
+#     sys.exit(0)
 
 
 MAX_LINE_SIZE = int(sys.argv[2])
