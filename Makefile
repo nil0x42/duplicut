@@ -33,6 +33,7 @@ $(TARGET): $(OBJECTS) $(COMMON)
 release: CFLAGS += $(RELEASEFLAGS)
 release: fclean $(OBJECTS) $(COMMON)
 	$(CC) $(FLAGS) $(CFLAGS) $(RELEASEFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
+	strip -s $(TARGET)
 
 profile: CFLAGS += -pg
 profile: fclean $(TARGET)
