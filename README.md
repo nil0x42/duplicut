@@ -9,34 +9,46 @@ without sorting it.
 #### Quick start:
 ```sh
 make release
-cp <WORDLIST> <WORDLIST>.backup
-./duplicut <WORDLIST>
+./duplicut <WORDLIST> -o <OUTPUT_FILE>
 ```
 
 ---------------------------------------------------------------------
 #### Overview ####
 
-This tool has been created by a guy sad of not being able to remove
-duplicate lines on huge wordlists whose order was statistically
-optimised for password cracking purposes.
+While building statictically optimized wordlists for password cracking
+purposes, i have needed to remove all duplicates quickly, even if the
+wordlist 
 
-Usage:
-```sh
-./duplicut ~/wordlists/raw-list.txt
+While creating wordlists of passwords from different sources, i frequently
+need to remove duplicates quickly, even on huge wordlists, without changing
+the order.
+
+That is how duplicut was born.
+
+```
+Usage: duplicut [OPTION]... [INFILE] -o [OUTFILE]
+Remove duplicate lines from INFILE without sorting.
+
+Options:
+-o, --outfile <FILE>       Write result to <FILE>
+-t, --threads <NUM>        Max threads to use (default max)
+-l, --line-max-size <NUM>  Max line size (default 24)
+-h, --help                 Display this help and exit
+-v, --version              Output version information and exit
+
+Example: duplicut wordlist.txt -o new-wordlist.txt
 ```
 
 * **Features**:
-    - Handles very huge files whose size exceeds available memory.
-    - Duplicate lines can be removed from multiple files.
-    - Also handle size based line removal.
+    - Handle huge wordlists, even those whose size exceeds available RAM.
+    - Supports line size based removal (-l option).
 
 * **Implementation**:
-    - Written in pure C code to be the fastest possible.
-    - Clever memory management based on file chunk mappings.
+    - Written in pure C code, designed to be fast.
     - Compressed hash map items on 64 bit platforms.
-    - **[TODO]:** Multi threaded application for fast chunk comparisons.
-    - **[TODO]:** Make use of huge pages for performance enhancement.
+    - **[TODO]:** Multi threaded application.
+    - **[TODO]:** Uses huge memory pages to increase performance.
 
 * **Limitations**:
     - Any line longer than 255 chars is ignored.
-    - Only supported on GNU/Linux - 64bits.
+    - Heavily tested on Linux x64, mostly untested on other platforms.
