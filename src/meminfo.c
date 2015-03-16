@@ -27,12 +27,12 @@ static long meminfo_memavailable(void)
     count = sizeof(vm_stats) / sizeof(natural_t);
     if (host_page_size(mach_port, &page_size) != KERN_SUCCESS)
     {
-        error("Couldn't get page size from host_page_size()");
+        error("Couldn't get 'page size' from host_page_size()");
     }
     if (host_statistics64(mach_port, HOST_VM_INFO,
                 (host_info64_t)&vm_stats, &count) != KERN_SUCCESS)
     {
-        error("Couldn't get vm iunfo from host_statistics64()");
+        error("Couldn't get 'vm info' from host_statistics64()");
     }
     return ((int64_t)vm_stats.free_count * (int64_t)page_size);
 }
