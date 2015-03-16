@@ -18,32 +18,25 @@ long        bytesize(const char *str)
 {
     long    result;
     char    *endptr;
-    char    metrics[] = "BKMGT";
     int     c;
 
     result = strtol(str, &endptr, 10);
     if (result < 0 || endptr == str)
-    {
         return (-1L);
-    }
+
     while (*endptr == ' ' || *endptr == '\t')
-    {
         endptr++;
-    }
+
     c = toupper(*endptr);
     if (c == '\0' || c == 'O')
-    {
         c = 'B';
-    }
-    str = strchr(metrics, c);
-    if (str == NULL)
-    {
+
+    if ((str = strchr(BYTESIZE_METRICS, c)) == NULL)
         return (-1L);
-    }
-    c = str - metrics;
+
+    c = str - BYTESIZE_METRICS;
     while (c--)
-    {
         result *= 1024;
-    }
+
     return (result);
 }

@@ -1,6 +1,3 @@
-#ifndef BYTESIZE_H
-# define BYTESIZE_H
+#pragma once
 
 long    bytesize(const char *str);
-
-#endif /* ! BYTESIZE_H */
