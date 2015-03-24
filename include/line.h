@@ -5,15 +5,39 @@
 #include <stdint.h>
 #include "chunk.h"
 
+#if __SIZEOF_POINTER__ >= 8
+/* On 64 bit archtectures (and greater), t_line type uses compression,
+ * assuming that comonly mapped regions use an address with MSB bits
+ * always set to zero.
+ *
+ * This way, a 64bits size_t is used to store line like this:
+ *  ----------------------------------------------------------------------
+ * | size - 8bit |                  addr - 56bit                          |
+ *  ----------------------------------------------------------------------
+ *
+ */
 
 typedef size_t  t_line;
+# define LINE_ISSET(ln)         (ln != 0)
+# define LINE_SIZE(ln)          ((uint8_t)ln)
+# define LINE_ADDR(ln)          ((char*)(ln >> 8))
+# define SET_LINE(ln, ptr, sz)  (ln = ((((uintptr_t)ptr) << 8) + (uint8_t)sz))
 
+#else
+/* Fallback to standard structure for non 16 and 32 bits architectures
+ */
 
-#define LINE_ISSET(ln)          (ln != 0)
-#define LINE_SIZE(ln)           ((uint8_t)ln)
-#define LINE_ADDR(ln)           ((char*)(ln >> 8))
-#define SET_LINE(ln, ptr, sz)   (ln = ((((uintptr_t)ptr) << 8) + (uint8_t)sz))
+typedef struct  s_line
+{
+    char        *addr;
+    int         size;
+}               t_line;
+# define LINE_ISSET(ln)         ((ln).addr != NULL)
+# define LINE_SIZE(ln)          ((ln).size)
+# define LINE_ADDR(ln)          ((ln).addr)
+# define SET_LINE(ln, ptr, sz)  (ln).addr = ptr; (ln).size = sz
 
+#endif
 
 /* source file: line.c */
 bool    get_next_line(t_line *dst, t_chunk *chunk);
