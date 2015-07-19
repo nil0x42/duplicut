@@ -69,6 +69,8 @@ static void     config_hmap_size(struct file *file, struct memstate *memstate)
     long        hmap_size;
 
     hmap_size = file->info.st_size / MEDIUM_LINE_BYTES;
+    if (hmap_size == 0)
+        hmap_size = 1;
 
     max_size = memstate->mem_available * HMAP_MAX_SIZE;
     max_size /= sizeof(t_line);
