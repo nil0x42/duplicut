@@ -158,6 +158,7 @@ void        init_file(const char *infile_name, const char *outfile_name)
     if (file->addr == MAP_FAILED)
         error("couldn't mmap %s: %s", file->name, ERRNO);
 
+    file->orig_size = file->info.st_size;
     g_file = file;
 
     DLOG("");
@@ -187,7 +188,7 @@ void        destroy_file(void)
 
     /* if (msync(file->addr, file->info.st_size, MS_SYNC | MS_INVALIDATE) < 0) */
     /*     error("cannot msync() %s: %s", file->name, ERRNO); */
-    if (munmap(file->addr, (size_t) file->info.st_size) < 0)
+    if (munmap(file->addr, file->orig_size) < 0)
         error("cannot munmap() %s: %s", file->name, ERRNO);
     if (ftruncate(file->fd, file->info.st_size) < 0)
         error("cannot ftruncate() %s: %s", file->name, ERRNO);

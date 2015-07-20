@@ -50,15 +50,11 @@ bool        get_next_line(t_line *dst, t_chunk *chunk)
 
 int         cmp_line(t_line *l1, t_line *l2)
 {
-    int     ret;
     int     size;
 
     size = LINE_SIZE(*l1);
-
     if (LINE_SIZE(*l2) != size)
-        ret = 1;
+        return (1);
     else
-        ret = memcmp(LINE_ADDR(*l1), LINE_ADDR(*l2), size);
-
-    return (ret);
+        return (memcmp(LINE_ADDR(*l1), LINE_ADDR(*l2), size));
 }

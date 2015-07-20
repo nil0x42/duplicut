@@ -11,7 +11,6 @@
 #include "debug.h"
 
 #if MULTITHREADING == 1
-
 /** For each chunk following `parent`, add a cleanout_chunk() worker.
  */
 static void     tag_subchunks(threadpool thpool, const t_chunk *parent)
@@ -28,7 +27,6 @@ static void     tag_subchunks(threadpool thpool, const t_chunk *parent)
     }
 }
 
-
 /** For each chunk, load it into hmap and remove all duplicates
  * in following chunks through `tag_subchunks()`.
  */
@@ -39,8 +37,6 @@ void            tag_duplicates(void)
         .ptr = NULL,
         .endptr = NULL
     };
-
-    DLOG("tag_duplicates()");
 
     while (get_next_chunk(&main_chunk, g_file))
     {
@@ -55,8 +51,6 @@ void            tag_duplicates(void)
 
 
 #else
-
-
 /** For each chunk following `parent`, add a cleanout_chunk() worker.
  */
 static void     tag_subchunks(const t_chunk *parent)
@@ -68,11 +62,10 @@ static void     tag_subchunks(const t_chunk *parent)
     {
         t_chunk *current_chunk = malloc(sizeof(t_chunk));
         if (current_chunk == NULL)
-            die("could not malloc() worker_chunk");
+            die("could not malloc() current_chunk");
         cleanout_chunk(current_chunk);
     }
 }
-
 
 /** For each chunk, load it into hmap and remove all duplicates
  * in following chunks through `tag_subchunks()`.
@@ -84,8 +77,6 @@ void            tag_duplicates(void)
         .endptr = NULL
     };
 
-    DLOG("tag_duplicates()");
-
     while (get_next_chunk(&main_chunk, g_file))
     {
         DLOG("  main_chunk = %p / %p", main_chunk.ptr, main_chunk.endptr);
@@ -93,5 +84,4 @@ void            tag_duplicates(void)
         tag_subchunks(&main_chunk);
     }
 }
-
 #endif

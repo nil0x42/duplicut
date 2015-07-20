@@ -51,6 +51,9 @@ install-strip: release
 uninstall:
 	rm $(BINDIR)/$(TARGET)
 
+test:
+	./test/run.sh
+
 clean:
 	-rm -rf objects/
 	-rm -f gmon.out
@@ -65,4 +68,5 @@ re: fclean all
  
 .PHONY: all release profile \
         clean distclean \
-        install install-strip uninstall
+        install install-strip uninstall \
+        test

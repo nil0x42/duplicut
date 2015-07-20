@@ -69,8 +69,8 @@ static void     config_hmap_size(struct file *file, struct memstate *memstate)
     long        hmap_size;
 
     hmap_size = file->info.st_size / MEDIUM_LINE_BYTES;
-    if (hmap_size == 0)
-        hmap_size = 1;
+    if (hmap_size < 100)
+        hmap_size = 100;
 
     max_size = memstate->mem_available * HMAP_MAX_SIZE;
     max_size /= sizeof(t_line);
@@ -97,6 +97,8 @@ static void     config_chunk_size(struct file *file)
     chunk_size = file_size / portions;
 
     g_conf.chunk_size = (size_t) ceil(chunk_size);
+    if (g_conf.chunk_size < file->info.st_size)
+        g_conf.chunk_size = file->info.st_size;
 }
 
 

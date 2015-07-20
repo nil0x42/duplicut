@@ -7,6 +7,7 @@ struct file
     int         fd;
     const char  *name;
     struct stat info;
+    size_t      orig_size;
     char        *addr; /* mmap address (if any) */
 };
 

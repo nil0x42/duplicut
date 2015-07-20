@@ -14,7 +14,6 @@ set -ve
 #### run make multiple times, check for `nothing to do`
 make
 make all
-test "$(make all | wc -l)" -eq "1"
 make all | grep -iq "nothing"
 
 
