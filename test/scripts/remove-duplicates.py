@@ -8,23 +8,21 @@ if len(sys.argv) != 4:
     sys.exit(1)
 
 
-wordlist = open(sys.argv[1], 'r')
-content = wordlist.read()
-wordlist.close()
+content = open(sys.argv[1], 'rb').read()
 # if not content:
 #     sys.exit(0)
 
 
 MAX_LINE_SIZE = int(sys.argv[2])
-ADD_ENDING_NEWLINE = True if content.endswith("\n") else False
+ADD_ENDING_NEWLINE = True if content.endswith(b"\n") else False
 
 
-output = open(sys.argv[3], 'w')
+output = open(sys.argv[3], 'wb')
 
 
 # use re.split(), because str.spllitlines() assumes
 # that single "\r" are newline chars too..
-lines = re.split("\r\n|\n", content)
+lines = re.split(b"\r\n|\n", content)
 
 
 uniques = []
@@ -33,17 +31,17 @@ for index, line in enumerate(lines):
         continue
     if len(line) > MAX_LINE_SIZE:
         continue
-    if line.startswith("\0"):
+    if line.startswith(b"\0"):
         continue
     if line in uniques:
         continue
     uniques.append(line)
 
 
-result = "\n".join(uniques)
+result = b"\n".join(uniques)
 
 if ADD_ENDING_NEWLINE:
-    result += "\n"
+    result += b"\n"
 
 output.write(result)
 output.close()
