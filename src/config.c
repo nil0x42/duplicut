@@ -116,12 +116,13 @@ void            config(void)
 
     DLOG("");
     DLOG("---------- g_conf ------------");
-    DLOG("g_conf.infile_name:   %s", g_conf.infile_name);
-    DLOG("g_conf.outfile_name:  %s", g_conf.outfile_name);
-    DLOG("g_conf.threads:       %u", g_conf.threads);
-    DLOG("g_conf.line_max_size: %u", g_conf.line_max_size);
-    DLOG("g_conf.hmap_size:     %ld", g_conf.hmap_size);
-    DLOG("g_conf.chunk_size:    %ld", g_conf.chunk_size);
+    DLOG("g_conf.infile_name:       %s", g_conf.infile_name);
+    DLOG("g_conf.outfile_name:      %s", g_conf.outfile_name);
+    DLOG("g_conf.threads:           %u", g_conf.threads);
+    DLOG("g_conf.line_max_size:     %u", g_conf.line_max_size);
+    DLOG("g_conf.hmap_size:         %ld", g_conf.hmap_size);
+    DLOG("g_conf.chunk_size:        %ld", g_conf.chunk_size);
+    DLOG("g_conf.filter_printable:  %d", g_conf.filter_printable);
     DLOG("------------------------------");
     DLOG("");
 }

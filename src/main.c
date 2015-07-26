@@ -15,7 +15,8 @@ struct conf g_conf = {
     .threads = 0,
     .line_max_size = DEFAULT_LINE_MAX_SIZE,
     .hmap_size = 0,
-    .chunk_size = 0
+    .chunk_size = 0,
+    .filter_printable = 0,
 };
 
 struct file *g_file;

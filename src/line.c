@@ -1,9 +1,31 @@
 #include <string.h>
+#include <ctype.h>
 #include "line.h"
 #include "const.h"
 #include "debug.h"
 #include "chunk.h"
 #include "config.h"
+
+
+static bool str_isprint(char *str, size_t size)
+{
+    while (size--)
+    {
+        if (!isprint(str[size]))
+            return (false);
+    }
+    return (true);
+}
+
+
+static bool line_filtered(char *str, size_t size)
+{
+    if (size > g_conf.line_max_size)
+        return (true);
+    else if (g_conf.filter_printable && !str_isprint(str, size))
+        return (true);
+    return (false);
+}
 
 
 bool        get_next_line(t_line *dst, t_chunk *chunk)
@@ -35,7 +57,7 @@ bool        get_next_line(t_line *dst, t_chunk *chunk)
         }
         else if ((next = memchr(chunk->ptr, '\n', size)) == NULL)
         {
-            if (size > g_conf.line_max_size)
+            if (line_filtered(chunk->ptr, size))
                 return (false);
             SET_LINE(*dst, chunk->ptr, size);
             chunk->ptr += size;
@@ -46,7 +68,7 @@ bool        get_next_line(t_line *dst, t_chunk *chunk)
             line_size = next - chunk->ptr;
             if (chunk->ptr[line_size - 1] == '\r')
             {
-                if (line_size - 1 > g_conf.line_max_size)
+                if (line_filtered(chunk->ptr, line_size - 1))
                 {
                     chunk->ptr += line_size + 1;
                     size -= line_size + 1;
@@ -60,7 +82,7 @@ bool        get_next_line(t_line *dst, t_chunk *chunk)
             }
             else
             {
-                if (line_size > g_conf.line_max_size)
+                if (line_filtered(chunk->ptr, line_size))
                 {
                     chunk->ptr += line_size + 1;
                     size -= line_size + 1;

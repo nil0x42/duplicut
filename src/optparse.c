@@ -14,15 +14,16 @@
 
 /** Arguments cofiguration for getopt_long().
  */
-#define OPTSTRING "o:t:l:hv"
+#define OPTSTRING "o:t:l:phv"
 
 static struct option    g_options[] = {
     { "outfile",       required_argument, NULL, 'o' },
     { "threads",       required_argument, NULL, 't' },
     { "line-max-size", required_argument, NULL, 'l' },
+    { "printable",     no_argument,       NULL, 'p' },
     { "help",          no_argument,       NULL, 'h' },
     { "version",       no_argument,       NULL, 'v' },
-    { NULL,            0,                 NULL, '\0'}
+    { NULL,            0,                 NULL, '\0'},
 };
 
 
@@ -100,6 +101,14 @@ static void setopt_line_max_size(const char *value)
 }
 
 
+static void setopt_printable(const char *value)
+{
+    (void)value;
+
+    g_conf.filter_printable = 1;
+}
+
+
 static void setopt_help(const char *value)
 {
     (void)value;
@@ -110,6 +119,7 @@ static void setopt_help(const char *value)
            "-o, --outfile <FILE>       Write result to <FILE>\n"
            "-t, --threads <NUM>        Max threads to use (default max)\n"
            "-l, --line-max-size <NUM>  Max line size (default %d)\n"
+           "-p, --printable            Filter ascii printable lines\n"
            "-h, --help                 Display this help and exit\n"
            "-v, --version              Output version information and exit\n"
            "\n"
@@ -144,6 +154,7 @@ static void setopt(int opt, const char *value)
         { 'o', setopt_outfile },
         { 't', setopt_threads },
         { 'l', setopt_line_max_size },
+        { 'p', setopt_printable },
         { 'h', setopt_help },
         { 'v', setopt_version },
         { '\0', NULL }

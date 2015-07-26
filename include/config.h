@@ -13,6 +13,7 @@ struct              conf
     unsigned int    line_max_size;
     size_t          hmap_size;
     size_t          chunk_size;
+    int             filter_printable;
 };
 
 /** Global configuration vars.
