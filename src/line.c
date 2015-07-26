@@ -13,6 +13,7 @@ bool        get_next_line(t_line *dst, t_chunk *chunk)
     size_t  line_size;
 
     size = chunk->endptr - chunk->ptr;
+    DLOG("SIZE=%lu", size);
     while (size > 0)
     {
         if (chunk->ptr[0] == DISABLED_LINE)
@@ -27,21 +28,50 @@ bool        get_next_line(t_line *dst, t_chunk *chunk)
             size -= 1;
             chunk->ptr += 1;
         }
+        else if (size > 1 && *(uint16_t*)chunk->ptr == *(uint16_t*)"\r\n")
+        {
+            size -= 2;
+            chunk->ptr += 2;
+        }
         else if ((next = memchr(chunk->ptr, '\n', size)) == NULL)
         {
+            if (size > g_conf.line_max_size)
+                return (false);
             SET_LINE(*dst, chunk->ptr, size);
+            chunk->ptr += size;
             return (true);
-        }
-        else if ((line_size = next - chunk->ptr) > g_conf.line_max_size)
-        {
-            chunk->ptr += line_size + 1;
-            size -= line_size + 1;
         }
         else
         {
-            SET_LINE(*dst, chunk->ptr, line_size);
-            chunk->ptr += line_size + 1;
-            return (true);
+            line_size = next - chunk->ptr;
+            if (chunk->ptr[line_size - 1] == '\r')
+            {
+                if (line_size - 1 > g_conf.line_max_size)
+                {
+                    chunk->ptr += line_size + 1;
+                    size -= line_size + 1;
+                }
+                else
+                {
+                    SET_LINE(*dst, chunk->ptr, line_size - 1);
+                    chunk->ptr += line_size + 1;
+                    return (true);
+                }
+            }
+            else
+            {
+                if (line_size > g_conf.line_max_size)
+                {
+                    chunk->ptr += line_size + 1;
+                    size -= line_size + 1;
+                }
+                else
+                {
+                    SET_LINE(*dst, chunk->ptr, line_size);
+                    chunk->ptr += line_size + 1;
+                    return (true);
+                }
+            }
         }
     }
     return (false);

@@ -9,13 +9,9 @@ if len(sys.argv) != 4:
 
 
 content = open(sys.argv[1], 'rb').read()
-# if not content:
-#     sys.exit(0)
-
+OLD_CONTENT_LEN = len(content)
 
 MAX_LINE_SIZE = int(sys.argv[2])
-ADD_ENDING_NEWLINE = True if content.endswith(b"\n") else False
-
 
 output = open(sys.argv[3], 'wb')
 
@@ -39,9 +35,8 @@ for index, line in enumerate(lines):
 
 
 result = b"\n".join(uniques)
-
-if ADD_ENDING_NEWLINE:
-    result += b"\n"
+if 0 < len(result) < OLD_CONTENT_LEN:
+    result += b'\n'
 
 output.write(result)
 output.close()

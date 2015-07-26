@@ -24,7 +24,7 @@ typedef size_t  t_line;
 # define SET_LINE(ln, ptr, sz)  (ln = ((((uintptr_t)ptr) << 8) + (uint8_t)sz))
 
 #else
-/* Fallback to standard structure for non 16 and 32 bits architectures
+/* Fallback to standard structure for 16 and 32 bits architectures
  */
 
 typedef struct  s_line

@@ -19,7 +19,7 @@ function test_wordlist ()
     file="$WORDLIST_DIR/$1"
     rm -f nonreg_*.out
     $DUPLICUT $file -o nonreg_duplicut.out
-    $COMPARATOR $file 24 nonreg_comparator.out
+    $COMPARATOR $file 14 nonreg_comparator.out
     if ! diff -q nonreg_*.out 2> /dev/null; then
         print_bad "Different result on '$file'"
         print_bad "Run vimdiff nonreg_*.out to see differences"
