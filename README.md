@@ -33,6 +33,7 @@ Options:
 -o, --outfile <FILE>       Write result to <FILE>
 -t, --threads <NUM>        Max threads to use (default max)
 -l, --line-max-size <NUM>  Max line size (default 14)
+-p, --printable            Filter ascii printable lines
 -h, --help                 Display this help and exit
 -v, --version              Output version information and exit
 
@@ -41,7 +42,8 @@ Example: duplicut wordlist.txt -o new-wordlist.txt
 
 * **Features**:
     - Handle huge wordlists, even those whose size exceeds available RAM.
-    - Supports line size based removal (-l option).
+    - Line max length based filtering (-l option).
+    - Ascii printable chars based filtering (-p option).
 
 * **Implementation**:
     - Written in pure C code, designed to be fast.
