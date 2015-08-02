@@ -43,7 +43,7 @@ bool        get_next_chunk(t_chunk *chunk, struct file *file)
     else
     {
         ptr = chunk->endptr;
-        remaining_size = ptr - file->addr - file->info.st_size;
+        remaining_size = file->info.st_size - (ptr - file->addr);
     }
 
     if (remaining_size <= 0)
