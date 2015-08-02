@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include "tag_duplicates.h"
 #include "const.h"
 #include "config.h"
@@ -16,14 +17,18 @@
 static void     tag_subchunks(threadpool thpool, const t_chunk *parent)
 {
     t_chunk     chunk;
+    t_chunk     *heap_chunk;
+    int         chunk_id = 1;
 
     memcpy(&chunk, parent, sizeof(t_chunk));
     while (get_next_chunk(&chunk, g_file))
     {
-        t_chunk *current_chunk = malloc(sizeof(t_chunk));
-        if (current_chunk == NULL)
-            die("could not malloc() current_chunk");
-        thpool_add_work(thpool, (void*)cleanout_chunk, current_chunk);
+        heap_chunk = malloc(sizeof(t_chunk));
+        if (heap_chunk == NULL)
+            die("could not malloc() heap_chunk");
+        memcpy(heap_chunk, &chunk, sizeof(t_chunk));
+        thpool_add_work(thpool, (void*)cleanout_chunk, heap_chunk);
+        chunk_id ++;
     }
 }
 
@@ -40,7 +45,6 @@ void            tag_duplicates(void)
 
     while (get_next_chunk(&main_chunk, g_file))
     {
-        DLOG("  main_chunk = %p / %p", main_chunk.ptr, main_chunk.endptr);
         populate_hmap(&main_chunk);
         tag_subchunks(thpool, &main_chunk);
         thpool_wait(thpool);
@@ -51,19 +55,23 @@ void            tag_duplicates(void)
 
 
 #else
-/** For each chunk following `parent`, add a cleanout_chunk() worker.
+/** Cleanout each chunk following the parent
  */
 static void     tag_subchunks(const t_chunk *parent)
 {
     t_chunk     chunk;
+    t_chunk     *heap_chunk;
+    int         chunk_id = 1;
 
     memcpy(&chunk, parent, sizeof(t_chunk));
     while (get_next_chunk(&chunk, g_file))
     {
-        t_chunk *current_chunk = malloc(sizeof(t_chunk));
-        if (current_chunk == NULL)
-            die("could not malloc() current_chunk");
-        cleanout_chunk(current_chunk);
+        heap_chunk = malloc(sizeof(t_chunk));
+        if (heap_chunk == NULL)
+            die("could not malloc() heap_chunk");
+        memcpy(heap_chunk, &chunk, sizeof(t_chunk));
+        cleanout_chunk(heap_chunk);
+        chunk_id ++;
     }
 }
 
@@ -76,12 +84,14 @@ void            tag_duplicates(void)
         .ptr = NULL,
         .endptr = NULL
     };
+    int         chunk_id = 1;
 
     while (get_next_chunk(&main_chunk, g_file))
     {
-        DLOG("  main_chunk = %p / %p", main_chunk.ptr, main_chunk.endptr);
+        // TODO: afficher pourcentage d evolution (chunk 50 sur 234) -> 2%
         populate_hmap(&main_chunk);
         tag_subchunks(&main_chunk);
+        chunk_id ++;
     }
 }
 #endif

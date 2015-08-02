@@ -88,8 +88,6 @@ static void setopt_memlimit(const char *value)
 
     if (memlimit < 0)
         bad_argument("memlimit", value, "not a positive value");
-    else if (memlimit < 64)
-        bad_argument("memlimit", value, "can't be less than 64 bytes");
 
     g_conf.memlimit = memlimit;
 }

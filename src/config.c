@@ -97,7 +97,7 @@ static void     config_chunk_size(struct file *file)
     chunk_size = file_size / portions;
 
     g_conf.chunk_size = (size_t) ceil(chunk_size);
-    if (g_conf.chunk_size > file->info.st_size)
+    if (g_conf.chunk_size == 0 || g_conf.chunk_size > file->info.st_size)
         g_conf.chunk_size = file->info.st_size;
 }
 

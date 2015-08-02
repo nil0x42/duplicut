@@ -35,7 +35,6 @@ bool        get_next_line(t_line *dst, t_chunk *chunk)
     size_t  line_size;
 
     size = chunk->endptr - chunk->ptr;
-    DLOG("SIZE=%lu", size);
     while (size > 0)
     {
         if (chunk->ptr[0] == DISABLED_LINE)

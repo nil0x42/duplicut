@@ -18,3 +18,6 @@
 
 /* enable/disable multithreading feature */
 #define MULTITHREADING      (0)
+
+/* minimum needed memory (change it with care... can throw bugs if too low */
+#define MIN_MEMORY          (1024)
