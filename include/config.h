@@ -14,6 +14,7 @@ struct              conf
     size_t          hmap_size;
     size_t          chunk_size;
     int             filter_printable;
+    long            memlimit;
 };
 
 /** Global configuration vars.

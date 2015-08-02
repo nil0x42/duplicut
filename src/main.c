@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <limits.h>
 #include "optparse.h"
 #include "config.h"
 #include "file.h"
@@ -17,6 +18,7 @@ struct conf g_conf = {
     .hmap_size = 0,
     .chunk_size = 0,
     .filter_printable = 0,
+    .memlimit = LONG_MAX,
 };
 
 struct file *g_file;

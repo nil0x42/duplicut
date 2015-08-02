@@ -14,11 +14,12 @@
 
 /** Arguments cofiguration for getopt_long().
  */
-#define OPTSTRING "o:t:l:phv"
+#define OPTSTRING "o:t:m:l:phv"
 
 static struct option    g_options[] = {
     { "outfile",       required_argument, NULL, 'o' },
     { "threads",       required_argument, NULL, 't' },
+    { "memlimit",      required_argument, NULL, 'm' },
     { "line-max-size", required_argument, NULL, 'l' },
     { "printable",     no_argument,       NULL, 'p' },
     { "help",          no_argument,       NULL, 'h' },
@@ -79,6 +80,21 @@ static void setopt_threads(const char *value)
 }
 
 
+static void setopt_memlimit(const char *value)
+{
+    long        memlimit;
+
+    memlimit = bytesize(value);
+
+    if (memlimit < 0)
+        bad_argument("memlimit", value, "not a positive value");
+    else if (memlimit < 64)
+        bad_argument("memlimit", value, "can't be less than 64 bytes");
+
+    g_conf.memlimit = memlimit;
+}
+
+
 static void setopt_line_max_size(const char *value)
 {
     char        *endptr;
@@ -118,6 +134,7 @@ static void setopt_help(const char *value)
            "Options:\n"
            "-o, --outfile <FILE>       Write result to <FILE>\n"
            "-t, --threads <NUM>        Max threads to use (default max)\n"
+           "-m, --memlimit <VALUE>     Limit max used memory (default max)\n"
            "-l, --line-max-size <NUM>  Max line size (default %d)\n"
            "-p, --printable            Filter ascii printable lines\n"
            "-h, --help                 Display this help and exit\n"
@@ -153,6 +170,7 @@ static void setopt(int opt, const char *value)
     static struct optmap    optmap[] = {
         { 'o', setopt_outfile },
         { 't', setopt_threads },
+        { 'm', setopt_memlimit },
         { 'l', setopt_line_max_size },
         { 'p', setopt_printable },
         { 'h', setopt_help },

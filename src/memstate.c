@@ -1,6 +1,7 @@
 #include <unistd.h>
 #include "memstate.h"
 #include "meminfo.h"
+#include "config.h"
 #include "error.h"
 
 
@@ -23,6 +24,8 @@ static long     get_mem_available(void)
     mem_available = meminfo(MEMAVAILABLE);
     if (mem_available < 0)
         error("meminfo(MEMAVAILABLE): Cannot determine available memory");
+    if (mem_available > g_conf.memlimit)
+        mem_available = g_conf.memlimit;
 
     return (mem_available);
 }

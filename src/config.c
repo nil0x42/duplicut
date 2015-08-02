@@ -97,7 +97,7 @@ static void     config_chunk_size(struct file *file)
     chunk_size = file_size / portions;
 
     g_conf.chunk_size = (size_t) ceil(chunk_size);
-    if (g_conf.chunk_size < file->info.st_size)
+    if (g_conf.chunk_size > file->info.st_size)
         g_conf.chunk_size = file->info.st_size;
 }
 
@@ -123,6 +123,7 @@ void            config(void)
     DLOG("g_conf.hmap_size:         %ld", g_conf.hmap_size);
     DLOG("g_conf.chunk_size:        %ld", g_conf.chunk_size);
     DLOG("g_conf.filter_printable:  %d", g_conf.filter_printable);
+    DLOG("g_conf.memlimit:          %ld", g_conf.memlimit);
     DLOG("------------------------------");
     DLOG("");
 }
