@@ -10,6 +10,20 @@
 #include "config.h"
 
 
+int         count_chunks(void)
+{
+    t_chunk     chunk = {
+        .ptr = NULL,
+        .endptr = NULL
+    };
+    int         result = 0;
+
+    while (get_next_chunk(&chunk, g_file))
+        result++;
+    return (result);
+}
+
+
 /** Fill `chunk` with next chunk from `file`.
  * If `chunk->ptr` is NULL, chunk is then initialized to first file chunk.
  * Otherwise, `chunk` is replaced by next one.
