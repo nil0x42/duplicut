@@ -15,6 +15,7 @@ DEBUGFLAGS   = -O0 -D DEBUG -std=gnu99 -g3
 SOURCES      = main.c thpool.c file.c chunk.c line.c tag_duplicates.c \
 			   optparse.c config.c error.c memstate.c meminfo.c bytesize.c \
 			   hmap.c hash.c fasthash.c murmur3.c \
+			   status.c user_input.c \
 
 COMMON       = include/const.h include/debug.h
 OBJECTS      = $(patsubst %.c, objects/%.o, $(SOURCES))

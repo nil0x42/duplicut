@@ -1,9 +1,6 @@
 #pragma once
 
-#include <stddef.h>
-
 #define DEFAULT_LINE_MAX_SIZE (14)
-
 
 struct              conf
 {

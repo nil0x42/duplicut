@@ -7,6 +7,8 @@
 #include "file.h"
 #include "hmap.h"
 #include "tag_duplicates.h"
+#include "user_input.h"
+#include "status.h"
 #include "error.h"
 
 
@@ -57,13 +59,19 @@ int             main(int argc, char **argv)
 {
     optparse(argc, argv); /* set g_conf options */
 
+    if (isatty(STDIN_FILENO))
+        watch_user_input();
+
+    update_status(FCOPY_START);
     init_file(g_conf.infile_name, g_conf.outfile_name);
     config(); /* configure g_conf options */
 
     init_hmap(g_conf.hmap_size);
+    update_status(TAGDUP_START);
     tag_duplicates();
     destroy_hmap();
 
+    update_status(FCLEAN_START);
     remove_duplicates();
     destroy_file();
     return (0);

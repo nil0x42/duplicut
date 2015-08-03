@@ -8,8 +8,8 @@
 #include "file.h"
 #include "chunk.h"
 #include "hmap.h"
+#include "status.h"
 #include "error.h"
-#include "debug.h"
 
 #if MULTITHREADING == 1
 /** For each chunk following `parent`, add a cleanout_chunk() worker.
@@ -61,7 +61,6 @@ static void     tag_subchunks(const t_chunk *parent)
 {
     t_chunk     chunk;
     t_chunk     *heap_chunk;
-    int         chunk_id = 1;
 
     memcpy(&chunk, parent, sizeof(t_chunk));
     while (get_next_chunk(&chunk, g_file))
@@ -70,8 +69,9 @@ static void     tag_subchunks(const t_chunk *parent)
         if (heap_chunk == NULL)
             die("could not malloc() heap_chunk");
         memcpy(heap_chunk, &chunk, sizeof(t_chunk));
+
         cleanout_chunk(heap_chunk);
-        chunk_id ++;
+        update_status(CTASK_DONE);
     }
 }
 
@@ -84,14 +84,14 @@ void            tag_duplicates(void)
         .ptr = NULL,
         .endptr = NULL
     };
-    int         chunk_id = 1;
 
     while (get_next_chunk(&main_chunk, g_file))
     {
-        // TODO: afficher pourcentage d evolution (chunk 50 sur 234) -> 2%
         populate_hmap(&main_chunk);
+        update_status(CTASK_DONE);
+
         tag_subchunks(&main_chunk);
-        chunk_id ++;
+        update_status(CHUNK_DONE);
     }
 }
 #endif

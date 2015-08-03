@@ -45,6 +45,7 @@ Example: duplicut wordlist.txt -o new-wordlist.txt
     - Handle huge wordlists, even those whose size exceeds available RAM.
     - Line max length based filtering (-l option).
     - Ascii printable chars based filtering (-p option).
+    - Press any key to get program status.
 
 * **Implementation**:
     - Written in pure C code, designed to be fast.
