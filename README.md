@@ -32,6 +32,7 @@ Remove duplicate lines from INFILE without sorting.
 Options:
 -o, --outfile <FILE>       Write result to <FILE>
 -t, --threads <NUM>        Max threads to use (default max)
+-m, --memlimit <VALUE>     Limit max used memory (default max)
 -l, --line-max-size <NUM>  Max line size (default 14)
 -p, --printable            Filter ascii printable lines
 -h, --help                 Display this help and exit
