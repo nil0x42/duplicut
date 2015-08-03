@@ -18,6 +18,24 @@ static struct file  g_outfile;
 static struct file  g_tmpfile;
 
 
+/** Ensure that infile and outfile are DIFFERENT files
+ */
+static void check_files(const char *infile_name, const char *outfile_name)
+{
+    struct stat     infile_info;
+    struct stat     outfile_info;
+
+    if (stat(infile_name, &infile_info) < 0)
+        return ;
+    if (stat(outfile_name, &outfile_info) < 0)
+        return ;
+
+    if (infile_info.st_dev == outfile_info.st_dev
+            && infile_info.st_ino == outfile_info.st_ino)
+        error("infile and outfile must be different");
+}
+
+
 /** Safely close given struct file*
  */
 static void close_file(struct file *file)
@@ -123,6 +141,8 @@ void        init_file(const char *infile_name, const char *outfile_name)
 {
     struct file  *file;
 
+    check_files(infile_name, outfile_name);
+
     memset(&g_infile, -1, sizeof(g_infile));
     memset(&g_outfile, -1, sizeof(g_infile));
     memset(&g_tmpfile, -1, sizeof(g_infile));
@@ -132,9 +152,7 @@ void        init_file(const char *infile_name, const char *outfile_name)
     open_file(&g_outfile, outfile_name, O_TRUNC | O_CREAT | O_RDWR);
 
     if (S_ISREG(g_outfile.info.st_mode))
-    {
         file = &g_outfile;
-    }
     else
     {
         create_tmpfile();
@@ -146,12 +164,8 @@ void        init_file(const char *infile_name, const char *outfile_name)
 
     if (fstat(file->fd, &(file->info)) < 0)
         error("couldn't stat %s: %s", file->name, ERRNO);
-
     if (file->info.st_size == 0)
-    {
-        DLOG("[*] outfile is empty");
         exit(0);
-    }
 
     file->addr = mmap(NULL, (size_t) file->info.st_size,
             (PROT_READ | PROT_WRITE), MAP_SHARED, file->fd, 0);
