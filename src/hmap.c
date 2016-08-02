@@ -16,9 +16,7 @@ void        init_hmap(size_t size)
 
     area = (t_line*) malloc(size * sizeof(t_line));
     if (area == NULL)
-    {
         error("cannot malloc() hash map: %s", ERRNO);
-    }
 
     g_hmap.ptr = area;
     g_hmap.size = size;
@@ -62,10 +60,11 @@ void        populate_hmap(t_chunk *chunk)
             }
             else if (cmp_line(&line, &g_hmap.ptr[slot]) == 0)
             {
-                /* if line already in hmap, zero tag duplicate */
+                /* apply 'zero tag' */
                 LINE_ADDR(line)[0] = DISABLED_LINE;
                 break;
             }
+            /* archaic open addressing collision resolver */
             slot = (slot + 1) % g_hmap.size;
         }
     }

@@ -8,8 +8,8 @@
 
 /** Get byte size representation value from string.
  *
- * If `str` does not point to a valid byte size representation,
- * the bytesize() function returns -1.
+ * If `str` doesn't point to a valid byte size representation,
+ * then bytesize() function returns -1.
  *
  * Example:
  *      long size = bytesize("32 KB");
