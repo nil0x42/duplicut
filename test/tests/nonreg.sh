@@ -2,6 +2,8 @@
 
 # compare output with python duplicate remover and common wordlists
 
+set -v
+
 DUPLICUT="./duplicut"
 COMPARATOR="./test/scripts/remove-duplicates.py"
 
@@ -25,14 +27,20 @@ function test_wordlist ()
     rm -f nonreg_*.out
 
     if [ $filter_printable -eq 0 ]; then
-        $DUPLICUT $file -o nonreg_duplicut.out
+        timeout 1 $DUPLICUT -o nonreg_duplicut.out < $file
+        retval="$?"
         $COMPARATOR $file $max_line_size 0 nonreg_comparator.out
     else
-        $DUPLICUT $file --printable -o nonreg_duplicut.out
+        # timeout --foreground 1 $DUPLICUT $file --printable -o nonreg_duplicut.out
+        timeout 1 $DUPLICUT --printable -o nonreg_duplicut.out < $file
+        retval="$?"
         $COMPARATOR $file $max_line_size 1 nonreg_comparator.out
     fi
 
-    if ! diff -q nonreg_*.out 2> /dev/null; then
+    if [[ $retval -eq 124 ]]; then
+        print_bad "duplicut timed-out on '$file'"
+        exit 1
+    elif ! diff -q nonreg_*.out 2> /dev/null; then
         print_bad "Different result on '$file'"
         print_bad "Run vimdiff nonreg_*.out to see differences"
         exit 1
