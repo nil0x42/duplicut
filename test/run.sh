@@ -121,3 +121,11 @@ for _arch in $ARCH; do
         execute_scripts "$_test"
     done
 done
+
+if [[ $errors -eq 0 ]]; then
+    print_good "$tests/$tests succeed"
+    exit 0
+else
+    print_bad "$errors/$tests tests failed"
+    exit 1
+fi
