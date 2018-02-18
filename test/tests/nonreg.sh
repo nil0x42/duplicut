@@ -40,9 +40,9 @@ function test_wordlist ()
     if [[ $retval -eq 124 ]]; then
         print_bad "duplicut timed-out on '$file'"
         exit 1
-    elif ! diff -q nonreg_*.out 2> /dev/null; then
+    elif ! diff -q nonreg_*.out 2>&1 > /dev/null; then
         print_bad "Different result on '$file'"
-        print_bad "Run vimdiff nonreg_*.out to see differences"
+        print_bad "Run \`diff nonreg_*.out\` to see differences"
         exit 1
     else
         print_good "wordlist $file passed !"
@@ -50,7 +50,7 @@ function test_wordlist ()
 }
 
 WORDLISTS=$(find "$WORDLIST_DIR" -maxdepth 1 -type f  \
-    -printf "%f\n")
+    -name '*.txt' -printf "%f\n")
 
 
 print_info "testing wordlists without special filters"
