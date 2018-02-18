@@ -50,7 +50,7 @@ function test_wordlist ()
 }
 
 WORDLISTS=$(find "$WORDLIST_DIR" -maxdepth 1 -type f  \
-    -name '*.txt' -printf "%f\n")
+    -name '*.txt' -printf "%f\n" | sort)
 
 
 print_info "testing wordlists without special filters"
