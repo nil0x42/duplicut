@@ -1,0 +1,8 @@
+# WORDLSITS GENERATION:
+
+## myspace-leak_len13-15_twice.txt
+## myspace-leak_len13-15_twice_CRLF.txt
+    grep -E '^.{13,15}$' /tmp/SecLists/Passwords/myspace.txt > /tmp/tmp
+    cat /tmp/tmp /tmp/tmp | shuf > myspace-leak_len13-15_twice.txt
+    cp myspace-leak_len13-15_twice.txt myspace-leak_len13-15_twice_CRLF.txt
+    unix2dos myspace-leak_len13-15_twice_CRLF.txt
