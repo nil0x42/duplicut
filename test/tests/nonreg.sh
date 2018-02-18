@@ -42,6 +42,7 @@ function test_wordlist ()
         exit 1
     elif ! diff -q nonreg_*.out 2>&1 > /dev/null; then
         print_bad "Different result on '$file'"
+        diff -y <(cat -te nonreg_comparator.out) <(cat -te nonreg_duplicut.out)
         print_bad "Run \`diff nonreg_*.out\` to see differences"
         exit 1
     else
