@@ -4,7 +4,7 @@
 #define PROJECT_VERSION         "1.0b"
 #define PROJECT_URL             "http://github.com/nil0x42/duplicut"
 
-/* max hashmap size (factor based on availabled memory) */
+/* max hashmap size (factor based on available memory) */
 #define HMAP_MAX_SIZE           (0.2)
 
 /* hashmap maximum load factor */

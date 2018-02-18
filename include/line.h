@@ -6,7 +6,7 @@
 #include "chunk.h"
 
 #if __SIZEOF_POINTER__ >= 8
-/* On 64 bit archtectures (and greater), t_line type uses compression,
+/* On 64 bit archtectures (and greater?), t_line type uses compression,
  * assuming that comonly mapped regions use an address with MSB bits
  * always set to zero.
  *
