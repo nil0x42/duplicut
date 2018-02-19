@@ -65,3 +65,6 @@ make release
 # ensure there no profile information nor debug symbol
 ! test -e gmon.out
 ! nm --debug-syms duplicut | grep -Eq '\s+N\s+\.debug_[a-z]+'
+
+# ensure /proc/meminfo is there
+cat /proc/meminfo
