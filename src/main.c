@@ -57,7 +57,7 @@ static void     remove_duplicates(void)
 
 int             main(int argc, char **argv)
 {
-    optparse(argc, argv); /* set g_conf options */
+    optparse(argc, argv); /* setup g_conf options */
 
     if (isatty(STDIN_FILENO))
         watch_user_input();

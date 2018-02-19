@@ -6,7 +6,8 @@
 #include "chunk.h"
 
 #if __SIZEOF_POINTER__ >= 8
-/* On 64 bit archtectures (and greater?), t_line type uses compression,
+/** Explanation.
+ * On 64 bit archtectures (and greater?), t_line type uses compression,
  * assuming that comonly mapped regions use an address with MSB bits
  * always set to zero.
  *
@@ -15,6 +16,7 @@
  * | size - 8bit |                  addr - 56bit                          |
  *  ----------------------------------------------------------------------
  *
+ * TODO: May need refactoring due to Intel's 5-Level Paging (may 2017)
  */
 
 typedef size_t  t_line;
@@ -24,7 +26,7 @@ typedef size_t  t_line;
 # define SET_LINE(ln, ptr, sz)  (ln = ((((uintptr_t)ptr) << 8) + (uint8_t)sz))
 
 #else
-/* Fallback to standard structure for 16 and 32 bits architectures
+/** Fallback to standard structure for 32 bits architectures.
  */
 
 typedef struct  s_line
