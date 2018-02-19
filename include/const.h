@@ -11,7 +11,7 @@
 #define HMAP_LOAD_FACTOR        (0.5)
 
 /* medium line size for determining hashmap min size */
-#define MEDIUM_LINE_BYTES       (6)
+#define MEDIUM_LINE_BYTES       (8)
 
 /* this char is written at start of lines as a `removal mark` */
 #define DISABLED_LINE           '\0'

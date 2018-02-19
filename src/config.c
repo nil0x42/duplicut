@@ -26,7 +26,7 @@ static void     config_threads(void)
 
     if (g_conf.threads == 0)
         g_conf.threads = (unsigned int) max_threads;
-    else if (g_conf.threads > max_threads)
+    else if (g_conf.threads > (unsigned int) max_threads)
         error("Cannot use more than %ld threads", max_threads);
 }
 
@@ -69,8 +69,8 @@ static void     config_hmap_size(struct file *file, struct memstate *memstate)
     long        hmap_size;
 
     hmap_size = file->info.st_size / MEDIUM_LINE_BYTES;
-    if (hmap_size < 100)
-        hmap_size = 100;
+    if (hmap_size < 10000)
+        hmap_size = 10000;
 
     max_size = memstate->mem_available * HMAP_MAX_SIZE;
     max_size /= sizeof(t_line);
@@ -94,10 +94,12 @@ static void     config_chunk_size(struct file *file)
     file_size = (double) file->info.st_size;
     chunk_size = (double) g_conf.hmap_size * MEDIUM_LINE_BYTES;
     portions = round(file_size / chunk_size);
+    if (portions < 1.0)
+        portions = 1.0;
     chunk_size = file_size / portions;
 
     g_conf.chunk_size = (size_t) ceil(chunk_size);
-    if (g_conf.chunk_size == 0 || g_conf.chunk_size > file->info.st_size)
+    if (!g_conf.chunk_size || g_conf.chunk_size > (size_t)file->info.st_size)
         g_conf.chunk_size = file->info.st_size;
 }
 
