@@ -44,7 +44,7 @@ static void     remove_duplicates(void)
     while (get_next_line(&line, &file_chunk))
     {
         line_size = LINE_SIZE(line);
-        memcpy(dst, LINE_ADDR(line), line_size);
+        memmove(dst, LINE_ADDR(line), line_size);
         dst += line_size;
         if (dst != file_chunk.endptr)
             *dst++ = '\n';
