@@ -4,7 +4,6 @@ SHELL        = /bin/sh
  
 CFLAGS       = -Iinclude -Wall -Wextra \
 			   -Wdisabled-optimization -Winline \
-			   -Wunsuffixed-float-constants \
 			   -Wdouble-promotion -Wunknown-pragmas \
 			   -Wno-unknown-warning-option \
 			   -mtune=native -ffast-math
