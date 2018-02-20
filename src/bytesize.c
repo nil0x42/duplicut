@@ -12,7 +12,7 @@
  * the bytesize() function returns -1.
  *
  * Example:
- *      long size = bytesize("32 KB");
+ *      long long size = bytesize("32 KB");
  */
 long long   bytesize(const char *str)
 {

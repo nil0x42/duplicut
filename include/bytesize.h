@@ -1,3 +1,3 @@
 #pragma once
 
-long    bytesize(const char *str);
+long long   bytesize(const char *str);
