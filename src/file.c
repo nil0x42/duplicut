@@ -10,7 +10,8 @@
 #include "debug.h"
 
 # define FILE_ISSET(_f) ((_f)->fd >= 0)
-# define BUF_SIZE       (4096)
+
+# define BUF_SIZE       (0x20000) /* 128kb */
 
 
 static struct file  g_infile;
@@ -108,6 +109,9 @@ static void file_copy(int dst_fd, int src_fd)
     char        buffer[BUF_SIZE];
     ssize_t     nread;
 
+#if _POSIX_C_SOURCE >= 200112L
+    posix_fadvise(src_fd, 0, 0, POSIX_FADV_SEQUENTIAL);
+#endif
     while ((nread = read(src_fd, buffer, BUF_SIZE)) > 0)
     {
         char    *dst_ptr = buffer;

@@ -8,8 +8,6 @@ if len(sys.argv) != 5:
     sys.exit(1)
 
 
-
-
 content = open(sys.argv[1], 'rb').read()
 OLD_CONTENT_LEN = len(content)
 
