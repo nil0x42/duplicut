@@ -14,13 +14,13 @@
  * Example:
  *      long size = bytesize("32 KB");
  */
-long        bytesize(const char *str)
+long long   bytesize(const char *str)
 {
-    long    result;
-    char    *endptr;
-    int     c;
+    long long   result;
+    char        *endptr;
+    int         c;
 
-    result = strtol(str, &endptr, 10);
+    result = strtoll(str, &endptr, 10);
     if (result < 0 || endptr == str)
         return (-1L);
 

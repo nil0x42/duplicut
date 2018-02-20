@@ -20,7 +20,7 @@
 #define MULTITHREADING          (0)
 
 /* minimum needed memory (change it with care... can throw bugs if too low */
-#define MIN_MEMORY              (1024)
+#define MIN_MEMORY              (65536)
 
 /* program status is displayed periodically instead of waiting keypress */
 #define DEBUG_PROGRAM_STATUS    (0)

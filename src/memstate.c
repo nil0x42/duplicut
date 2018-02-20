@@ -6,9 +6,9 @@
 #include "const.h"
 
 
-static int      get_page_size(void)
+static int          get_page_size(void)
 {
-    int         page_size;
+    int page_size;
 
     page_size = sysconf(_SC_PAGESIZE);
     if (page_size < 0)
@@ -18,9 +18,9 @@ static int      get_page_size(void)
 }
 
 
-static long     get_mem_available(void)
+static long long    get_mem_available(void)
 {
-    long        mem_available;
+    long long   mem_available;
 
     mem_available = meminfo(MEMAVAILABLE);
     if (mem_available < 0)

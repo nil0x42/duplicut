@@ -5,7 +5,7 @@
 struct              memstate
 {
     int             page_size;
-    long            mem_available;
+    long long       mem_available;
 };
 
 

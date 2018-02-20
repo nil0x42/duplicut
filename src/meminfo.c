@@ -16,7 +16,7 @@
  *
  * Specific code needed because Mac OS X has no /proc vfs.
  */
-static long meminfo_memavailable(void)
+static long long    meminfo_memavailable(void)
 {
     vm_size_t               page_size;
     mach_port_t             mach_port;
@@ -34,7 +34,7 @@ static long meminfo_memavailable(void)
     {
         error("Couldn't get 'vm info' from host_statistics64()");
     }
-    return ((int64_t)vm_stats.free_count * (int64_t)page_size);
+    return ((long long)vm_stats.free_count * (long long)page_size);
 }
 
 # else /* Unix default case (through /proc/meminfo) */
@@ -43,7 +43,7 @@ static long meminfo_memavailable(void)
 
 /** Retrieve value from given /proc/meminfo line.
  */
-static long get_value(char *ptr, const char *str, size_t str_len)
+static long long    get_value(char *ptr, const char *str, size_t str_len)
 {
     if (strncmp(ptr, str, str_len) == 0)
     {
@@ -65,13 +65,13 @@ static long get_value(char *ptr, const char *str, size_t str_len)
  *
  * If identifier could not be found, the function returns -1.
  */
-static long proc_meminfo(const char *identifier)
+static long long    proc_meminfo(const char *identifier)
 {
-    char    *buf;
-    size_t  size;
-    FILE    *fp;
-    long    result;
-    size_t  identifier_len;
+    char        *buf;
+    size_t      size;
+    FILE        *fp;
+    long long   result;
+    size_t      identifier_len;
 
     fp = fopen(PROC_MEMINFO_FILE, "r");
     if (fp == NULL)
@@ -85,7 +85,7 @@ static long proc_meminfo(const char *identifier)
         die("malloc()");
     }
 
-    result = -1L;
+    result = -1LL;
     identifier_len = strlen(identifier);
     while (getline(&buf, &size, fp) >= 0)
     {
@@ -115,9 +115,9 @@ static long proc_meminfo(const char *identifier)
  * so we fallback to "MemFree" if "MemAvailable" is not
  * provided.
  */
-static long meminfo_memavailable(void)
+static long long    meminfo_memavailable(void)
 {
-    long result;
+    long long   result;
 
     result = proc_meminfo("MemAvailable");
     if (result < 0)
@@ -134,7 +134,7 @@ static long meminfo_memavailable(void)
  * If it fails to retrieve information, the function
  * returns -1.
  */
-long    meminfo(enum e_meminfo_param info)
+long long           meminfo(enum e_meminfo_param info)
 {
     switch (info)
     {
@@ -143,5 +143,5 @@ long    meminfo(enum e_meminfo_param info)
         default:
             error("meminfo(): Invalid argument: %d", info);
     }
-    return (-1L);
+    return (-1LL);
 }
