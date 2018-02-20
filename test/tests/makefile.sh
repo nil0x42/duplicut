@@ -21,7 +21,7 @@ make all | grep -iq "nothing"
 #### make with debug infos
 make re
 test -d objects/
-test -f tags
+which ctags 2>/dev/null && test -f tags
 test -f duplicut -a -x duplicut
 ./duplicut &> /dev/null
 # check there is debug symbols AND NO profiling info
