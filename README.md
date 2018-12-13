@@ -1,7 +1,8 @@
 ### Duplicut ###
 
-A very fast tool for removing duplicate lines from a file
-without sorting it.
+The `duplicut` tool finds and **removes duplicate** entries from
+a wordlist, **without changing the order**, and **without getting
+OOM** on huge wordlists whose size exceeds available memory.
 
 [![Build Status](https://secure.travis-ci.org/nil0x42/duplicut.png?branch=master)](http://travis-ci.org/nil0x42/duplicut)
 
@@ -9,22 +10,42 @@ without sorting it.
 #### Quick start:
 ```sh
 make release
-./duplicut <WORDLIST> -o <OUTPUT_FILE>
+./duplicut <WORDLIST_WITH_DUPLICATES> -o <NEW_CLEAN_WORDLIST>
 ```
 
 ---------------------------------------------------------------------
 #### Overview ####
 
-While building statictically optimized wordlists for password cracking
-purposes, i have needed to remove all duplicates quickly, even if the
-wordlist 
+Building statictically optimized wordlists for password
+cracking often requires to be able to find and remove
+duplicate entries without changing the order.
 
-While creating wordlists of passwords from different sources, i frequently
-need to remove duplicates quickly, even on huge wordlists, without changing
-the order.
+Unfortunately, existing *duplicate removal tools* are not
+able to handle **very huge wordlists** without crashing
+due to insufficient memory:
 
-That is how duplicut was born.
+![][img-1-comparison]
 
+
+
+Duplicut is written in C, and optimized to be as
+_**fast**_ and _**memory frugal**_ as possible.
+
+For example, duplicut hashmap saves up to 50% space by packing
+`size` information without line pointer's [extra bits][tagged-pointer]
+
+![][img-2-line-struct]
+
+
+
+If the whole file doesn't fit in memory, file is split into 
+![][latex-n] chunks, and each one is tested against following chunks.
+
+So complexity = ![][latex-n]th *triangle number*:
+![][img-3-chunked-processing]
+
+
+---------------------------------------------------------------------
 ```
 Usage: duplicut [OPTION]... [INFILE] -o [OUTFILE]
 Remove duplicate lines from INFILE without sorting.
@@ -56,3 +77,13 @@ Example: duplicut wordlist.txt -o new-wordlist.txt
 * **Limitations**:
     - Any line longer than 255 chars is ignored.
     - Heavily tested on Linux x64, mostly untested on other platforms.
+
+
+[img-1-comparison]: data/img/1-comparison.png
+[img-2-line-struct]: data/img/2-line-struct.png
+[img-3-chunked-processing]: data/img/3-chunked-processing.png
+
+[tagged-pointer]: https://en.wikipedia.org/wiki/Tagged_pointer
+
+[latex-n]: http://www.sciweavers.org/tex2img.php?fs=15&eq=n
+[latex-nth-triangle]: http://www.sciweavers.org/tex2img.php?fs=32&eq=%5Csum_%7Bk%3D1%7D%5Enk
