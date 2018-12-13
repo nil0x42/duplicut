@@ -32,7 +32,7 @@ Duplicut is written in C, and optimized to be as
 _**fast**_ and _**memory frugal**_ as possible.
 
 For example, duplicut hashmap saves up to 50% space by packing
-`size` information without line pointer's [extra bits][tagged-pointer]
+`size` information within line pointer's [extra bits][tagged-pointer]:
 
 ![][img-2-line-struct]
 
@@ -41,7 +41,7 @@ For example, duplicut hashmap saves up to 50% space by packing
 If the whole file doesn't fit in memory, file is split into 
 ![][latex-n] chunks, and each one is tested against following chunks.
 
-So complexity = ![][latex-n]th *triangle number*:
+So complexity is equal to ![][latex-n]th *triangle number*:
 ![][img-3-chunked-processing]
 
 
