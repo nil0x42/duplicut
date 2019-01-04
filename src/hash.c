@@ -1,7 +1,9 @@
 #include "hash.h"
-# include "config.h"
+#include "config.h"
 
 
+/** FastHASH non-cryptographic hash function wrapper.
+ */
 static inline void      fasthash(t_line *line, long *out)
 {
     uint64_t            h;
@@ -11,6 +13,8 @@ static inline void      fasthash(t_line *line, long *out)
 }
 
 
+/** MurmurHash3 non-cryptographic hash function wrapper.
+ */
 static inline void      murmur3(t_line *line, long *out)
 {
     uint32_t            buf128[4];
@@ -22,6 +26,8 @@ static inline void      murmur3(t_line *line, long *out)
 }
 
 
+/** Hash function wrapper for t_line objects.
+ */
 long                    hash(t_line *line)
 {
     long                key;

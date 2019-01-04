@@ -14,7 +14,7 @@
 
 /** Apple Mac OS X specific wrapper for meminfo_memavailable()
  *
- * Specific code needed because Mac OS X has no /proc vfs.
+ * Specific code needed because Mac OS X haven't "/proc" vfs.
  */
 static long long    meminfo_memavailable(void)
 {
@@ -27,12 +27,12 @@ static long long    meminfo_memavailable(void)
     count = sizeof(vm_stats) / sizeof(natural_t);
     if (host_page_size(mach_port, &page_size) != KERN_SUCCESS)
     {
-        error("Couldn't get 'page size' from host_page_size()");
+        error("couldn't retrieve 'page size' from host_page_size()");
     }
     if (host_statistics64(mach_port, HOST_VM_INFO,
                 (host_info64_t)&vm_stats, &count) != KERN_SUCCESS)
     {
-        error("Couldn't get 'vm info' from host_statistics64()");
+        error("couldn't retrieve 'vm info' from host_statistics64()");
     }
     return ((long long)vm_stats.free_count * (long long)page_size);
 }
@@ -75,15 +75,12 @@ static long long    proc_meminfo(const char *identifier)
 
     fp = fopen(PROC_MEMINFO_FILE, "r");
     if (fp == NULL)
-    {
         error("cannot open %s: %s", PROC_MEMINFO_FILE, ERRNO);
-    }
+
     size = BUF_SIZE * sizeof(*buf);
     buf = (char*) malloc(size);
     if (buf == NULL)
-    {
         die("malloc()");
-    }
 
     result = -1LL;
     identifier_len = strlen(identifier);
@@ -91,9 +88,7 @@ static long long    proc_meminfo(const char *identifier)
     {
         result = get_value(buf, identifier, identifier_len);
         if (result >= 0)
-        {
             break;
-        }
     }
     fclose(fp);
     free((void*) buf);
@@ -121,9 +116,7 @@ static long long    meminfo_memavailable(void)
 
     result = proc_meminfo("MemAvailable");
     if (result < 0)
-    {
         result = proc_meminfo("MemFree");
-    }
     return (result);
 }
 # endif

@@ -11,8 +11,8 @@
 #include "debug.h"
 
 
-/** Configure how many threads to use.
- *      --> g_conf.threads
+/** Configuration --> g_conf.hmap_size
+ * Determine the number of worker threads to use.
  */
 static void     config_threads(void)
 {
@@ -31,9 +31,9 @@ static void     config_threads(void)
 }
 
 
-/** Return the nearest prime number <= `n`.
- * Used in order to settle hmap size with a prime value.
- * It ensures an optimal hash repartition.
+/** Get biggest prime number `p` as `p` <= `n`.
+ * Used to settle `hmap` size with a prime number value,
+ * ensuring an optimal hash repartition among the table.
  */
 static long     get_prev_prime(long n)
 {
@@ -58,10 +58,8 @@ static long     get_prev_prime(long n)
 }
 
 
-/** Configure hmap_size.
- * This values needs to know file size and current memstate
- * in order to determine an optimal hash map size.
- * It also uses a prime number as final value, thanks to get_prev_prime().
+/** Configuration --> g_conf.hmap_size
+ * Use `file` size and `memstate` to determine optimal size for `hmap`.
  */
 static void     config_hmap_size(struct file *file, struct memstate *memstate)
 {
@@ -81,9 +79,8 @@ static void     config_hmap_size(struct file *file, struct memstate *memstate)
 }
 
 
-/** Configure chunk_size.
- * Mostly based on hmap_size * MEDIUM_LINE_BYTES.
- * Add repartition so chunk_size is a portion of file size.
+/** Configuration --> g_conf.chunk_size
+ * Determine the size of a chunk, which must be a divisor of `file->size`.
  */
 static void     config_chunk_size(struct file *file)
 {
@@ -104,7 +101,7 @@ static void     config_chunk_size(struct file *file)
 }
 
 
-/** Configure `g_conf` vars after argument parsing
+/** Initialize `g_conf` variables after parsing arguments.
  */
 void            config(void)
 {

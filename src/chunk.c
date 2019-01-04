@@ -24,9 +24,9 @@ int         count_chunks(void)
 }
 
 
-/** Fill `chunk` with next chunk from `file`.
- * If `chunk->ptr` is NULL, chunk is then initialized to first file chunk.
- * Otherwise, `chunk` is replaced by next one.
+/** Write next chunk form `file` into `chunk`
+ * If `chunk->ptr` is NULL, chunk is set to `file`'s first chunk.
+ * Otherwise, `chunk` is replaced by the next one.
  * If there is no next chunk, the function returns false.
  */
 bool        get_next_chunk(t_chunk *chunk, struct file *file)
@@ -63,8 +63,9 @@ bool        get_next_chunk(t_chunk *chunk, struct file *file)
 }
 
 
-/** zero mark lines in chunk if they exist in hmap
- * Main work for threads in pool.
+/** Apply 'zero tag' on each `chunk` line that is
+ * already present in `hmap`.
+ * Main work for threads in thread pool.
  */
 void        cleanout_chunk(t_chunk *chunk)
 {
@@ -78,11 +79,11 @@ void        cleanout_chunk(t_chunk *chunk)
         {
             if (cmp_line(&line, &g_hmap.ptr[slot]) == 0)
             {
-                /* apply zero tag */
+                /* apply 'zero tag' */
                 LINE_ADDR(line)[0] = DISABLED_LINE;
                 break;
             }
-            /* archaic open addressing */
+            /* archaic open addressing collision resolver */
             slot = (slot + 1) % g_hmap.size;
         }
     }

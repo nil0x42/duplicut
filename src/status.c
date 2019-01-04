@@ -187,6 +187,3 @@ void            display_status(void)
             arrival_time_str,
             current_task_str);
 }
-
-/* time: 0:00:00:01 0.39% (ETA: Mon Aug  3 12:44:56 2015)  
- */

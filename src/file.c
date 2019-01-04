@@ -19,7 +19,8 @@ static struct file  g_outfile;
 static struct file  g_tmpfile;
 
 
-/** Ensure that infile and outfile are DIFFERENT files
+/** Ensure that infile and outfile don't point to the same
+ * filesystem object, by device/inode comparison.
  */
 static void check_files(const char *infile_name, const char *outfile_name)
 {
@@ -37,7 +38,7 @@ static void check_files(const char *infile_name, const char *outfile_name)
 }
 
 
-/** Safely close given struct file*
+/** Safely close a `file` pointer.
  */
 static void close_file(struct file *file)
 {
@@ -51,7 +52,7 @@ static void close_file(struct file *file)
 
 
 /** Destructor callback for optentially open files
- * - Close infile && outfile
+ * - Close infile and outfile
  * - If tmpfile:
  *   - close and delete tmpfile
  */
@@ -69,18 +70,18 @@ static void close_all(void)
 }
 
 
-/** Initialize a struct file with given file name
- * It fills name, fd with open(), and info with fstat.
+/** Open `pathname` with `flags` into `file` object.
+ * It fills name with `pathname`, fd with open(), and info with fstat.
  */
-static void open_file(struct file *file, const char *name, int flags)
+static void open_file(struct file *file, const char *pathname, int flags)
 {
-    if ((file->fd = open(name, flags, 0666)) < 0)
-        error("couldn't open %s: %s", name, ERRNO);
+    if ((file->fd = open(pathname, flags, 0666)) < 0)
+        error("couldn't open %s: %s", pathname, ERRNO);
 
     if (fstat(file->fd, &(file->info)) < 0)
-        error("could't stat %s: %s", name, ERRNO);
+        error("couldn't stat %s: %s", pathname, ERRNO);
 
-    file->name = name;
+    file->name = pathname;
 }
 
 
@@ -96,7 +97,7 @@ static void create_tmpfile(void)
         error("couldn't create tmpfile '%s': %s", template, ERRNO);
 
     if (fstat(file->fd, &(file->info)) < 0)
-        error("could't stat tmpfile '%s': %s", template, ERRNO);
+        error("couldn't stat tmpfile '%s': %s", template, ERRNO);
 
     file->name = template;
 }
@@ -204,8 +205,6 @@ void        destroy_file(void)
     else
         file = &g_outfile;
 
-    /* if (msync(file->addr, file->info.st_size, MS_SYNC | MS_INVALIDATE) < 0) */
-    /*     error("cannot msync() %s: %s", file->name, ERRNO); */
     if (munmap(file->addr, file->orig_size) < 0)
         error("cannot munmap() %s: %s", file->name, ERRNO);
     if (ftruncate(file->fd, file->info.st_size) < 0)

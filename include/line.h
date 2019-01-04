@@ -6,12 +6,14 @@
 #include "chunk.h"
 
 #if __SIZEOF_POINTER__ >= 8
-/** Explanation.
- * On 64 bit archtectures (and greater?), t_line type uses compression,
- * assuming that comonly mapped regions use an address with MSB bits
- * always set to zero.
+/** On 64 bit architectures, t_line type is a tagged pointer,
+ * assuming that mapped regions use addresses whose 16 MSB bits
+ * are set to zero.
+ * https://en.wikipedia.org/wiki/Tagged_pointer
  *
  * This way, a 64bits size_t is used to store line like this:
+ *
+ *  LSB                               <                                MSB
  *  ----------------------------------------------------------------------
  * | size - 8bit |                  addr - 56bit                          |
  *  ----------------------------------------------------------------------

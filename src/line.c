@@ -7,6 +7,8 @@
 #include "config.h"
 
 
+/** True if `str` only contains printable chars
+ */
 static bool str_isprint(char *str, size_t size)
 {
     while (size--)
@@ -18,7 +20,9 @@ static bool str_isprint(char *str, size_t size)
 }
 
 
-static bool line_filtered(char *str, size_t size)
+/** True if `str` was filtered by line removal rules
+ */
+static bool filter_line(char *str, size_t size)
 {
     if (size > g_conf.line_max_size)
         return (true);
@@ -28,6 +32,9 @@ static bool line_filtered(char *str, size_t size)
 }
 
 
+/** Set `dst` to next line in `chunk`
+ * The function returns false when end-of-chunk is reached.
+ */
 bool        get_next_line(t_line *dst, t_chunk *chunk)
 {
     size_t  size;
@@ -56,7 +63,7 @@ bool        get_next_line(t_line *dst, t_chunk *chunk)
         }
         else if ((next = memchr(chunk->ptr, '\n', size)) == NULL)
         {
-            if (line_filtered(chunk->ptr, size))
+            if (filter_line(chunk->ptr, size))
                 return (false);
             SET_LINE(*dst, chunk->ptr, size);
             chunk->ptr += size;
@@ -67,7 +74,7 @@ bool        get_next_line(t_line *dst, t_chunk *chunk)
             line_size = next - chunk->ptr;
             if (chunk->ptr[line_size - 1] == '\r')
             {
-                if (line_filtered(chunk->ptr, line_size - 1))
+                if (filter_line(chunk->ptr, line_size - 1))
                 {
                     chunk->ptr += line_size + 1;
                     size -= line_size + 1;
@@ -81,7 +88,7 @@ bool        get_next_line(t_line *dst, t_chunk *chunk)
             }
             else
             {
-                if (line_filtered(chunk->ptr, line_size))
+                if (filter_line(chunk->ptr, line_size))
                 {
                     chunk->ptr += line_size + 1;
                     size -= line_size + 1;
@@ -99,6 +106,9 @@ bool        get_next_line(t_line *dst, t_chunk *chunk)
 }
 
 
+/** Compare two t_line objects.
+ * If the function returns 0, then lines are equal
+ */
 int         cmp_line(t_line *l1, t_line *l2)
 {
     int     size;
