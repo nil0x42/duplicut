@@ -24,7 +24,7 @@ int         count_chunks(void)
 }
 
 
-/** Write next chunk form `file` into `chunk`
+/** Write next chunk from `file` into `chunk`
  * If `chunk->ptr` is NULL, chunk is set to `file`'s first chunk.
  * Otherwise, `chunk` is replaced by the next one.
  * If there is no next chunk, the function returns false.
@@ -63,8 +63,8 @@ bool        get_next_chunk(t_chunk *chunk, struct file *file)
 }
 
 
-/** Apply 'zero tag' on each `chunk` line that is
- * already present in `hmap`.
+/** Apply 'zero tag' (DISABLED_LINE) on each `chunk`
+ * line that is already present in `hmap`.
  * Main work for threads in thread pool.
  */
 void        cleanout_chunk(t_chunk *chunk)

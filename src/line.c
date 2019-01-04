@@ -34,6 +34,7 @@ static bool filter_line(char *str, size_t size)
 
 /** Set `dst` to next line in `chunk`
  * The function returns false when end-of-chunk is reached.
+ * You are not expected to understand this
  */
 bool        get_next_line(t_line *dst, t_chunk *chunk)
 {

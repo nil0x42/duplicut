@@ -36,8 +36,8 @@ void        destroy_hmap(void)
 
 
 /** Populate `hmap` whith given `chunk` lines.
- * - This function handles hash collisions and disables
- * duplicate lines from `chunk` by tagging them with 'DISABLED_LINE'.
+ * - Handle collisions & disable duplicate lines from `chunk`
+ *   by tagging them with 'DISABLED_LINE'.
  * - Unique lines are normally written into `hmap`.
  */
 void        populate_hmap(t_chunk *chunk)

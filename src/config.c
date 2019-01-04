@@ -11,7 +11,7 @@
 #include "debug.h"
 
 
-/** Configuration --> g_conf.hmap_size
+/** Configuration --> g_conf.threads
  * Determine the number of worker threads to use.
  */
 static void     config_threads(void)

@@ -14,7 +14,7 @@
 
 /** Apple Mac OS X specific wrapper for meminfo_memavailable()
  *
- * Specific code needed because Mac OS X haven't "/proc" vfs.
+ * Specific code needed because Mac OS X doesn't have "/proc" vfs.
  */
 static long long    meminfo_memavailable(void)
 {

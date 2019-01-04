@@ -20,7 +20,7 @@ static struct file  g_tmpfile;
 
 
 /** Ensure that infile and outfile don't point to the same
- * filesystem object, by device/inode comparison.
+ * file on filesystem, by comparing device & inode.
  */
 static void check_files(const char *infile_name, const char *outfile_name)
 {
@@ -38,7 +38,7 @@ static void check_files(const char *infile_name, const char *outfile_name)
 }
 
 
-/** Safely close a `file` pointer.
+/** Safely close a `file`.
  */
 static void close_file(struct file *file)
 {
@@ -52,9 +52,7 @@ static void close_file(struct file *file)
 
 
 /** Destructor callback for optentially open files
- * - Close infile and outfile
- * - If tmpfile:
- *   - close and delete tmpfile
+ * Close infile, outfile and tmpfile (if exists)
  */
 static void close_all(void)
 {
@@ -70,8 +68,7 @@ static void close_all(void)
 }
 
 
-/** Open `pathname` with `flags` into `file` object.
- * It fills name with `pathname`, fd with open(), and info with fstat.
+/** Open (`pathname`, `flags`) -> `file`
  */
 static void open_file(struct file *file, const char *pathname, int flags)
 {
@@ -103,8 +100,6 @@ static void create_tmpfile(void)
 }
 
 
-/** Copy a file in another
- */
 static void file_copy(int dst_fd, int src_fd)
 {
     char        buffer[BUF_SIZE];
@@ -137,10 +132,10 @@ static void file_copy(int dst_fd, int src_fd)
 
 
 /** file constructor.
- * Handle src/dst files, and return a struct file* for use by duplicut.
- * Can deal with non-regular files
- * Registers cleanup functions with atexit()
- * returned file has `addr` attribute memory maped.
+ * - Handle src/dst files, and return a struct file* for use by duplicut.
+ * - Can deal with non-regular files
+ * - Registers cleanup functions with atexit()
+ * - returned file has `addr` attribute mapped in memoy
  */
 void        init_file(const char *infile_name, const char *outfile_name)
 {
@@ -192,9 +187,9 @@ void        init_file(const char *infile_name, const char *outfile_name)
 
 
 /** file destructor
- * If tmpfile, copy it info outfile
- * truncate file with new size.
- * Call close_all() for cleanout.
+ * - If tmpfile, copy it info outfile
+ * - truncate file with new size.
+ * - Call close_all() for cleanout.
  */
 void        destroy_file(void)
 {
