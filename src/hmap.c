@@ -60,7 +60,6 @@ void        populate_hmap(t_chunk *chunk)
             }
             else if (cmp_line(&line, &g_hmap.ptr[slot]) == 0)
             {
-                /* apply 'zero tag' */
                 LINE_ADDR(line)[0] = DISABLED_LINE;
                 break;
             }

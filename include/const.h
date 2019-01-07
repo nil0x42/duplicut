@@ -13,7 +13,7 @@
 /* medium line size for determining hashmap min size */
 #define MEDIUM_LINE_BYTES       (8)
 
-/* this char is written at start of lines as a `removal mark` */
+/* char used to mark duplicate lines for removal */
 #define DISABLED_LINE           '\0'
 
 /* enable/disable multithreading feature */

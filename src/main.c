@@ -28,7 +28,7 @@ struct file *g_file;
 struct hmap g_hmap;
 
 
-/** Rewrite file without zero-tagged lines, and update file size.
+/** Rewrite file, ignoring lines tagged with 'DISABLED_LINE'
  */
 static void     remove_duplicates(void)
 {
