@@ -12,6 +12,7 @@
 #include "error.h"
 
 #if MULTITHREADING == 1
+
 /** For each chunk following `parent`, add a cleanout_chunk() worker.
  */
 static void     tag_subchunks(threadpool thpool, const t_chunk *parent)
@@ -27,7 +28,9 @@ static void     tag_subchunks(threadpool thpool, const t_chunk *parent)
         if (heap_chunk == NULL)
             die("could not malloc() heap_chunk");
         memcpy(heap_chunk, &chunk, sizeof(t_chunk));
-        thpool_add_work(thpool, (void*)cleanout_chunk, heap_chunk);
+        /* thpool already prints error unless DISABLE_PRINT is defined */
+        if (thpool_add_work(thpool, (void*)cleanout_chunk, heap_chunk) != 0)
+            exit(1);
         chunk_id ++;
     }
 }
@@ -37,11 +40,15 @@ static void     tag_subchunks(threadpool thpool, const t_chunk *parent)
  */
 void            tag_duplicates(void)
 {
-    threadpool  thpool = thpool_init(g_conf.threads);
+    threadpool  thpool;
     t_chunk     main_chunk = {
         .ptr = NULL,
         .endptr = NULL
     };
+
+    /* thpool already prints error unless DISABLE_PRINT is defined */
+    if ((thpool = thpool_init(g_conf.threads)) == NULL)
+        exit(1);
 
     while (get_next_chunk(&main_chunk, g_file))
     {
@@ -54,7 +61,8 @@ void            tag_duplicates(void)
 }
 
 
-#else
+#else /* MULTITHREADING not defined */
+
 /** Cleanout each chunk following the parent
  */
 static void     tag_subchunks(const t_chunk *parent)
@@ -94,4 +102,5 @@ void            tag_duplicates(void)
         update_status(CHUNK_DONE);
     }
 }
+
 #endif
