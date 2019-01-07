@@ -63,8 +63,8 @@ bool        get_next_chunk(t_chunk *chunk, struct file *file)
 }
 
 
-/** Apply 'zero tag' (DISABLED_LINE) on each `chunk`
- * line that is already present in `hmap`.
+/** Disable lines on `chunk` that already exist in `hmap`
+ * by tagging them with 'DISABLED_LINE'
  * Main work for threads in thread pool.
  */
 void        cleanout_chunk(t_chunk *chunk)
@@ -79,7 +79,6 @@ void        cleanout_chunk(t_chunk *chunk)
         {
             if (cmp_line(&line, &g_hmap.ptr[slot]) == 0)
             {
-                /* apply 'zero tag' */
                 LINE_ADDR(line)[0] = DISABLED_LINE;
                 break;
             }
