@@ -44,13 +44,15 @@ void        populate_hmap(t_chunk *chunk)
 {
     t_line      line;
     long        slot;
+    size_t	has_slots;
 
     memset(g_hmap.ptr, 0, g_hmap.size * sizeof(t_line));
 
     while (get_next_line(&line, chunk))
     {
         slot = hash(&line) % g_hmap.size;
-        while (1)
+        has_slots = g_hmap.size;
+        while (has_slots--)
         {
             if (!LINE_ISSET(g_hmap.ptr[slot]))
             {
@@ -66,5 +68,7 @@ void        populate_hmap(t_chunk *chunk)
             /* archaic open addressing collision resolver */
             slot = (slot + 1) % g_hmap.size;
         }
+        if (!has_slots)
+            error("populate_hmap(): no space left on hashmap.");
     }
 }
