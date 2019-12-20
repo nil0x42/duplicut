@@ -12,3 +12,4 @@ enum    e_status_action
 /* source file: status.c */
 void                display_status(void);
 void                update_status(enum e_status_action action);
+void                update_status_fcopy(double portion_read);

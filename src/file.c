@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include "file.h"
 #include "const.h"
+#include "status.h"
 #include "error.h"
 #include "debug.h"
 
@@ -100,19 +101,32 @@ static void create_tmpfile(void)
 }
 
 
+/** Copy file from src_fd to dst_fd
+ * If f_size is defined, update percent progression
+ * for status display.
+ */
 static void copy_file(int dst_fd, int src_fd, ssize_t f_size)
 {
     char        buffer[BUF_SIZE];
     ssize_t     nread;
+    ssize_t     total_read;
+    size_t      i;
 
 #if _POSIX_C_SOURCE >= 200112L
     posix_fadvise(src_fd, 0, 0, POSIX_FADV_SEQUENTIAL);
 #endif
+    i = 0;
+    total_read = 0;
     while ((nread = read(src_fd, buffer, BUF_SIZE)) > 0)
     {
         char    *dst_ptr = buffer;
         ssize_t nwrite;
 
+        i++;
+        total_read += nread;
+        if (f_size > 0 && i % 100 == 0) {
+            update_status_fcopy((double)((double)total_read / (double)f_size));
+        }
         do
         {
             if ((nwrite = write(dst_fd, dst_ptr, (size_t) nread)) >= 0)
@@ -159,7 +173,7 @@ void        init_file(const char *infile_name, const char *outfile_name)
         file = &g_tmpfile;
     }
 
-    copy_file(file->fd, g_infile.fd, (ssize_t)file->info.st_size);
+    copy_file(file->fd, g_infile.fd, (ssize_t)g_infile.info.st_size);
     close_file(&g_infile);
 
     if (fstat(file->fd, &(file->info)) < 0)
