@@ -155,9 +155,9 @@ void            display_status(void)
     else if (!TAGDUP_TERMINATED())
     {
         percent_progression = 5.0;
-        if (g_status.done_ctasks > 0)
+        double tagdup_elapsed_time = elapsed_time - FCOPY_DURATION();
+        if (g_status.done_ctasks > 0 && tagdup_elapsed_time > 0.9)
         {
-            double tagdup_elapsed_time = elapsed_time - FCOPY_DURATION();
             double time_per_ctask = tagdup_elapsed_time / g_status.done_ctasks;
             time_t remaining_time = time_per_ctask * MISSING_CTASKS();
             /* adding FCOPY_DURATION because it's ~= FCLEAN_DURATION */
@@ -175,6 +175,7 @@ void            display_status(void)
     else
     {
         percent_progression = 95.0;
+
 
         double percent_per_second = 5.0 / (double) FCOPY_DURATION();
         time_t elapsed_fclean = current_time - g_status.fclean_date;
