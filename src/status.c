@@ -6,7 +6,7 @@
 #include "chunk.h"
 #include "debug.h"
 
-#define FACTORIAL(n)        (n * (n + 1) / 2)
+#define TRIANGULAR(n)       (n * (n + 1) / 2)
 
 #define START_TIME()        (g_status.fcopy_date)
 #define FCOPY_STARTED()     (g_status.fcopy_date != 0)
@@ -63,7 +63,7 @@ void                update_status(enum e_status_action action)
             DLOG("update_status(TAGDUP_START) called");
             g_status.ctasks_date = time(NULL);
             g_status.total_chunks = count_chunks();
-            g_status.total_ctasks = FACTORIAL(g_status.total_chunks);
+            g_status.total_ctasks = TRIANGULAR(g_status.total_chunks);
             break ;
         case CHUNK_DONE:
             DLOG("update_status(CHUNK_DONE) called");
@@ -121,8 +121,9 @@ static void     repr_current_task(char *buffer)
     if (!FCOPY_TERMINATED())
         strncpy(buffer, "step 1/3: creating output file", BUF_SIZE - 1);
     else if (!TAGDUP_TERMINATED())
-        snprintf(buffer, BUF_SIZE - 1, "step 2/3: cleaning chunk %d/%d",
-                g_status.done_chunks + 1, g_status.total_chunks);
+        snprintf(buffer, BUF_SIZE - 1, "step 2/3: cleaning chunk %d/%d (task %d/%d)",
+                g_status.done_chunks + 1, g_status.total_chunks,
+        g_status.done_ctasks + 1, g_status.total_ctasks);
     else
         strncpy(buffer, "step 3/3: removing tagged lines", BUF_SIZE - 1);
 }
@@ -154,12 +155,12 @@ void            display_status(void)
     else if (!TAGDUP_TERMINATED())
     {
         percent_progression = 5.0;
-        if (g_status.done_chunks > 0)
+        if (g_status.done_ctasks > 0)
         {
             double tagdup_elapsed_time = elapsed_time - FCOPY_DURATION();
             double time_per_ctask = tagdup_elapsed_time / g_status.done_ctasks;
             time_t remaining_time = time_per_ctask * MISSING_CTASKS();
-            /* FCOPY_DURATION is added because it's close to FCLEAN_DURATION */
+            /* adding FCOPY_DURATION because it's ~= FCLEAN_DURATION */
             arrival_time = current_time + remaining_time + FCOPY_DURATION();
 
             double percent_per_ctask = 90.0 / g_status.total_ctasks;
