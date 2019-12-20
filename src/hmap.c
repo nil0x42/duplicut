@@ -58,7 +58,7 @@ void        populate_hmap(t_chunk *chunk)
     while (get_next_line(&line, chunk))
     {
         slot = hash(&line) % g_hmap.size;
-        has_slots = g_hmap.size;
+        has_slots = (g_hmap.size * 10) / 8;
         while (has_slots--)
         {
             if (!LINE_ISSET(g_hmap.ptr[slot]))
@@ -67,12 +67,12 @@ void        populate_hmap(t_chunk *chunk)
                 g_hmap.ptr[slot] = line;
 #ifdef DEBUG
                 filled++;
-                tmp = (int)((double)filled / (double)g_hmap.size * 100.0);
-                if (tmp > last_percent_filled) {
-                    last_percent_filled = tmp;
-                    DLOG("populate_hmap(): used %ld/%ld slots (%d%%) ...",
-                            filled, g_hmap.size, tmp);
-                }
+                /* tmp = (int)((double)filled / (double)g_hmap.size * 100.0); */
+                /* if (tmp > last_percent_filled) { */
+                /*     last_percent_filled = tmp; */
+                /*     DLOG("populate_hmap(): used %ld/%ld slots (%d%%) ...", */
+                /*             filled, g_hmap.size, tmp); */
+                /* } */
 #endif
                 break;
             }
