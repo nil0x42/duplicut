@@ -100,7 +100,7 @@ static void create_tmpfile(void)
 }
 
 
-static void file_copy(int dst_fd, int src_fd)
+static void copy_file(int dst_fd, int src_fd, ssize_t f_size)
 {
     char        buffer[BUF_SIZE];
     ssize_t     nread;
@@ -122,12 +122,12 @@ static void file_copy(int dst_fd, int src_fd)
             }
             else if (errno != EINTR)
             {
-                error("file_copy() -> write(): %s", ERRNO);
+                error("copy_file() -> write(): %s", ERRNO);
             }
         } while (nread > 0);
     }
     if (nread != 0)
-        error("file_copy() -> read(): %s", ERRNO);
+        error("copy_file() -> read(): %s", ERRNO);
 }
 
 
@@ -159,7 +159,7 @@ void        init_file(const char *infile_name, const char *outfile_name)
         file = &g_tmpfile;
     }
 
-    file_copy(file->fd, g_infile.fd);
+    copy_file(file->fd, g_infile.fd, (ssize_t)file->info.st_size);
     close_file(&g_infile);
 
     if (fstat(file->fd, &(file->info)) < 0)
@@ -208,7 +208,7 @@ void        destroy_file(void)
     if (FILE_ISSET(&g_tmpfile))
     {
         lseek(g_tmpfile.fd, 0, SEEK_SET);
-        file_copy(g_outfile.fd, g_tmpfile.fd);
+        copy_file(g_outfile.fd, g_tmpfile.fd, 0);
     }
 
     close_all();
