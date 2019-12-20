@@ -42,9 +42,16 @@ void        destroy_hmap(void)
  */
 void        populate_hmap(t_chunk *chunk)
 {
+    DLOG("populate_hmap()");
     t_line      line;
     long        slot;
-    size_t	has_slots;
+    size_t      has_slots;
+
+#ifdef DEBUG
+    int         last_percent_filled = 0;
+    int         tmp = 0;
+    size_t      filled = 0;
+#endif
 
     memset(g_hmap.ptr, 0, g_hmap.size * sizeof(t_line));
 
@@ -58,6 +65,15 @@ void        populate_hmap(t_chunk *chunk)
             {
                 /* use first free slot */
                 g_hmap.ptr[slot] = line;
+#ifdef DEBUG
+                filled++;
+                tmp = (int)((double)filled / (double)g_hmap.size * 100.0);
+                if (tmp > last_percent_filled) {
+                    last_percent_filled = tmp;
+                    DLOG("populate_hmap(): used %ld/%ld slots (%d%%) ...",
+                            filled, g_hmap.size, tmp);
+                }
+#endif
                 break;
             }
             else if (cmp_line(&line, &g_hmap.ptr[slot]) == 0)
@@ -71,4 +87,8 @@ void        populate_hmap(t_chunk *chunk)
         if (!has_slots)
             error("populate_hmap(): no space left on hashmap.");
     }
+#ifdef DEBUG
+    DLOG("populate_hmap(): used %ld/%ld slots (%.2f%%)",
+            filled, g_hmap.size, (double)filled / (double)g_hmap.size * 100.0);
+#endif
 }
