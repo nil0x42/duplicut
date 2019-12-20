@@ -27,6 +27,7 @@
 struct                  status
 {
     time_t              fcopy_date;
+    double              fcopy_portion;
     time_t              ctasks_date;
     time_t              last_ctask_date;
     time_t              fclean_date;
@@ -38,6 +39,7 @@ struct                  status
 
 static struct status    g_status = {
     .fcopy_date = 0,
+    .fcopy_portion = 0.0,
     .ctasks_date = 0,
     .last_ctask_date = 0,
     .fclean_date = 0,
@@ -83,6 +85,12 @@ void                update_status(enum e_status_action action)
             g_status.fclean_date = time(NULL);
             break ;
     }
+}
+
+void                update_status_fcopy(double portion_read)
+{
+    DLOG("update_status_fcopy() called");
+    g_status.fcopy_portion = portion_read;
 }
 
 
@@ -150,7 +158,7 @@ void            display_status(void)
 
     if (!FCOPY_TERMINATED())
     {
-        percent_progression = 0.42;
+        percent_progression = g_status.fcopy_portion * 5.0;
     }
     else if (!TAGDUP_TERMINATED())
     {
