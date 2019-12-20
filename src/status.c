@@ -167,6 +167,8 @@ void            display_status(void)
             percent_progression += percent_per_ctask * g_status.done_ctasks;
             double cur_ctasks_seconds = current_time - g_status.last_ctask_date;
             double ctask_progression = cur_ctasks_seconds / time_per_ctask;
+            if (ctask_progression > 1.0)
+                ctask_progression = 1.0;
             percent_progression += percent_per_ctask * ctask_progression;
         }
     }
