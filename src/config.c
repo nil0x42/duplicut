@@ -63,19 +63,20 @@ static long     get_prev_prime(long n)
  */
 static void     config_hmap_size(struct file *file, struct memstate *memstate)
 {
-    long        max_size;
-    long        hmap_size;
+    double      max_size;
+    double      hmap_size;
 
-    hmap_size = file->info.st_size / MEDIUM_LINE_BYTES;
-    if (hmap_size < 10000)
-        hmap_size = 10000;
+    hmap_size = (double)file->info.st_size;
+    hmap_size /= HMAP_LOAD_FACTOR * MEDIUM_LINE_BYTES;
+    if (hmap_size < 10000.0)
+        hmap_size = 10000.0;
 
     max_size = memstate->mem_available * HMAP_MAX_SIZE;
     max_size /= sizeof(t_line);
     if (hmap_size > max_size)
         hmap_size = max_size;
 
-    g_conf.hmap_size = (size_t) get_prev_prime(hmap_size);
+    g_conf.hmap_size = (size_t) get_prev_prime((long)hmap_size);
 }
 
 
@@ -89,7 +90,8 @@ static void     config_chunk_size(struct file *file)
     double      chunk_size;
 
     file_size = (double) file->info.st_size;
-    chunk_size = (double) g_conf.hmap_size * MEDIUM_LINE_BYTES;
+    chunk_size = (double) g_conf.hmap_size;
+    chunk_size *= HMAP_LOAD_FACTOR * MEDIUM_LINE_BYTES;
     portions = round(file_size / chunk_size);
     if (portions < 1.0)
         portions = 1.0;
