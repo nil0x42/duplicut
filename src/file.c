@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdbool.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/types.h>
@@ -102,31 +103,24 @@ static void create_tmpfile(void)
 
 
 /** Copy file from src_fd to dst_fd
- * If f_size is defined, update percent progression
- * for status display.
  */
-static void copy_file(int dst_fd, int src_fd, ssize_t f_size)
+static void copy_file(int dst_fd, int src_fd, bool send_status)
 {
     char        buffer[BUF_SIZE];
     ssize_t     nread;
-    ssize_t     total_read;
-    size_t      i;
+    size_t      read_bytes;
 
 #if _POSIX_C_SOURCE >= 200112L
     posix_fadvise(src_fd, 0, 0, POSIX_FADV_SEQUENTIAL);
 #endif
-    i = 0;
-    total_read = 0;
+    read_bytes = 0;
     while ((nread = read(src_fd, buffer, BUF_SIZE)) > 0)
     {
         char    *dst_ptr = buffer;
         ssize_t nwrite;
 
-        i++;
-        total_read += nread;
-        if (f_size > 0 && i % 100 == 0) {
-            update_status_fcopy((double)((double)total_read / (double)f_size));
-        }
+        read_bytes += (size_t)nread;
+
         do
         {
             if ((nwrite = write(dst_fd, dst_ptr, (size_t) nread)) >= 0)
@@ -139,6 +133,11 @@ static void copy_file(int dst_fd, int src_fd, ssize_t f_size)
                 error("copy_file() -> write(): %s", ERRNO);
             }
         } while (nread > 0);
+
+        if (send_status && read_bytes >= BUF_SIZE * 0x100) {
+            set_status(FCOPY_BYTES, read_bytes);
+            read_bytes = 0;
+        }
     }
     if (nread != 0)
         error("copy_file() -> read(): %s", ERRNO);
@@ -173,7 +172,8 @@ void        init_file(const char *infile_name, const char *outfile_name)
         file = &g_tmpfile;
     }
 
-    copy_file(file->fd, g_infile.fd, (ssize_t)g_infile.info.st_size);
+    set_status(FILE_SIZE, g_infile.info.st_size);
+    copy_file(file->fd, g_infile.fd, 1);
     close_file(&g_infile);
 
     if (fstat(file->fd, &(file->info)) < 0)
