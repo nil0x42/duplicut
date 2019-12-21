@@ -184,10 +184,11 @@ void            display_status(void)
     {
         percent_progression = 95.0;
 
-
         double percent_per_second = 5.0 / (double) FCOPY_DURATION();
         time_t elapsed_fclean = current_time - g_status.fclean_date;
         percent_progression += percent_per_second * (double)elapsed_fclean;
+        if (percent_progression > 99.99)
+            percent_progression = 99.99;
     }
 
     repr_elapsed_time(elapsed_time_str, elapsed_time);
