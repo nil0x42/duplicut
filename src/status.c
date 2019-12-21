@@ -27,7 +27,6 @@
 struct                  status
 {
     time_t              fcopy_date;
-    double              fcopy_portion;
     time_t              ctasks_date;
     time_t              last_ctask_date;
     time_t              fclean_date;
@@ -35,11 +34,14 @@ struct                  status
     int                 done_chunks;
     int                 total_ctasks;
     int                 done_ctasks;
+    size_t              file_size;
+    size_t              fcopy_bytes;
+    size_t              chunk_size;
+    size_t              cleanout_bytes;
 };
 
 static struct status    g_status = {
     .fcopy_date = 0,
-    .fcopy_portion = 0.0,
     .ctasks_date = 0,
     .last_ctask_date = 0,
     .fclean_date = 0,
@@ -47,6 +49,10 @@ static struct status    g_status = {
     .done_chunks = 0,
     .total_ctasks = 0,
     .done_ctasks = 0,
+    .file_size = 0,
+    .fcopy_bytes = 0,
+    .chunk_size = 0,
+    .cleanout_bytes = 0,
 };
 
 pthread_mutex_t         g_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -54,7 +60,7 @@ pthread_mutex_t         g_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /** Update program status
  */
-void                update_status(enum e_status_action action)
+void                update_status(enum e_status_update action)
 {
     switch (action) {
         case FCOPY_START:
@@ -87,10 +93,19 @@ void                update_status(enum e_status_action action)
     }
 }
 
-void                update_status_fcopy(double portion_read)
+void                set_status(enum e_status_set var, size_t val)
 {
-    DLOG("update_status_fcopy() called");
-    g_status.fcopy_portion = portion_read;
+
+    switch (var) {
+        case FILE_SIZE:
+            DLOG("set_status(FILE_SIZE) called");
+            g_status.file_size = val;
+            break ;
+        case FCOPY_BYTES:
+            DLOG("set_status(FCOPY_BYTES) called");
+            g_status.fcopy_bytes += val;
+            break ;
+    }
 }
 
 
@@ -156,9 +171,15 @@ void            display_status(void)
     current_time = time(NULL);
     elapsed_time = current_time - START_TIME();
 
-    if (!FCOPY_TERMINATED())
+    percent_progression = 0.0;
+    if (g_status.fcopy_bytes > 0)
     {
-        percent_progression = g_status.fcopy_portion * 5.0;
+        double fcopy_part;
+        fcopy_part = (double)g_status.fcopy_bytes / (double)g_status.file_size;
+        percent_progression = fcopy_part * 5.0;
+        if (elapsed_time > 0) {
+            arrival_time = elapsed_time * (time_t)(100.0 / percent_progression);
+        }
     }
     else if (!TAGDUP_TERMINATED())
     {
