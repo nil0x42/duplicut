@@ -14,8 +14,7 @@ static struct termios   g_old_tio, g_new_tio;
 
 
 /** thread worker
- * print progression status with print_status() each
- * time user presses keyboard.
+ * print progression status with print_status() on keypress
  */
 static void *watch_user_input_worker(void *arg)
 {
@@ -36,15 +35,13 @@ static void *watch_user_input_worker(void *arg)
 }
 
 
-/** called by atexit() to restore original termios
- */
 static void restore_termios(void)
 {
     tcsetattr(STDIN_FILENO, TCSANOW, &g_old_tio);
 }
 
 
-/** disable line buffering and echo in current terminal
+/** disable terminal's line buffering & echo
  */
 static void config_termios(void)
 {
@@ -61,8 +58,6 @@ static void config_termios(void)
 }
 
 
-/** watch user keyboard input
- */
 void        watch_user_input(void)
 {
     pthread_t       tid;
