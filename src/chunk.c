@@ -8,6 +8,7 @@
 #include "hash.h"
 #include "const.h"
 #include "config.h"
+#include "status.h"
 
 
 int         count_chunks(void)
@@ -87,4 +88,5 @@ void        cleanout_chunk(t_chunk *chunk)
         }
     }
     free(chunk);
+    update_status(CTASK_DONE);
 }

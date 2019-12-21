@@ -33,6 +33,7 @@ static void     tag_subchunks(threadpool thpool, const t_chunk *parent)
             exit(1);
         chunk_id ++;
     }
+    update_status(CHUNK_DONE);
 }
 
 /** For each chunk, load it into hmap and remove all duplicates
@@ -53,6 +54,7 @@ void            tag_duplicates(void)
     while (get_next_chunk(&main_chunk, g_file))
     {
         populate_hmap(&main_chunk);
+        update_status(CTASK_DONE);
         tag_subchunks(thpool, &main_chunk);
         thpool_wait(thpool);
     }
@@ -79,8 +81,8 @@ static void     tag_subchunks(const t_chunk *parent)
         memcpy(heap_chunk, &chunk, sizeof(t_chunk));
 
         cleanout_chunk(heap_chunk);
-        update_status(CTASK_DONE);
     }
+    update_status(CHUNK_DONE);
 }
 
 /** For each chunk, load it into hmap and remove all duplicates
@@ -99,7 +101,6 @@ void            tag_duplicates(void)
         update_status(CTASK_DONE);
 
         tag_subchunks(&main_chunk);
-        update_status(CHUNK_DONE);
     }
 }
 
