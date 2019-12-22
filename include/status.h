@@ -7,16 +7,17 @@ enum    e_status_update
     TAGDUP_START,   /* start processing duplicate removal [2/3] */
     CHUNK_DONE,     /* a chunk is terminated */
     CTASK_DONE,     /* a ctask is terminated */
-    FCLEAN_START,   /* start processing fclean (outfile cleanout) [3/3] */
+    FCLEAN_START,   /* start processing fclean (outfile cleanup) [3/3] */
 };
 
 /* update status variables */
 enum    e_status_set
 {
     FILE_SIZE,      /* total file size (g_infile) */
-    FCOPY_BYTES,    /* currently copied bytes */
+    FCOPY_BYTES,    /* bytes currently processed by FCOPY */
     CHUNK_SIZE,     /* chunk size */
-    CLEANOUT_BYTES, /* bytes processed by cleanout_chunk() */
+    TAGDUP_BYTES,   /* bytes currently processed by TAGDUP */
+    FCLEAN_BYTES,   /* bytes currently processed by FCLEAN */
 };
 
 /* source file: status.c */
