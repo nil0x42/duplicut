@@ -2,6 +2,7 @@
 #include "hmap.h"
 #include "hash.h"
 #include "const.h"
+#include "status.h"
 #include "error.h"
 #include "debug.h"
 
@@ -43,9 +44,14 @@ void        destroy_hmap(void)
 void        populate_hmap(t_chunk *chunk)
 {
     DLOG("populate_hmap()");
-    t_line      line;
-    long        slot;
-    size_t      has_slots;
+    t_line  line;
+    long    slot;
+    size_t  has_slots;
+    char    *base_ptr;
+    int     i;
+
+    i = 0;
+    base_ptr = chunk->ptr;
 
 #ifdef DEBUG
     int         last_percent_filled = 0;
@@ -86,7 +92,14 @@ void        populate_hmap(t_chunk *chunk)
         }
         if (!has_slots)
             error("populate_hmap(): no space left on hashmap.");
+        i++;
+        if (i == 500000) {
+            set_status(TAGDUP_BYTES, (size_t)(chunk->ptr - base_ptr));
+            base_ptr = chunk->ptr;
+            i = 0;
+        }
     }
+    set_status(TAGDUP_BYTES, (size_t)(chunk->ptr - base_ptr));
 #ifdef DEBUG
     DLOG("populate_hmap(): used %ld/%ld slots (%.2f%%)",
             filled, g_hmap.size, (double)filled / (double)g_hmap.size * 100.0);

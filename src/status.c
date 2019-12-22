@@ -37,7 +37,8 @@ struct                  status
     size_t              file_size;
     size_t              fcopy_bytes;
     size_t              chunk_size;
-    size_t              cleanout_bytes;
+    size_t              tagdup_bytes;
+    size_t              fclean_bytes;
 };
 
 static struct status    g_status = {
@@ -52,7 +53,8 @@ static struct status    g_status = {
     .file_size = 0,
     .fcopy_bytes = 0,
     .chunk_size = 0,
-    .cleanout_bytes = 0,
+    .tagdup_bytes = 0,
+    .fclean_bytes = 0,
 };
 
 pthread_mutex_t         g_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -98,12 +100,26 @@ void                set_status(enum e_status_set var, size_t val)
 
     switch (var) {
         case FILE_SIZE:
-            DLOG("set_status(FILE_SIZE) called");
+            DLOG("set_status(FILE_SIZE, %lu) called", val);
             g_status.file_size = val;
             break ;
         case FCOPY_BYTES:
-            DLOG("set_status(FCOPY_BYTES) called");
+            DLOG("set_status(FCOPY_BYTES, %lu) called", val);
             g_status.fcopy_bytes += val;
+            break ;
+        case CHUNK_SIZE:
+            DLOG("set_status(CHUNK_SIZE, %lu) called", val);
+            g_status.chunk_size = val;
+            break ;
+        case TAGDUP_BYTES:
+            DLOG("set_status(TAGDUP_BYTES, %lu) called", val);
+            pthread_mutex_lock(&g_mutex);
+            g_status.tagdup_bytes += val;
+            pthread_mutex_unlock(&g_mutex);
+            break ;
+        case FCLEAN_BYTES:
+            DLOG("set_status(FCLEAN_BYTES, %lu) called", val);
+            g_status.fclean_bytes += val;
             break ;
     }
 }
@@ -159,65 +175,77 @@ void            display_status(void)
     char        elapsed_time_str[BUF_SIZE] = {0};
     char        arrival_time_str[BUF_SIZE] = {0};
     char        current_task_str[BUF_SIZE] = {0};
-    double      percent_progression = 0.0;
 
     time_t      current_time = 0;
     time_t      elapsed_time = 0;
     time_t      arrival_time = 0;
 
-    if (!FCOPY_STARTED())
-        return ;
+    double      progress = 0.0; /* 1.0 == 100% */
+    double      remain_time = 0.0;
+
 
     current_time = time(NULL);
     elapsed_time = current_time - START_TIME();
 
-    percent_progression = 0.0;
-    if (g_status.fcopy_bytes > 0)
-    {
-        double fcopy_part;
-        fcopy_part = (double)g_status.fcopy_bytes / (double)g_status.file_size;
-        percent_progression = fcopy_part * 5.0;
-        if (elapsed_time > 0) {
-            arrival_time = elapsed_time * (time_t)(100.0 / percent_progression);
+    /* we need at least 1 sec execution to show status */
+    if (elapsed_time == 0)
+        return ;
+
+    /* FCLEAN [3/3] --> 94% to 100% */
+    if (g_status.fclean_bytes) {
+        double fclean_part =
+            (double)g_status.fclean_bytes / (double)g_status.file_size;
+        progress = 0.94 + (fclean_part * 0.06);
+        if (progress > 0.9999)
+            progress = 0.9999;
+
+        double fclean_elapsed_time = elapsed_time;
+        fclean_elapsed_time -= FCOPY_DURATION() + TAGDUP_DURATION();
+        if (fclean_elapsed_time >= 1) {
+            remain_time = fclean_elapsed_time / fclean_part;
+            remain_time -= fclean_elapsed_time;
+            arrival_time = current_time + remain_time;
         }
     }
-    else if (!TAGDUP_TERMINATED())
-    {
-        percent_progression = 5.0;
-        double tagdup_elapsed_time = elapsed_time - FCOPY_DURATION();
-        if (g_status.done_ctasks > 0 && tagdup_elapsed_time > 0.9)
-        {
-            double time_per_ctask = tagdup_elapsed_time / g_status.done_ctasks;
-            time_t remaining_time = time_per_ctask * MISSING_CTASKS();
-            /* adding FCOPY_DURATION because it's ~= FCLEAN_DURATION */
-            arrival_time = current_time + remaining_time + FCOPY_DURATION();
+    /* TAGDUP [2/3] --> 4% to 94% */
+    else if (g_status.tagdup_bytes) {
+        double total_bytes = g_status.total_ctasks * g_status.chunk_size;
+        double tagdup_part = (double)g_status.tagdup_bytes / total_bytes;
+        progress = 0.04 + (tagdup_part * 0.90);
 
-            double percent_per_ctask = 90.0 / g_status.total_ctasks;
-            percent_progression += percent_per_ctask * g_status.done_ctasks;
-            double cur_ctasks_seconds = current_time - g_status.last_ctask_date;
-            double ctask_progression = cur_ctasks_seconds / time_per_ctask;
-            if (ctask_progression > 1.0)
-                ctask_progression = 1.0;
-            percent_progression += percent_per_ctask * ctask_progression;
+        double tagdup_elapsed_time = elapsed_time;
+        tagdup_elapsed_time -= FCOPY_DURATION();
+        if (tagdup_elapsed_time >= 1) {
+            remain_time = tagdup_elapsed_time / tagdup_part;
+            remain_time -= tagdup_elapsed_time;
+            arrival_time = current_time + remain_time;
+            /* add estimation of FCLEAN duration: */
+            arrival_time += (FCOPY_DURATION() * 6) / 4;
         }
     }
-    else
-    {
-        percent_progression = 95.0;
-
-        double percent_per_second = 5.0 / (double) FCOPY_DURATION();
-        time_t elapsed_fclean = current_time - g_status.fclean_date;
-        percent_progression += percent_per_second * (double)elapsed_fclean;
-        if (percent_progression > 99.99)
-            percent_progression = 99.99;
+    /* FCOPY [1/3] --> 0% to 4% */
+    else if (g_status.fcopy_bytes) {
+        progress = (double)g_status.fcopy_bytes / (double)g_status.file_size;
+        progress *= 0.04;
     }
+    else {
+        return;
+    }
+
+    /* fallback method to display ETA */
+    if (progress > 0 && arrival_time == 0) {
+        remain_time = (double)elapsed_time / progress;
+        remain_time -= elapsed_time;
+        arrival_time = current_time + remain_time;
+    }
+
 
     repr_elapsed_time(elapsed_time_str, elapsed_time);
     repr_arrival_time(arrival_time_str, arrival_time);
     repr_current_task(current_task_str);
-    fprintf(stderr, "time: %s %.2f%% (ETA: %s)  %s ...\n",
+    fprintf(stderr, "time: %s %5.2f%% (ETA: %s)  %s ...\n",
             elapsed_time_str,
-            percent_progression,
+            progress * 100.0,
             arrival_time_str,
             current_task_str);
 }

@@ -9,6 +9,7 @@
 #include "const.h"
 #include "config.h"
 #include "status.h"
+#include "debug.h"
 
 
 int         count_chunks(void)
@@ -70,9 +71,13 @@ bool        get_next_chunk(t_chunk *chunk, struct file *file)
  */
 void        cleanout_chunk(t_chunk *chunk)
 {
-    t_line      line;
-    long        slot;
+    t_line  line;
+    long    slot;
+    char    *base_ptr;
+    int     i;
 
+    i = 0;
+    base_ptr = chunk->ptr;
     while (get_next_line(&line, chunk))
     {
         slot = hash(&line) % g_hmap.size;
@@ -86,7 +91,14 @@ void        cleanout_chunk(t_chunk *chunk)
             /* archaic open addressing collision resolver */
             slot = (slot + 1) % g_hmap.size;
         }
+        i++;
+        if (i == 500000) {
+            set_status(TAGDUP_BYTES, (size_t)(chunk->ptr - base_ptr));
+            base_ptr = chunk->ptr;
+            i = 0;
+        }
     }
+    set_status(TAGDUP_BYTES, (size_t)(chunk->ptr - base_ptr));
     free(chunk);
     update_status(CTASK_DONE);
 }
