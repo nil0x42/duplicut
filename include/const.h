@@ -17,7 +17,7 @@
 #define DISABLED_LINE           '\0'
 
 /* enable/disable multithreading feature */
-#define MULTITHREADING          (0)
+#define MULTITHREADING          (1)
 
 /* minimum needed memory (change it with care... can throw bugs if too low */
 #define MIN_MEMORY              (65536)
