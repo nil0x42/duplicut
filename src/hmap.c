@@ -64,7 +64,7 @@ void        populate_hmap(t_chunk *chunk)
     while (get_next_line(&line, chunk))
     {
         slot = hash(&line) % g_hmap.size;
-        has_slots = (g_hmap.size * 10) / 8;
+        has_slots = (g_hmap.size * 7) / 10;
         while (has_slots--)
         {
             if (!LINE_ISSET(g_hmap.ptr[slot]))
