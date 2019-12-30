@@ -6,12 +6,10 @@
  */
 static inline void      murmur3(t_line *line, long *out)
 {
-    uint32_t            buf128[4];
-    unsigned long long  h;
+    uint64_t    buf128[2];
 
     MurmurHash3_x64_128(LINE_ADDR(*line), LINE_SIZE(*line), SEED, buf128);
-    h = *((unsigned long long*)buf128);
-    *out = (long)(h % g_conf.hmap_size);
+    *out = (long)(*buf128 % g_conf.hmap_size);
 }
 
 
