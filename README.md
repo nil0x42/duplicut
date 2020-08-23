@@ -1,11 +1,10 @@
 ### Duplicut ###
 
-The `duplicut` tool finds and **removes duplicate** entries from
-a wordlist, **without changing the order**, and **without getting
-OOM** on huge wordlists whose size exceeds available memory.
+Find & **remove duplicate** entries from a wordlist, **without changing the order** and **without getting
+OOM** even on huge wordlists
 
 [![Build Status](https://secure.travis-ci.org/nil0x42/duplicut.png?branch=master)](http://travis-ci.org/nil0x42/duplicut)
-
+[![twitter follow](https://img.shields.io/twitter/follow/nil0x42?label=Follow%20nil0x42%20%21&style=social)](https://twitter.com/intent/follow?screen_name=nil0x42)
 
 #### Quick start:
 ```sh
@@ -39,7 +38,7 @@ For example, duplicut hashmap saves up to 50% space by packing
 
 
 If the whole file doesn't fit in memory, file is split into 
-![][latex-n] chunks, and each one is tested against following chunks.
+![][latex-n] chunks, and each one is tested against next chunks.
 
 So complexity is equal to ![][latex-n]th *triangle number*:
 ![][img-3-chunked-processing]
