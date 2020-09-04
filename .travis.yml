@@ -21,3 +21,8 @@ env:
 
 script:
     - ./test/run.sh
+  
+# only trigger build for pushes on master branch
+branches:
+  only:
+    - master
