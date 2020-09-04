@@ -15,7 +15,7 @@ set -ve
 CC="$CC"
 FLAGS="$FLAGS"
 
-make fclean
+make distclean
+make debug
+make distclean
 make
-make fclean
-make release

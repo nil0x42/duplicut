@@ -66,30 +66,30 @@ void                update_status(enum e_status_update action)
 {
     switch (action) {
         case FCOPY_START:
-            DLOG("update_status(FCOPY_START) called");
+            DLOG1("CALL update_status(FCOPY_START)");
             g_status.fcopy_date = time(NULL);
             break ;
         case TAGDUP_START:
-            DLOG("update_status(TAGDUP_START) called");
+            DLOG1("CALL update_status(TAGDUP_START)");
             g_status.ctasks_date = time(NULL);
             g_status.total_chunks = count_chunks();
             g_status.total_ctasks = TRIANGULAR(g_status.total_chunks);
             break ;
         case CHUNK_DONE:
-            DLOG("update_status(CHUNK_DONE) called");
+            DLOG1("CALL update_status(CHUNK_DONE)");
             pthread_mutex_lock(&g_mutex);
             ++g_status.done_chunks;
             pthread_mutex_unlock(&g_mutex);
             break ;
         case CTASK_DONE:
-            DLOG("update_status(CTASK_DONE) called");
+            DLOG1("CALL update_status(CTASK_DONE)");
             pthread_mutex_lock(&g_mutex);
             ++g_status.done_ctasks;
             g_status.last_ctask_date = time(NULL);
             pthread_mutex_unlock(&g_mutex);
             break ;
         case FCLEAN_START:
-            DLOG("update_status(FCLEAN_START) called");
+            DLOG1("CALL update_status(FCLEAN_START)");
             g_status.fclean_date = time(NULL);
             break ;
     }
@@ -100,25 +100,25 @@ void                set_status(enum e_status_set var, size_t val)
 
     switch (var) {
         case FILE_SIZE:
-            DLOG("set_status(FILE_SIZE, %lu) called", val);
+            DLOG1("CALL set_status(FILE_SIZE, %lu)", val);
             g_status.file_size = val;
             break ;
         case FCOPY_BYTES:
-            DLOG("set_status(FCOPY_BYTES, %lu) called", val);
+            DLOG2("CALL set_status(FCOPY_BYTES, %lu)", val);
             g_status.fcopy_bytes += val;
             break ;
         case CHUNK_SIZE:
-            DLOG("set_status(CHUNK_SIZE, %lu) called", val);
+            DLOG1("CALL set_status(CHUNK_SIZE, %lu)", val);
             g_status.chunk_size = val;
             break ;
         case TAGDUP_BYTES:
-            DLOG("set_status(TAGDUP_BYTES, %lu) called", val);
+            DLOG2("CALL set_status(TAGDUP_BYTES, %lu)", val);
             pthread_mutex_lock(&g_mutex);
             g_status.tagdup_bytes += val;
             pthread_mutex_unlock(&g_mutex);
             break ;
         case FCLEAN_BYTES:
-            DLOG("set_status(FCLEAN_BYTES, %lu) called", val);
+            DLOG2("CALL set_status(FCLEAN_BYTES, %lu)", val);
             g_status.fclean_bytes += val;
             break ;
     }

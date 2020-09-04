@@ -211,12 +211,12 @@ void        optparse(int argc, char **argv)
     /* STDIN can be used as infile (priority to --infile arg if exists) */
     if (optind == argc - 1)
     {
-        DLOG("using %s as input file", argv[argc - 1]);
+        DLOG1("using %s as input file", argv[argc - 1]);
         setopt_infile(argv[argc - 1]);
     }
     else if (optind == argc && !isatty(STDIN_FILENO))
     {
-        DLOG("using STDIN as input file");
+        DLOG1("using STDIN as input file");
         setopt_infile("/dev/stdin");
     }
     else

@@ -115,16 +115,16 @@ void            config(void)
     config_hmap_size(g_file, &memstate);
     config_chunk_size(g_file);
 
-    DLOG("");
-    DLOG("---------- g_conf ------------");
-    DLOG("g_conf.infile_name:       %s", g_conf.infile_name);
-    DLOG("g_conf.outfile_name:      %s", g_conf.outfile_name);
-    DLOG("g_conf.threads:           %u", g_conf.threads);
-    DLOG("g_conf.line_max_size:     %u", g_conf.line_max_size);
-    DLOG("g_conf.hmap_size:         %ld", g_conf.hmap_size);
-    DLOG("g_conf.chunk_size:        %ld", g_conf.chunk_size);
-    DLOG("g_conf.filter_printable:  %d", g_conf.filter_printable);
-    DLOG("g_conf.memlimit:          %ld", g_conf.memlimit);
-    DLOG("------------------------------");
-    DLOG("");
+    DLOG1("");
+    DLOG1("---------- g_conf ------------");
+    DLOG1("g_conf.infile_name:       %s", g_conf.infile_name);
+    DLOG1("g_conf.outfile_name:      %s", g_conf.outfile_name);
+    DLOG1("g_conf.threads:           %u", g_conf.threads);
+    DLOG1("g_conf.line_max_size:     %u", g_conf.line_max_size);
+    DLOG1("g_conf.hmap_size:         %ld", g_conf.hmap_size);
+    DLOG1("g_conf.chunk_size:        %ld", g_conf.chunk_size);
+    DLOG1("g_conf.filter_printable:  %d", g_conf.filter_printable);
+    DLOG1("g_conf.memlimit:          %ld", g_conf.memlimit);
+    DLOG1("------------------------------");
+    DLOG1("");
 }
