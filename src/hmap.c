@@ -9,7 +9,7 @@
 
 void        init_hmap(size_t size)
 {
-    DLOG("init_hmap()");
+    DLOG2("CALL init_hmap()");
     t_line  *area;
 
     if (g_hmap.ptr != NULL)
@@ -28,6 +28,7 @@ void        init_hmap(size_t size)
 
 void        destroy_hmap(void)
 {
+    DLOG2("CALL destroy_hmap()");
     if (g_hmap.ptr != NULL)
     {
         free(g_hmap.ptr);
@@ -43,7 +44,7 @@ void        destroy_hmap(void)
  */
 void        populate_hmap(t_chunk *chunk)
 {
-    DLOG("populate_hmap()");
+    DLOG2("CALL populate_hmap()");
     t_line  line;
     long    slot;
     size_t  has_slots;
@@ -53,10 +54,12 @@ void        populate_hmap(t_chunk *chunk)
     i = 0;
     base_ptr = chunk->ptr;
 
-#ifdef DEBUG
+#if DEBUG >= 2
+    size_t      filled = 0;
+#endif
+#if DEBUG >= 3
     int         last_percent_filled = 0;
     int         tmp = 0;
-    size_t      filled = 0;
 #endif
 
     memset(g_hmap.ptr, 0, g_hmap.size * sizeof(t_line));
@@ -71,14 +74,16 @@ void        populate_hmap(t_chunk *chunk)
             {
                 /* use first free slot */
                 g_hmap.ptr[slot] = line;
-#ifdef DEBUG
+#if DEBUG >= 2
                 filled++;
-                /* tmp = (int)((double)filled / (double)g_hmap.size * 100.0); */
-                /* if (tmp > last_percent_filled) { */
-                /*     last_percent_filled = tmp; */
-                /*     DLOG("populate_hmap(): used %ld/%ld slots (%d%%) ...", */
-                /*             filled, g_hmap.size, tmp); */
-                /* } */
+#endif
+#if DEBUG >= 3
+                tmp = (int)((double)filled / (double)g_hmap.size * 100.0);
+                if (tmp > last_percent_filled) {
+                    last_percent_filled = tmp;
+                    DLOG3("populate_hmap(): used %ld/%ld slots (%d%%) ...",
+                            filled, g_hmap.size, tmp);
+                }
 #endif
                 break;
             }
@@ -100,8 +105,8 @@ void        populate_hmap(t_chunk *chunk)
         }
     }
     set_status(TAGDUP_BYTES, (size_t)(chunk->ptr - base_ptr));
-#ifdef DEBUG
-    DLOG("populate_hmap(): used %ld/%ld slots (%.2f%%)",
+#if DEBUG >= 2
+    DLOG2("populate_hmap(): used %ld/%ld slots (%.2f%%)",
             filled, g_hmap.size, (double)filled / (double)g_hmap.size * 100.0);
 #endif
 }

@@ -9,7 +9,8 @@ OOM** on huge wordlists whose size exceeds available memory.
 
 #### Quick start:
 ```sh
-make release
+git clone https://github.com/nil0x42/duplicut
+cd duplicut/ && make
 ./duplicut <WORDLIST_WITH_DUPLICATES> -o <NEW_CLEAN_WORDLIST>
 ```
 
@@ -78,11 +79,23 @@ Example: duplicut wordlist.txt -o new-wordlist.txt
     - Any line longer than 255 chars is ignored.
     - Heavily tested on Linux x64, mostly untested on other platforms.
 
+---------------------------------------------------------------------
+#### Throubleshotting ####
+
+If you find some bug, or something doesn't work as expected,
+compile duplicut in debug mode and post an [issue] with debug output.
+```
+# debug level can be 1 to 4
+make debug level=1
+./duplicut [OPTIONS] 2>&1 | tee /tmp/duplicut-debug/log
+```
+
 
 [img-1-comparison]: data/img/1-comparison.png
 [img-2-line-struct]: data/img/2-line-struct.png
 [img-3-chunked-processing]: data/img/3-chunked-processing.png
 
+[issue]: https://github.com/nil0x42/duplicut/issues
 [tagged-pointer]: https://en.wikipedia.org/wiki/Tagged_pointer
 
 [latex-n]: http://www.sciweavers.org/tex2img.php?fs=15&eq=n

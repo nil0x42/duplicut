@@ -189,14 +189,14 @@ void        init_file(const char *infile_name, const char *outfile_name)
     file->orig_size = file->info.st_size;
     g_file = file;
 
-    DLOG("");
-    DLOG("---------- g_file ------------");
-    DLOG("g_file->fd:           %d", g_file->fd);
-    DLOG("g_file->name:         %s", g_file->name);
-    DLOG("g_file->addr:         %p", g_file->addr);
-    DLOG("g_file->info.st_size: %ld", g_file->info.st_size);
-    DLOG("------------------------------");
-    DLOG("");
+    DLOG1("");
+    DLOG1("---------- g_file ------------");
+    DLOG1("g_file->fd:           %d", g_file->fd);
+    DLOG1("g_file->name:         %s", g_file->name);
+    DLOG1("g_file->addr:         %p", g_file->addr);
+    DLOG1("g_file->info.st_size: %ld", g_file->info.st_size);
+    DLOG1("------------------------------");
+    DLOG1("");
 }
 
 

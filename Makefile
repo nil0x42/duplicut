@@ -1,15 +1,16 @@
 TARGET       = duplicut
-
 SHELL        = /bin/sh
+
+# debug level
+level        = 1
  
 CFLAGS       = -Iinclude -Wall -Wextra \
 			   -Wdisabled-optimization -Winline \
 			   -Wdouble-promotion -Wunknown-pragmas \
-			   -Wno-unknown-warning-option \
 			   -mtune=native -ffast-math
 LDFLAGS      = -lm -pthread
 RELEASEFLAGS = -O2 -D NDEBUG
-DEBUGFLAGS   = -O0 -D DEBUG -std=gnu99 -g3
+DEBUGFLAGS   = -O0 -D DEBUG=$(level) -std=gnu99 -g3
  
 SOURCES      = main.c thpool.c file.c chunk.c line.c tag_duplicates.c \
 			   optparse.c config.c error.c memstate.c meminfo.c bytesize.c \
@@ -24,19 +25,21 @@ BINDIR       = $(PREFIX)/bin
  
  
 all: $(TARGET)
+release: $(TARGET)
+re: $(TARGET)
  
-$(TARGET): CFLAGS += $(DEBUGFLAGS)
-$(TARGET): $(OBJECTS) $(COMMON)
+debug: CFLAGS += $(DEBUGFLAGS)
+debug: distclean $(OBJECTS) $(COMMON)
 	-ctags -R .
 	$(CC) $(FLAGS) $(CFLAGS) $(DEBUGFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
 
-release: CFLAGS += $(RELEASEFLAGS)
-release: fclean $(OBJECTS) $(COMMON)
+$(TARGET): CFLAGS += $(RELEASEFLAGS)
+$(TARGET): distclean $(OBJECTS) $(COMMON)
 	$(CC) $(FLAGS) $(CFLAGS) $(RELEASEFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
 	strip -s $(TARGET)
 
 profile: CFLAGS += -pg
-profile: fclean $(TARGET)
+profile: distclean $(TARGET)
 
 objects/%.o: src/%.c
 	mkdir -p `dirname $@`
@@ -45,9 +48,6 @@ objects/%.o: src/%.c
 install: release
 	install -D $(TARGET) $(BINDIR)/$(TARGET)
  
-install-strip: release
-	install -D -s $(TARGET) $(BINDIR)/$(TARGET)
-
 uninstall:
 	rm $(BINDIR)/$(TARGET)
 
@@ -62,11 +62,6 @@ clean:
 distclean: clean
 	-rm -f $(TARGET)
 
-fclean: distclean
-
-re: fclean all
  
-.PHONY: all release profile \
-        clean distclean \
-        install install-strip uninstall \
-        test
+.PHONY: all release profile clean distclean \
+        install uninstall test

@@ -2,9 +2,9 @@
 # define DEBUG_H
 
 /*
- * DLOG("debug message")
+ * Define DLOG macros
  */
-# ifdef DEBUG
+# if DEBUG >= 1
 #  include <unistd.h>
 #  include <stdio.h>
 #  include <stdarg.h>
@@ -13,7 +13,7 @@
 static void _dlog(int level, const char *file, int line, const char *fmt, ...)
 {
     char        out[1024] = {0};
-    int         i;
+    int         i = 0;
 
     time_t      now;
     struct tm*  tm_info;
@@ -44,10 +44,30 @@ static void _dlog(int level, const char *file, int line, const char *fmt, ...)
 
     write(STDERR_FILENO, out, i);
 }
+# endif
 
-#  define DLOG(...) (_dlog(1, __FILE__, __LINE__, __VA_ARGS__))
+# if DEBUG >= 1
+#  define DLOG1(...) (_dlog(1, __FILE__, __LINE__, __VA_ARGS__))
 # else
-#  define DLOG(...)
+# define DLOG1(...)
+# endif
+
+# if DEBUG >= 2
+#  define DLOG2(...) (_dlog(2, __FILE__, __LINE__, __VA_ARGS__))
+# else
+# define DLOG2(...)
+# endif
+
+# if DEBUG >= 3
+#  define DLOG3(...) (_dlog(3, __FILE__, __LINE__, __VA_ARGS__))
+# else
+# define DLOG3(...)
+# endif
+
+# if DEBUG >= 4
+#  define DLOG4(...) (_dlog(4, __FILE__, __LINE__, __VA_ARGS__))
+# else
+# define DLOG4(...)
 # endif
 
 #endif

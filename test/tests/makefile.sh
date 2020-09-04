@@ -10,16 +10,9 @@ set -ve
 #### ensure invalid rule make makefile fail
 ! make foobar
 
-
-#### run make multiple times, check for `nothing to do`
-make
-make all
-make all | grep -iq "nothing"
-
-
 #### make re
 #### make with debug infos
-make re
+make debug
 test -d objects/
 which ctags 2>/dev/null && test -f tags
 test -f duplicut -a -x duplicut
@@ -39,9 +32,9 @@ test -f duplicut -a -x duplicut
 ! test -e gmon.out
 
 
-#### make fclean:
+#### make distclean:
 #### restore state before compilation
-make fclean
+make distclean
 ! test -e duplicut
 ! test -e objects
 ! test -e tags
@@ -50,7 +43,7 @@ make fclean
 
 #### make profile:
 #### profiling infos for gprof)
-make fclean
+make distclean
 make profile
 ! test -e gmon.out
 ./duplicut &> /dev/null
