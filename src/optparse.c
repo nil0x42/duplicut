@@ -127,7 +127,7 @@ static void setopt_help(const char *value)
 {
     (void)value;
     printf("Usage: %s [OPTION]... [INFILE] -o [OUTFILE]\n"
-           "Remove duplicate lines from INFILE without sorting.\n"
+           "Remove duplicate lines from INFILE without changing order.\n"
            "\n"
            "Options:\n"
            "-o, --outfile <FILE>       Write result to <FILE>\n"
