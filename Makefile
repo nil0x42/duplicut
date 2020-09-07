@@ -7,7 +7,8 @@ level        = 1
 CFLAGS       = -Iinclude -Wall -Wextra \
 			   -Wdisabled-optimization -Winline \
 			   -Wdouble-promotion -Wunknown-pragmas \
-			   -mtune=native -ffast-math
+			   -mtune=native -ffast-math \
+			   -Wno-implicit-fallthrough
 LDFLAGS      = -lm -pthread
 RELEASEFLAGS = -O2 -D NDEBUG
 DEBUGFLAGS   = -O0 -D DEBUG=$(level) -std=gnu99 -g3
