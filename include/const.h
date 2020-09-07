@@ -1,7 +1,7 @@
 #pragma once
 
 #define PROGNAME                "duplicut"
-#define PROJECT_VERSION         "1.0"
+#define PROJECT_VERSION         "2.0"
 #define PROJECT_URL             "http://github.com/nil0x42/duplicut"
 
 /* portion of available memory to allow to hashmap */
@@ -19,8 +19,8 @@
 /* enable/disable multithreading feature */
 #define MULTITHREADING          (1)
 
-/* minimum needed memory (change it with care... can throw bugs if too low */
+/* minimum needed memory (change with care... can throw bugs if too low */
 #define MIN_MEMORY              (65536)
 
-/* program status is displayed periodically instead of waiting keypress */
+/* display program status periodically instead of waiting keypress */
 #define DEBUG_PROGRAM_STATUS    (0)
