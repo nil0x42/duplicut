@@ -3,7 +3,7 @@
 Find & **remove duplicate** entries from a wordlist, **without changing the order** and **without getting
 OOM** even on huge wordlists
 
-[![Build Status](https://secure.travis-ci.org/nil0x42/duplicut.png?branch=master)](http://travis-ci.org/nil0x42/duplicut)
+[![travis build](https://img.shields.io/travis/nil0x42/duplicut?logo=travis)](http://travis-ci.org/nil0x42/duplicut)
 [![Mentioned in Awesome Penetration Testing](https://awesome.re/mentioned-badge.svg)](https://github.com/enaqx/awesome-pentest)
 [![twitter follow](https://img.shields.io/twitter/follow/nil0x42?label=Follow%20nil0x42%20%21&style=social)](https://twitter.com/intent/follow?screen_name=nil0x42)
 
