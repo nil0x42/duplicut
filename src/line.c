@@ -57,7 +57,7 @@ bool        get_next_line(t_line *dst, t_chunk *chunk)
             size -= 1;
             chunk->ptr += 1;
         }
-        else if (size > 1 && *(uint16_t*)chunk->ptr == *(uint16_t*)"\r\n")
+        else if (chunk->ptr[0] == '\r' && size > 1 && chunk->ptr[1] == '\n')
         {
             size -= 2;
             chunk->ptr += 2;
