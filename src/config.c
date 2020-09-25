@@ -9,6 +9,7 @@
 #include "file.h"
 #include "error.h"
 #include "debug.h"
+#include "bytesize.h"
 
 
 /** Configuration --> g_conf.threads
@@ -121,8 +122,11 @@ void            config(void)
     DLOG1("g_conf.outfile_name:      %s", g_conf.outfile_name);
     DLOG1("g_conf.threads:           %u", g_conf.threads);
     DLOG1("g_conf.line_max_size:     %u", g_conf.line_max_size);
-    DLOG1("g_conf.hmap_size:         %ld", g_conf.hmap_size);
-    DLOG1("g_conf.chunk_size:        %ld", g_conf.chunk_size);
+    DLOG1("g_conf.hmap_size:         %s (%ld slots of %dbits)",
+            sizerepr(g_conf.hmap_size * sizeof(t_line)),
+            g_conf.hmap_size, sizeof(t_line) * 8);
+    DLOG1("g_conf.chunk_size:        %s (%ld)",
+            sizerepr(g_conf.chunk_size), g_conf.chunk_size);
     DLOG1("g_conf.filter_printable:  %d", g_conf.filter_printable);
     DLOG1("g_conf.memlimit:          %ld", g_conf.memlimit);
     DLOG1("------------------------------");

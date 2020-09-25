@@ -10,6 +10,7 @@
 #include "status.h"
 #include "error.h"
 #include "debug.h"
+#include "bytesize.h"
 
 # define FILE_ISSET(_f) ((_f)->fd >= 0)
 
@@ -194,7 +195,8 @@ void        init_file(const char *infile_name, const char *outfile_name)
     DLOG1("g_file->fd:           %d", g_file->fd);
     DLOG1("g_file->name:         %s", g_file->name);
     DLOG1("g_file->addr:         %p", g_file->addr);
-    DLOG1("g_file->info.st_size: %ld", g_file->info.st_size);
+    DLOG1("g_file->info.st_size: %s (%ld)",
+            sizerepr(g_file->info.st_size), g_file->info.st_size);
     DLOG1("------------------------------");
     DLOG1("");
 }
