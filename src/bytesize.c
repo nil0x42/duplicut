@@ -1,8 +1,10 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 
 
+#define BUF_SIZE 64
 #define BYTESIZE_METRICS "BKMGT"
 
 
@@ -39,4 +41,19 @@ long long   bytesize(const char *str)
         result *= 1024;
 
     return (result);
+}
+
+char    *sizerepr(size_t size)
+{
+    static char buf[BUF_SIZE] = {0};
+    size_t div = 0;
+    size_t rem = 0;
+
+    while (size >= 1024 && div < sizeof(BYTESIZE_METRICS)) {
+        rem = size % 1024;
+        size /= 1024;
+        ++div;
+    }
+    snprintf(buf, BUF_SIZE, "%.1f%c", (double)size + (double)rem / 1024.0, BYTESIZE_METRICS[div]);
+    return buf;
 }
