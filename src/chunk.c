@@ -80,7 +80,7 @@ void        cleanout_chunk(t_chunk *chunk)
     base_ptr = chunk->ptr;
     while (get_next_line(&line, chunk))
     {
-        slot = hash(&line) % g_hmap.size;
+        slot = HASH(&line) % g_hmap.size;
         while (LINE_ISSET(g_hmap.ptr[slot]))
         {
             if (cmp_line(&line, &g_hmap.ptr[slot]) == 0)
