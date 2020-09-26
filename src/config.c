@@ -112,9 +112,17 @@ void            config(void)
 
     init_memstate(&memstate);
 
+
     config_threads();
     config_hmap_size(g_file, &memstate);
     config_chunk_size(g_file);
+
+    DLOG1("");
+    DLOG1("--------- memstate -----------");
+    DLOG1("memstate.page_size:      %d", memstate.page_size);
+    DLOG1("memstate.mem_available:  %s (%lld)",
+            sizerepr(memstate.mem_available), memstate.mem_available);
+    DLOG1("------------------------------");
 
     DLOG1("");
     DLOG1("---------- g_conf ------------");
