@@ -198,7 +198,6 @@ void        init_file(const char *infile_name, const char *outfile_name)
     DLOG1("g_file->info.st_size: %s (%ld)",
             sizerepr(g_file->info.st_size), g_file->info.st_size);
     DLOG1("------------------------------");
-    DLOG1("");
 }
 
 
