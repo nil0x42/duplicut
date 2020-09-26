@@ -7,8 +7,8 @@ level        = 1
 CFLAGS       = -Iinclude -Wall -Wextra \
 			   -Wdisabled-optimization -Winline \
 			   -Wdouble-promotion -Wunknown-pragmas \
-			   -mtune=native -ffast-math \
-			   -Wno-implicit-fallthrough
+			   -mtune=native -Wno-implicit-fallthrough \
+			   -ffast-math
 LDFLAGS      = -lm -pthread
 RELEASEFLAGS = -O2 -D NDEBUG
 DEBUGFLAGS   = -O0 -D DEBUG=$(level) -std=gnu99 -g3
@@ -31,15 +31,26 @@ re: $(TARGET)
 debug: CFLAGS += $(DEBUGFLAGS)
 debug: distclean $(OBJECTS) $(COMMON)
 	-ctags -R .
-	$(CC) $(FLAGS) $(CFLAGS) $(DEBUGFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
+	$(CC) $(FLAGS) $(CFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
 
 $(TARGET): CFLAGS += $(RELEASEFLAGS)
 $(TARGET): distclean $(OBJECTS) $(COMMON)
-	$(CC) $(FLAGS) $(CFLAGS) $(RELEASEFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
+	$(CC) $(FLAGS) $(CFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
 	strip -s $(TARGET)
 
 profile: CFLAGS += -pg
 profile: distclean $(TARGET)
+
+profile-generate: CFLAGS += $(RELEASEFLAGS) -fprofile-generate -fprofile-arcs
+profile-generate: distclean $(OBJECTS) $(COMMON)
+	$(CC) $(FLAGS) $(CFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
+
+rm-objects:
+	rm objects/*.o
+
+profile-use: CFLAGS += $(RELEASEFLAGS) -fprofile-use -fprofile-arcs
+profile-use: rm-objects $(OBJECTS) $(COMMON)
+	$(CC) $(FLAGS) $(CFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
 
 objects/%.o: src/%.c
 	mkdir -p `dirname $@`
