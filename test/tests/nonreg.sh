@@ -22,45 +22,36 @@ function print_bad () {
 function test_wordlist ()
 {
     file="$WORDLIST_DIR/$1"
-    max_line_size="$2"
-    filter_printable="$3"
+    shift 1
+    args="$@"
     rm -f nonreg_*.out
+    p="[CMP] duplicut $args < $file:"
 
-    if [ $filter_printable -eq 0 ]; then
-        timeout 1 $DUPLICUT -l $max_line_size -o nonreg_duplicut.out < $file
-        retval="$?"
-        $COMPARATOR $file $max_line_size 0 nonreg_comparator.out
-    else
-        # timeout --foreground 1 $DUPLICUT $file --printable -o nonreg_duplicut.out
-        timeout 1 $DUPLICUT -l $max_line_size --printable -o nonreg_duplicut.out < $file
-        retval="$?"
-        $COMPARATOR $file $max_line_size 1 nonreg_comparator.out
-    fi
+    timeout 1 $DUPLICUT -o nonreg_duplicut.out $args < $file
+    retval="$?"
+    $COMPARATOR $file -o nonreg_comparator.out $args
 
     if [[ $retval -eq 124 ]]; then
-        print_bad "duplicut timed-out on '$file'"
+        print_bad "$p timeout"
         exit 1
     elif ! diff -q nonreg_*.out 2>&1 > /dev/null; then
-        print_bad "Different result on '$file'"
+        print_bad "$p different result"
         diff -y <(cat -te nonreg_comparator.out) <(cat -te nonreg_duplicut.out)
         print_bad "Run \`diff nonreg_*.out\` to see differences"
         exit 1
     else
-        print_good "wordlist $file passed !"
+        print_good "$p OK !"
     fi
 }
 
 WORDLISTS=$(find "$WORDLIST_DIR" -maxdepth 1 -type f  \
     -name '*.txt' -printf "%f\n" | sort)
 
-
-print_info "testing wordlists without special filters"
 for wordlist in $WORDLISTS; do
-    test_wordlist "$wordlist" 14 0
-done
-print_info "testing wordlists with --printable filter"
-for wordlist in $WORDLISTS; do
-    test_wordlist "$wordlist" 14 1
+    for size in 1 5 14 15 40 64 65 128 255; do
+        test_wordlist "$wordlist" -l $size
+        test_wordlist "$wordlist" -l $size -p
+    done
 done
 
 rm -f nonreg_*.out

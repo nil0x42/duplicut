@@ -3,18 +3,26 @@
 import sys
 import re
 
-if len(sys.argv) != 5:
-    print("Usage: %s <wordlist> <max-line-size> <filter_printable> <output>" % sys.argv[0])
+try:
+    assert 5 < len(sys.argv) < 8
+    assert sys.argv[2] == '-o'
+    assert sys.argv[4] == '-l'
+    if len(sys.argv) == 7:
+        assert sys.argv[6] == '-p'
+except AssertionError:
+    print("Usage: %s <wordlist> -o <output> -l <max-line-size> [-p]" % sys.argv[0])
+    print("Example: %s old.txt -o new.txt -l 14" % sys.argv[0])
+    print("Example: %s old.txt -o new.txt -l 40 -p" % sys.argv[0])
     sys.exit(1)
 
-
-content = open(sys.argv[1], 'rb').read()
+with open(sys.argv[1], 'rb') as f:
+    content = f.read()
 OLD_CONTENT_LEN = len(content)
 
-MAX_LINE_SIZE = int(sys.argv[2])
-FILTER_PRINTABLE = int(sys.argv[3])
+output = open(sys.argv[3], 'wb')
 
-output = open(sys.argv[4], 'wb')
+MAX_LINE_SIZE = int(sys.argv[5])
+FILTER_PRINTABLE = len(sys.argv) == 7
 
 
 # use re.split(), because str.spllitlines() assumes
