@@ -27,12 +27,12 @@ function test_wordlist ()
     rm -f nonreg_*.out
 
     if [ $filter_printable -eq 0 ]; then
-        timeout 1 $DUPLICUT -o nonreg_duplicut.out < $file
+        timeout 1 $DUPLICUT -l $max_line_size -o nonreg_duplicut.out < $file
         retval="$?"
         $COMPARATOR $file $max_line_size 0 nonreg_comparator.out
     else
         # timeout --foreground 1 $DUPLICUT $file --printable -o nonreg_duplicut.out
-        timeout 1 $DUPLICUT --printable -o nonreg_duplicut.out < $file
+        timeout 1 $DUPLICUT -l $max_line_size --printable -o nonreg_duplicut.out < $file
         retval="$?"
         $COMPARATOR $file $max_line_size 1 nonreg_comparator.out
     fi
