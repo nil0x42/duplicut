@@ -7,8 +7,9 @@ level        = 1
 CFLAGS       = -Iinclude -Wall -Wextra \
 			   -Wdisabled-optimization -Winline \
 			   -Wdouble-promotion -Wunknown-pragmas \
-			   -mtune=native -Wno-implicit-fallthrough \
-			   -ffast-math
+			   -Wno-implicit-fallthrough \
+			   -Wno-error=implicit-function-declaration \
+			   -mtune=native -ffast-math
 LDFLAGS      = -lm -pthread
 RELEASEFLAGS = -O2 -D NDEBUG
 DEBUGFLAGS   = -O0 -D DEBUG=$(level) -std=gnu99 -g3
@@ -30,13 +31,13 @@ re: $(TARGET)
  
 debug: CFLAGS += $(DEBUGFLAGS)
 debug: distclean $(OBJECTS) $(COMMON)
-	-ctags -R .
+	-ctags src/* include/*
 	$(CC) $(FLAGS) $(CFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
 
 $(TARGET): CFLAGS += $(RELEASEFLAGS)
 $(TARGET): distclean $(OBJECTS) $(COMMON)
 	$(CC) $(FLAGS) $(CFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
-	strip -s $(TARGET)
+	strip --strip-all $(TARGET) || strip -Sx $(TARGET) # osx fallback
 
 profile: CFLAGS += -pg
 profile: distclean $(TARGET)

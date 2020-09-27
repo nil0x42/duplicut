@@ -10,17 +10,18 @@ set -ve
 #### ensure invalid rule make makefile fail
 ! make foobar
 
-#### make re
+#### make debug:
 #### make with debug infos
 make debug
 test -d objects/
 which ctags 2>/dev/null && test -f tags
 test -f duplicut -a -x duplicut
 ./duplicut &> /dev/null
-# check there is debug symbols AND NO profiling info
-nm --debug-syms duplicut | grep -Eq '\s+N\s+\.debug_[a-z]+'
-! test -e gmon.out
-
+# check there is debug symbols AND NO profiling info (linux only)
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    nm --debug-syms duplicut | grep -Eq '\s+N\s+\.debug_[a-z]+'
+    ! test -e gmon.out
+fi
 
 #### make clean:
 #### remove unneeded objects, keep duplicut executable only
@@ -42,22 +43,28 @@ make distclean
 
 
 #### make profile:
-#### profiling infos for gprof)
-make distclean
-make profile
-! test -e gmon.out
-./duplicut &> /dev/null
-# ensure there is 
-test -e gmon.out
+#### profiling infos for gprof, linux only
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    make distclean
+    make profile
+    ! test -e gmon.out
+    ./duplicut > /dev/null
+    # ensure there is gmon.out
+    test -e gmon.out
+fi
 
 
-#### make release:
+#### make (make release):
 #### create an optimized binary file, without debug infos
-make release
+make
 ./duplicut &> /dev/null
-# ensure there no profile information nor debug symbol
-! test -e gmon.out
-! nm --debug-syms duplicut | grep -Eq '\s+N\s+\.debug_[a-z]+'
+# ensure there is no profile info nor debug symbol
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    ! test -e gmon.out
+    ! nm --debug-syms duplicut | grep -Eq '\s+N\s+\.debug_[a-z]+'
+fi
 
-# ensure /proc/meminfo is there
-cat /proc/meminfo
+# ensure /proc/meminfo exists (linux)
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    cat /proc/meminfo
+fi

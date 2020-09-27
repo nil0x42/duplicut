@@ -4,6 +4,10 @@
 
 set -v
 
+# `gtimeout` fallback for old macos/xcode
+timeout=timeout
+which $timeout &>/dev/null || timeout=gtimeout
+
 DUPLICUT="./duplicut"
 COMPARATOR="./test/scripts/remove-duplicates.py"
 
@@ -27,7 +31,7 @@ function test_wordlist ()
     rm -f nonreg_*.out
     p="[CMP] duplicut $args < $file:"
 
-    timeout 1 $DUPLICUT -o nonreg_duplicut.out $args < $file
+    $timeout 1 $DUPLICUT -o nonreg_duplicut.out $args < $file
     retval="$?"
     $COMPARATOR $file -o nonreg_comparator.out $args
 
@@ -45,7 +49,7 @@ function test_wordlist ()
 }
 
 WORDLISTS=$(find "$WORDLIST_DIR" -maxdepth 1 -type f  \
-    -name '*.txt' -printf "%f\n" | sort)
+    -name '*.txt' -exec basename {} ';' | sort)
 
 for wordlist in $WORDLISTS; do
     for size in 1 5 14 15 40 64 65 128 255; do
