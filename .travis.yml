@@ -1,28 +1,48 @@
 language: c
 
+# default, test both 32 & 64bit
+env: ARCH="x64 x86"
+
+# NOTES:
+#   - osx only supports 32bit build until xcode9.4, so we only test x64
+#     on most recent osx build.
+#   - on travis-ci osx VMs, gcc is an alia of `clang`. so we don't test
+#     `gcc` on osx.
+#   - for both osx/linux, we try to test newest available distro version,
+#     and a very old one. reference:
+#     * https://docs.travis-ci.com/user/reference/linux/
+#     * https://docs.travis-ci.com/user/reference/osx/
+jobs:
+  include:
+    - os: linux
+      dist: focal
+      compiler: gcc
+    - os: linux
+      dist: focal
+      compiler: clang
+    - os: linux
+      dist: trusty
+      compiler: gcc
+    - os: linux
+      dist: trusty
+      compiler: clang
+    - os: osx
+      osx_image: xcode12u
+      compiler: clang
+      env: ARCH=x64 
+    - os: osx
+      osx_image: xcode8.3
+      compiler: clang
+
 before_install:
-    - sudo apt-get update -qq
-    - sudo apt-get install -y gcc-multilib     # support CC=gcc   ARCH=x86
-    - sudo apt-get install -y gcc-4.9-multilib # support CC=clang ARCH=x86
-
-compiler:
-    - gcc
-    - clang
-
-env:
-    - ARCH=x64 TEST=user-interface.sh
-    - ARCH=x86 TEST=user-interface.sh
-
-    - ARCH=x64 TEST=makefile.sh
-    - ARCH=x86 TEST=makefile.sh
-
-    - ARCH=x64 TEST=nonreg.sh
-    - ARCH=x86 TEST=nonreg.sh
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update -qq; fi
+    # support CC=gcc ARCH=x86:
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -y gcc-multilib; fi
 
 script:
-    - ./test/run.sh
+  - ./test/run.sh
   
-# only trigger build for pushes on master branch
+# only trigger build for pushes on `master`
 branches:
   only:
     - master

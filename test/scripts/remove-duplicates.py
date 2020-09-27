@@ -1,4 +1,7 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
+
+# script must be compatible with both python2 & python3
+# (for backward compat on old osx test @travis-ci)
 
 import sys
 import re
@@ -30,11 +33,18 @@ FILTER_PRINTABLE = len(sys.argv) == 7
 lines = re.split(b"\r\n|\n", content)
 
 
-def line_isprint(line):
-    for c in line:
-        if not 31 < ord(c) < 127:
-            return False
-    return True
+if sys.version_info.major == 3:
+    def line_isprint(line):
+        for c in line:
+            if not 31 < c < 127:
+                return False
+        return True
+elif sys.version_info.major == 2:
+    def line_isprint(line):
+        for c in line:
+            if not 31 < ord(c) < 127:
+                return False
+        return True
 
 uniques = []
 for index, line in enumerate(lines):
