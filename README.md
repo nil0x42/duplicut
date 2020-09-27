@@ -2,15 +2,18 @@
 
 <h3 align="center">
     Quickly dedupe massive wordlists, without changing the order
+    <a href="https://twitter.com/intent/tweet?text=Duplicut%3A%20Remove%20duplicates%20from%20MASSIVE%20wordlist%2C%20without%20sorting%20it%20(for%20dictionnary-based%20password%20cracking)%20-%20by%20%40nil0x42&url=https://github.com/nil0x42/duplicut">
+      <img src="https://img.shields.io/twitter/url?label=tweet&logo=twitter&style=social&url=http%3A%2F%2F0" alt="tweet">
+    </a>
 </h3>
 <br>
 
 <p align="center">
-  <a href="https://travis-ci.org/nil0x42/duplicut">
-    <img src="https://img.shields.io/travis/nil0x42/duplicut?logo=travis" alt="travis build">
+  <a href="https://travis-ci.com/nil0x42/duplicut">
+    <img src="https://img.shields.io/travis/com/nil0x42/duplicut?branch=master&logo=travis" alt="travis build">
   </a>
   <a href="https://github.com/enaqx/awesome-pentest">
-    <img src="https://awesome.re/mentioned-badge.svg" alt="Mentioned in Awesome Penetration Testing">
+    <img src="https://awesome.re/mentioned-badge.svg" alt="Mentioned in awesome-pentest">
   </a>
   <a href="https://twitter.com/intent/follow?screen_name=nil0x42" target="_blank">
     <img src="https://img.shields.io/twitter/follow/nil0x42.svg?logo=twitter" akt="follow on twitter">
@@ -21,7 +24,7 @@
   <sub>
     Created by
     <a href="https://twitter.com/nil0x42">nil0x42</a> and
-    <a href="https://github.com/nil0x42/duplicut#contributors">contributors</a>
+    <a href="https://github.com/nil0x42/duplicut/graphs/contributors">contributors</a>
   </sub>
 </div>
 
