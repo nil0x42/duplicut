@@ -1,6 +1,6 @@
 #pragma once
 
-#define DEFAULT_LINE_MAX_SIZE (14)
+#define DEFAULT_LINE_MAX_SIZE (64)
 
 struct              conf
 {
