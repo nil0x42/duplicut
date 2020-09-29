@@ -10,6 +10,8 @@
 #  include <stdarg.h>
 #  include <time.h>
 
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wunused-function"
 static void _dlog(int level, const char *file, int line, const char *fmt, ...)
 {
     char        out[1024] = {0};
@@ -44,6 +46,8 @@ static void _dlog(int level, const char *file, int line, const char *fmt, ...)
 
     write(STDERR_FILENO, out, i);
 }
+#  pragma GCC diagnostic pop
+
 # endif
 
 # if DEBUG >= 1
