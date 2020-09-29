@@ -12,9 +12,8 @@
 #include "debug.h"
 #include "bytesize.h"
 
-# define FILE_ISSET(_f) ((_f)->fd >= 0)
-
-# define BUF_SIZE       (0x20000) /* 128kb */
+#define FILE_ISSET(_f) ((_f)->fd >= 0)
+#define BUF_SIZE       (0x20000) /* 128kb */
 
 
 static struct file  g_infile;

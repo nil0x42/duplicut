@@ -3,6 +3,12 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+/** Ignore warning:
+ * ignoring return value of ‘write’, declared with attribute warn_unused_result
+ * Because we write to STDERR_FILENO & don't need to check write() return.
+ */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-result"
 
 /** Print a formatted warning message without leaving the program.
  * The use of printf() inside this function causes it
@@ -50,3 +56,5 @@ void            die(const char *msg)
     perror(msg);
     exit(1);
 }
+
+#pragma GCC diagnostic pop
