@@ -4,6 +4,7 @@
 #include "config.h"
 #include "error.h"
 #include "const.h"
+#include "bytesize.h"
 
 
 static int          get_page_size(void)
@@ -29,7 +30,7 @@ static long long    get_mem_available(void)
         mem_available = g_conf.memlimit;
 
     if (mem_available < MIN_MEMORY)
-        error("not enough memory (at least %d bytes required)", MIN_MEMORY);
+        error("not enough memory (at least %s required)", sizerepr(MIN_MEMORY));
     return (mem_available);
 }
 
