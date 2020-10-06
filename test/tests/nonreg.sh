@@ -31,7 +31,7 @@ function test_wordlist ()
     rm -f nonreg_*.out
     p="[CMP] duplicut $args < $file:"
 
-    $timeout 1 $DUPLICUT -o nonreg_duplicut.out $args < $file
+    $timeout 5 $DUPLICUT -o nonreg_duplicut.out $args < $file
     retval="$?"
     $COMPARATOR $file -o nonreg_comparator.out $args
 
@@ -55,6 +55,10 @@ for wordlist in $WORDLISTS; do
     for size in 1 5 14 15 40 64 65 128 255; do
         test_wordlist "$wordlist" -l $size
         test_wordlist "$wordlist" -l $size -p
+        test_wordlist "$wordlist" -l $size -c
+        test_wordlist "$wordlist" -l $size -p -c
+        test_wordlist "$wordlist" -l $size -C
+        test_wordlist "$wordlist" -l $size -p -C
     done
 done
 
