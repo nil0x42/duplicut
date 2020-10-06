@@ -7,15 +7,19 @@ import sys
 import re
 
 try:
-    assert 5 < len(sys.argv) < 8
+    assert len(sys.argv) >= 6
     assert sys.argv[2] == '-o'
     assert sys.argv[4] == '-l'
-    if len(sys.argv) == 7:
-        assert sys.argv[6] == '-p'
+    if len(sys.argv) > 6:
+        for x in sys.argv[6:]:
+            assert x in ['-p', '-c', '-C']
+        if '-c' in sys.argv[6:]:
+            assert '-C' not in sys.argv[6:]
 except AssertionError:
-    print("Usage: %s <wordlist> -o <output> -l <max-line-size> [-p]" % sys.argv[0])
+    print("Usage: %s <wordlist> -o <output> -l <max-line-size> [-pcC]" % sys.argv[0])
     print("Example: %s old.txt -o new.txt -l 14" % sys.argv[0])
     print("Example: %s old.txt -o new.txt -l 40 -p" % sys.argv[0])
+    print("Example: %s old.txt -o new.txt -l 40 -p -C" % sys.argv[0])
     sys.exit(1)
 
 with open(sys.argv[1], 'rb') as f:
@@ -25,8 +29,15 @@ OLD_CONTENT_LEN = len(content)
 output = open(sys.argv[3], 'wb')
 
 MAX_LINE_SIZE = int(sys.argv[5])
-FILTER_PRINTABLE = len(sys.argv) == 7
 
+FILTER_PRINTABLE = '-p' in sys.argv[6:]
+LOWERCASE = '-c' in sys.argv[6:]
+UPPERCASE = '-C' in sys.argv[6:]
+
+if LOWERCASE:
+    content = content.lower()
+elif UPPERCASE:
+    content = content.upper()
 
 # use re.split(), because str.spllitlines() assumes
 # that single "\r" are newline chars too..
