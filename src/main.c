@@ -6,8 +6,8 @@
 #include "config.h"
 #include "file.h"
 #include "hmap.h"
-#include "tag_duplicates.h"
-#include "user_input.h"
+#include "dedupe.h"
+#include "uinput.h"
 #include "status.h"
 #include "error.h"
 

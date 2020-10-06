@@ -3,7 +3,7 @@
 #include <pthread.h>
 #include <string.h>
 #include <termios.h>
-#include "user_input.h"
+#include "uinput.h"
 #include "status.h"
 #include "const.h"
 #include "error.h"

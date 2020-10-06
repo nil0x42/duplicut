@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include "tag_duplicates.h"
+#include "dedupe.h"
 #include "const.h"
 #include "config.h"
 #include "thpool.h"
