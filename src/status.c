@@ -62,7 +62,7 @@ pthread_mutex_t         g_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /** Update program status
  */
-void                update_status(enum e_status_update action)
+void            update_status(enum e_status_update action)
 {
     switch (action) {
         case FCOPY_START:
@@ -95,9 +95,9 @@ void                update_status(enum e_status_update action)
     }
 }
 
-void                set_status(enum e_status_set var, size_t val)
-{
 
+void            set_status(enum e_status_set var, size_t val)
+{
     switch (var) {
         case FILE_SIZE:
             DLOG1("CALL set_status(FILE_SIZE, %lu)", val);
@@ -155,14 +155,16 @@ static void     repr_arrival_time(char *buffer, time_t arrival)
     }
 }
 
+
 static void     repr_current_task(char *buffer)
 {
     if (!FCOPY_TERMINATED())
         strncpy(buffer, "step 1/3: creating output file", BUF_SIZE - 1);
     else if (!TAGDUP_TERMINATED())
-        snprintf(buffer, BUF_SIZE - 1, "step 2/3: cleaning chunk %d/%d (task %d/%d)",
+        snprintf(buffer, BUF_SIZE - 1,
+                "step 2/3: cleaning chunk %d/%d (task %d/%d)",
                 g_status.done_chunks + 1, g_status.total_chunks,
-        g_status.done_ctasks + 1, g_status.total_ctasks);
+                g_status.done_ctasks + 1, g_status.total_ctasks);
     else
         strncpy(buffer, "step 3/3: removing tagged lines", BUF_SIZE - 1);
 }
@@ -175,14 +177,11 @@ void            display_status(void)
     char        elapsed_time_str[BUF_SIZE] = {0};
     char        arrival_time_str[BUF_SIZE] = {0};
     char        current_task_str[BUF_SIZE] = {0};
-
     time_t      current_time = 0;
     time_t      elapsed_time = 0;
     time_t      arrival_time = 0;
-
     double      progress = 0.0; /* 1.0 == 100% */
     double      remain_time = 0.0;
-
 
     current_time = time(NULL);
     elapsed_time = current_time - START_TIME();
@@ -238,7 +237,6 @@ void            display_status(void)
         remain_time -= elapsed_time;
         arrival_time = current_time + remain_time;
     }
-
 
     repr_elapsed_time(elapsed_time_str, elapsed_time);
     repr_arrival_time(arrival_time_str, arrival_time);
