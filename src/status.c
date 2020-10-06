@@ -158,15 +158,28 @@ static void     repr_arrival_time(char *buffer, time_t arrival)
 
 static void     repr_current_task(char *buffer)
 {
+    int cur_chunk;
+    int cur_ctask;
+
     if (!FCOPY_TERMINATED())
+    {
         strncpy(buffer, "step 1/3: creating output file", BUF_SIZE - 1);
-    else if (!TAGDUP_TERMINATED())
+    }
+    else if (!TAGDUP_TERMINATED()) {
+        cur_chunk = g_status.done_chunks;
+        if (cur_chunk < g_status.total_chunks)
+            ++cur_chunk;
+        cur_ctask = g_status.done_ctasks;
+        if (cur_ctask < g_status.total_ctasks)
+            ++cur_ctask;
         snprintf(buffer, BUF_SIZE - 1,
                 "step 2/3: cleaning chunk %d/%d (task %d/%d)",
-                g_status.done_chunks + 1, g_status.total_chunks,
-                g_status.done_ctasks + 1, g_status.total_ctasks);
-    else
+                cur_chunk, g_status.total_chunks,
+                cur_ctask, g_status.total_ctasks);
+    }
+    else {
         strncpy(buffer, "step 3/3: removing tagged lines", BUF_SIZE - 1);
+    }
 }
 
 
