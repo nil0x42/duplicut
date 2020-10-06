@@ -32,10 +32,10 @@ static void _dlog(int level, const char *file, int line, const char *fmt, ...)
     i += strftime(&out[i], 12, "%d %H:%M:%S", tm_info);
 
     if (isatty(STDERR_FILENO))
-        i += snprintf(&out[i], 128, " \e[1;35m%16s:%-3d\e[34;1m]:\e[0m ",
+        i += snprintf(&out[i], 128, " \e[1;35m%10s:%-3d\e[34;1m]:\e[0m ",
                 &file[4], line);
     else
-        i += snprintf(&out[i], 128, " %16s:%-3d]: ",
+        i += snprintf(&out[i], 128, " %10s:%-3d]: ",
                 &file[4], line);
 
     va_start(ap, fmt);

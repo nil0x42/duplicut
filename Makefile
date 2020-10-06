@@ -14,9 +14,9 @@ LDFLAGS      = -lm -pthread
 RELEASEFLAGS = -O2 -D NDEBUG
 DEBUGFLAGS   = -O0 -D DEBUG=$(level) -std=gnu99 -g3
  
-SOURCES      = main.c thpool.c file.c chunk.c line.c tag_duplicates.c \
+SOURCES      = main.c thpool.c file.c chunk.c line.c dedupe.c \
 			   optparse.c config.c error.c memstate.c meminfo.c bytesize.c \
-			   hmap.c status.c user_input.c \
+			   hmap.c status.c uinput.c \
 
 COMMON       = include/const.h include/debug.h
 OBJECTS      = $(patsubst %.c, objects/%.o, $(SOURCES))
