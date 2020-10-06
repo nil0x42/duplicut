@@ -1,3 +1,4 @@
+#include <unistd.h>
 #include <time.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -163,7 +164,14 @@ static void     repr_current_task(char *buffer)
 
     if (!FCOPY_TERMINATED())
     {
-        strncpy(buffer, "step 1/3: creating output file", BUF_SIZE - 1);
+        if (isatty(STDERR_FILENO))
+            strncpy(buffer,
+                    "\e[36mstep 1/3: \e[1mcreating output file\e[0;36m ...",
+                    BUF_SIZE - 1);
+        else
+            strncpy(buffer,
+                    "step 1/3: creating output file ...",
+                    BUF_SIZE - 1);
     }
     else if (!TAGDUP_TERMINATED()) {
         cur_chunk = g_status.done_chunks;
@@ -172,13 +180,28 @@ static void     repr_current_task(char *buffer)
         cur_ctask = g_status.done_ctasks;
         if (cur_ctask < g_status.total_ctasks)
             ++cur_ctask;
-        snprintf(buffer, BUF_SIZE - 1,
-                "step 2/3: cleaning chunk %d/%d (task %d/%d)",
-                cur_chunk, g_status.total_chunks,
-                cur_ctask, g_status.total_ctasks);
+        if (isatty(STDERR_FILENO))
+            snprintf(buffer, BUF_SIZE - 1,
+                    "\e[36mstep 2/3: \e[1mcleaning chunk %d/%d "
+                    "\e[0;2;36m(task %d/%d)\e[0;36m ...",
+                    cur_chunk, g_status.total_chunks,
+                    cur_ctask, g_status.total_ctasks);
+        else
+            snprintf(buffer, BUF_SIZE - 1,
+                    "step 2/3: cleaning chunk %d/%d "
+                    "(task %d/%d) ...",
+                    cur_chunk, g_status.total_chunks,
+                    cur_ctask, g_status.total_ctasks);
     }
     else {
-        strncpy(buffer, "step 3/3: removing tagged lines", BUF_SIZE - 1);
+        if (isatty(STDERR_FILENO))
+            strncpy(buffer,
+                    "\e[36mstep 3/3: \e[1mremoving tagged lines\e[0;36m ...",
+                    BUF_SIZE - 1);
+        else
+            strncpy(buffer,
+                    "step 3/3: removing tagged lines ...",
+                    BUF_SIZE - 1);
     }
 }
 
@@ -254,9 +277,21 @@ void            display_status(void)
     repr_elapsed_time(elapsed_time_str, elapsed_time);
     repr_arrival_time(arrival_time_str, arrival_time);
     repr_current_task(current_task_str);
-    fprintf(stderr, "time: %s %5.2f%% (ETA: %s)  %s ...\n",
-            elapsed_time_str,
-            progress * 100.0,
-            arrival_time_str,
-            current_task_str);
+
+    if (isatty(STDERR_FILENO))
+        fprintf(stderr,
+                "\e[0mtime: \e[1m%s \e[1;33m%5.2f%%\e[0m "
+                "(ETA: \e[1m%s\e[0m)  \e[0m%s\e[0m\n",
+                elapsed_time_str,
+                progress * 100.0,
+                arrival_time_str,
+                current_task_str);
+    else
+        fprintf(stderr,
+                "time: %s %5.2f%% "
+                "(ETA: %s)  %s\n",
+                elapsed_time_str,
+                progress * 100.0,
+                arrival_time_str,
+                current_task_str);
 }
