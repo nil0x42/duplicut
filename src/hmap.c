@@ -56,6 +56,7 @@ void        populate_hmap(t_chunk *chunk)
 
 #if DEBUG >= 2
     size_t      filled = 0;
+    size_t      collisions = 0;
 #endif
 #if DEBUG >= 3
     int         last_percent_filled = 0;
@@ -93,6 +94,9 @@ void        populate_hmap(t_chunk *chunk)
                 break;
             }
             /* archaic open addressing collision resolver */
+#if DEBUG >= 2
+            ++collisions;
+#endif
             slot = (slot + 1) % g_hmap.size;
         }
         if (!has_slots)
@@ -106,7 +110,9 @@ void        populate_hmap(t_chunk *chunk)
     }
     set_status(TAGDUP_BYTES, (size_t)(chunk->ptr - base_ptr));
 #if DEBUG >= 2
-    DLOG2("populate_hmap(): used %ld/%ld slots (%.2f%%)",
-            filled, g_hmap.size, (double)filled / (double)g_hmap.size * 100.0);
+    DLOG2("populate_hmap(): used %ld/%ld slots (%.2f%%) [%ld collisions]",
+            filled, g_hmap.size,
+            (double)filled / (double)g_hmap.size * 100.0,
+            collisions);
 #endif
 }
