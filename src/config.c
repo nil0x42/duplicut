@@ -28,7 +28,7 @@ static void     config_threads(void)
     if (g_conf.threads == 0)
         g_conf.threads = (unsigned int) max_threads;
     else if (g_conf.threads > (unsigned int) max_threads)
-        error("Cannot use more than %ld threads", max_threads);
+        error("cannot use more than %ld threads", max_threads);
 }
 
 

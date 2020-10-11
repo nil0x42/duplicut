@@ -245,7 +245,7 @@ void        optparse(int argc, char **argv)
         setopt_help(NULL);
 
     if (g_conf.lowercase_wordlist && g_conf.uppercase_wordlist)
-        error("can't use '--lowercase' and '--uppercase' together");
+        error("cannot use '--lowercase' and '--uppercase' together");
 
     if (g_conf.outfile_name == NULL)
         error("mandatory argument: --outfile");

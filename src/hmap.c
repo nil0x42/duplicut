@@ -13,11 +13,11 @@ void        init_hmap(size_t size)
     t_line  *area;
 
     if (g_hmap.ptr != NULL)
-        error("create_hmap(): singleton called twice !");
+        error("init_hmap(): singleton called twice !");
 
     area = (t_line*) malloc(size * sizeof(t_line));
     if (area == NULL)
-        error("cannot malloc() hash map: %s", ERRNO);
+        die("cannot malloc() hash map");
 
     g_hmap.ptr = area;
     g_hmap.size = size;
@@ -100,7 +100,7 @@ void        populate_hmap(t_chunk *chunk)
             slot = (slot + 1) % g_hmap.size;
         }
         if (!has_slots)
-            error("populate_hmap(): no space left on hashmap.");
+            error("populate_hmap(): too much slots in use");
         i++;
         if (i == 500000) {
             set_status(TAGDUP_BYTES, (size_t)(chunk->ptr - base_ptr));
