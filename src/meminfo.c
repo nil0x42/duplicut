@@ -80,7 +80,7 @@ static long long    proc_meminfo(const char *identifier)
     size = BUF_SIZE * sizeof(*buf);
     buf = (char*) malloc(size);
     if (buf == NULL)
-        die("malloc()");
+        die("cannot malloc() proc_meminfo buffer");
 
     result = -1LL;
     identifier_len = strlen(identifier);

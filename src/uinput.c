@@ -70,5 +70,5 @@ void        watch_user_input(void)
 
     config_termios();
     if (pthread_create(&tid, NULL, &watch_user_input_worker, NULL) < 0)
-        error("can't create watch_user_input_worker() thread: %s", ERRNO);
+        error("cannot create watch_user_input_worker() thread: %s", ERRNO);
 }

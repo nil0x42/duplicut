@@ -21,4 +21,4 @@ set -ve
 ./duplicut /etc/passwd -o /tmp/x -c &> /dev/null
 ./duplicut /etc/passwd -o /tmp/x -C &> /dev/null
 ! ./duplicut /etc/passwd -o /tmp/x -c -C &> /dev/null
-./duplicut /etc/passwd -o /tmp/x -c -C 2>&1 | grep -q "can't use '--lowercase' and '--uppercase' together"
+./duplicut /etc/passwd -o /tmp/x -c -C 2>&1 | grep -q "cannot use '--lowercase' and '--uppercase' together"
