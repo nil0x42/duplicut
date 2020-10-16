@@ -50,7 +50,9 @@ void        populate_hmap(t_chunk *chunk)
     size_t  has_slots;
     char    *base_ptr;
     int     i;
+    long    duplicates;
 
+    duplicates = 0;
     i = 0;
     base_ptr = chunk->ptr;
 
@@ -92,6 +94,7 @@ void        populate_hmap(t_chunk *chunk)
             else if (cmp_line(&line, &g_hmap.ptr[slot]) == 0)
             {
                 LINE_ADDR(line)[0] = DISABLED_LINE;
+                ++duplicates;
                 break;
             }
             /* archaic open addressing collision resolver */
@@ -110,6 +113,7 @@ void        populate_hmap(t_chunk *chunk)
         }
     }
     set_status(TAGDUP_BYTES, (size_t)(chunk->ptr - base_ptr));
+    set_status(TAGDUP_DUPLICATES, (size_t)duplicates);
 #if DEBUG >= 2
     DLOG2("populate_hmap(): used %ld/%ld slots (%.2f%%) [%ld collisions]",
             filled, g_hmap.size,
