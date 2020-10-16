@@ -39,6 +39,7 @@ struct                  status
     size_t              fcopy_bytes;
     size_t              chunk_size;
     size_t              tagdup_bytes;
+    size_t              tagdup_duplicates;
     size_t              fclean_bytes;
 };
 
@@ -55,6 +56,7 @@ static struct status    g_status = {
     .fcopy_bytes = 0,
     .chunk_size = 0,
     .tagdup_bytes = 0,
+    .tagdup_duplicates = 0,
     .fclean_bytes = 0,
 };
 
@@ -118,6 +120,12 @@ void            set_status(enum e_status_set var, size_t val)
             g_status.tagdup_bytes += val;
             pthread_mutex_unlock(&g_mutex);
             break ;
+        case TAGDUP_DUPLICATES:
+            DLOG2("CALL set_status(TAGDUP_DULICATES, %lu)", val);
+            pthread_mutex_lock(&g_mutex);
+            g_status.tagdup_duplicates += val;
+            pthread_mutex_unlock(&g_mutex);
+            break ;
         case FCLEAN_BYTES:
             DLOG2("CALL set_status(FCLEAN_BYTES, %lu)", val);
             g_status.fclean_bytes += val;
@@ -139,6 +147,32 @@ static void     repr_elapsed_time(char *buffer, unsigned long seconds)
 
     snprintf(buffer, BUF_SIZE - 1, "%lu:%02lu:%02lu:%02lu",
             days, hours, minutes, seconds);
+}
+
+
+static void     repr_elapsed_time2(char *buffer, unsigned long seconds)
+{
+    unsigned long   days, hours, minutes;
+
+    days = seconds / DAY;
+    seconds %= DAY;
+    hours = seconds / HOUR;
+    seconds %= HOUR;
+    minutes = seconds / MINUTE;
+    seconds %= MINUTE;
+
+    if (days)
+        snprintf(buffer, BUF_SIZE - 1, "%lu days, %02lu:%02lu:%02lu",
+                days, hours, minutes, seconds);
+    else if (hours)
+        snprintf(buffer, BUF_SIZE - 1, "%02lu:%02lu:%02lu hours",
+                hours, minutes, seconds);
+    else if (minutes)
+        snprintf(buffer, BUF_SIZE - 1, "%02lu:%02lu minutes",
+                minutes, seconds);
+    else
+        snprintf(buffer, BUF_SIZE - 1, "%02lu seconds",
+                seconds);
 }
 
 
@@ -203,6 +237,26 @@ static void     repr_current_task(char *buffer)
                     "step 3/3: removing tagged lines ...",
                     BUF_SIZE - 1);
     }
+}
+
+/** Display final report
+ */
+void            display_report(void)
+{
+    char        elapsed_time_str[BUF_SIZE] = {0};
+    time_t      elapsed_time = 0;
+
+    elapsed_time = time(NULL) - START_TIME();
+    repr_elapsed_time2(elapsed_time_str, elapsed_time);
+
+    if (isatty(STDERR_FILENO))
+        fprintf(stderr, "duplicut successfully removed "
+                "\e[1m%ld\e[0m duplicates in \e[1m%s\e[0m\n",
+                g_status.tagdup_duplicates, elapsed_time_str);
+    else
+        fprintf(stderr, "duplicut successfully removed "
+                "%ld duplicates in %s\n",
+                g_status.tagdup_duplicates, elapsed_time_str);
 }
 
 
