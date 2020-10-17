@@ -46,7 +46,8 @@ static void     remove_duplicates(void)
     base_ptr = file_chunk.ptr;
 
     dst = file_chunk.ptr;
-    while (get_next_line(&line, &file_chunk))
+    size_t junk_lines = 0;
+    while (get_next_line(&line, &file_chunk, &junk_lines))
     {
         line_size = LINE_SIZE(line);
         memmove(dst, LINE_ADDR(line), line_size);

@@ -40,6 +40,7 @@ struct                  status
     size_t              chunk_size;
     size_t              tagdup_bytes;
     size_t              tagdup_duplicates;
+    size_t              tagdup_junk_lines;
     size_t              fclean_bytes;
 };
 
@@ -57,6 +58,7 @@ static struct status    g_status = {
     .chunk_size = 0,
     .tagdup_bytes = 0,
     .tagdup_duplicates = 0,
+    .tagdup_junk_lines = 0,
     .fclean_bytes = 0,
 };
 
@@ -124,6 +126,12 @@ void            set_status(enum e_status_set var, size_t val)
             DLOG2("CALL set_status(TAGDUP_DULICATES, %lu)", val);
             pthread_mutex_lock(&g_mutex);
             g_status.tagdup_duplicates += val;
+            pthread_mutex_unlock(&g_mutex);
+            break ;
+        case TAGDUP_JUNK_LINES:
+            DLOG2("CALL set_status(TAGDUP_DULICATES, %lu)", val);
+            pthread_mutex_lock(&g_mutex);
+            g_status.tagdup_junk_lines += val;
             pthread_mutex_unlock(&g_mutex);
             break ;
         case FCLEAN_BYTES:
@@ -250,13 +258,21 @@ void            display_report(void)
     repr_elapsed_time2(elapsed_time_str, elapsed_time);
 
     if (isatty(STDERR_FILENO))
-        fprintf(stderr, "duplicut successfully removed "
-                "\e[1m%ld\e[0m duplicates in \e[1m%s\e[0m\n",
-                g_status.tagdup_duplicates, elapsed_time_str);
+        fprintf(stderr, "\nduplicut successfully removed "
+                "\e[1m%ld\e[0m duplicates "
+                "and \e[1m%ld\e[0m filtered lines "
+                "in \e[1m%s\e[0m\n",
+                g_status.tagdup_duplicates,
+                g_status.tagdup_junk_lines,
+                elapsed_time_str);
     else
-        fprintf(stderr, "duplicut successfully removed "
-                "%ld duplicates in %s\n",
-                g_status.tagdup_duplicates, elapsed_time_str);
+        fprintf(stderr, "\nduplicut successfully removed "
+                "%ld duplicates "
+                "and %ld filtered lines "
+                "in %s\n",
+                g_status.tagdup_duplicates,
+                g_status.tagdup_junk_lines,
+                elapsed_time_str);
 }
 
 
