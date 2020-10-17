@@ -18,6 +18,7 @@ enum    e_status_set
     CHUNK_SIZE,         /* chunk size */
     TAGDUP_BYTES,       /* bytes currently processed by TAGDUP */
     TAGDUP_DUPLICATES,  /* total duplicates found */
+    TAGDUP_JUNK_LINES,  /* total junk-lines (filtered) found */
     FCLEAN_BYTES,       /* bytes currently processed by FCLEAN */
 };
 

@@ -36,7 +36,7 @@ static bool filter_line(char *str, size_t size)
  * The function returns false when end-of-chunk is reached.
  * You are not expected to understand this
  */
-bool        get_next_line(t_line *dst, t_chunk *chunk)
+bool        get_next_line(t_line *dst, t_chunk *chunk, size_t *junk_lines)
 {
     size_t  size;
     char    *next;
@@ -46,27 +46,37 @@ bool        get_next_line(t_line *dst, t_chunk *chunk)
 
     while (size > 0)
     {
+        /* ptr at '\0' (DISABLED_LINE) */
         if (chunk->ptr[0] == DISABLED_LINE)
         {
+            ++*junk_lines;
             if ((next = memchr(chunk->ptr, '\n', size)) == NULL)
                 return (false);
             size -= (next - chunk->ptr) + 1;
             chunk->ptr = next + 1;
         }
+        /* ptr at '\n' */
         else if (chunk->ptr[0] == '\n')
         {
+            ++*junk_lines;
             size -= 1;
             chunk->ptr += 1;
         }
+        /* ptr at '\r\n' */
         else if (chunk->ptr[0] == '\r' && size > 1 && chunk->ptr[1] == '\n')
         {
+            ++*junk_lines;
             size -= 2;
             chunk->ptr += 2;
         }
+        /* ptr at last line with no newline in the end */
         else if ((next = memchr(chunk->ptr, '\n', size)) == NULL)
         {
             if (filter_line(chunk->ptr, size))
+            {
+                ++*junk_lines;
                 return (false);
+            }
             SET_LINE(*dst, chunk->ptr, size);
             chunk->ptr += size;
             return (true);
@@ -78,6 +88,7 @@ bool        get_next_line(t_line *dst, t_chunk *chunk)
             {
                 if (filter_line(chunk->ptr, line_size - 1))
                 {
+                    ++*junk_lines;
                     chunk->ptr += line_size + 1;
                     size -= line_size + 1;
                 }
@@ -92,6 +103,7 @@ bool        get_next_line(t_line *dst, t_chunk *chunk)
             {
                 if (filter_line(chunk->ptr, line_size))
                 {
+                    ++*junk_lines;
                     chunk->ptr += line_size + 1;
                     size -= line_size + 1;
                 }

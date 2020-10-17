@@ -44,5 +44,5 @@ typedef struct  s_line
 #endif
 
 /* source file: line.c */
-bool    get_next_line(t_line *dst, t_chunk *chunk);
+bool    get_next_line(t_line *dst, t_chunk *chunk, size_t *junk_lines);
 int     cmp_line(t_line *l1, t_line *l2);
