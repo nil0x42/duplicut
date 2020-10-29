@@ -1,7 +1,7 @@
 #pragma once
 
 #define PROGNAME                "duplicut"
-#define PROJECT_VERSION         "2.1"
+#define PROJECT_VERSION         "2.2"
 #define PROJECT_URL             "http://github.com/nil0x42/duplicut"
 
 /* portion of available memory to allow to hashmap */
