@@ -37,7 +37,7 @@ void        destroy_hmap(void)
 }
 
 
-/** Populate `hmap` whith given `chunk` lines.
+/** Populate `hmap` with given `chunk` lines.
  * - Handle collisions & disable duplicate lines from `chunk`
  *   by tagging them with 'DISABLED_LINE'.
  * - Unique lines are normally written into `hmap`.

@@ -12,7 +12,7 @@
 #include "debug.h"
 
 
-/** Arguments cofiguration for getopt_long().
+/** Arguments configuration for getopt_long().
  */
 #define OPTSTRING "o:t:m:l:pcChv"
 
@@ -221,7 +221,7 @@ static void setopt(int opt, const char *value)
 /** Set options by filling out g_conf globale.
  * It first uses setopt() in order to set option arguments,
  * then handles main argument (input file) separately,
- * throught setopt_input().
+ * through setopt_input().
  */
 void        optparse(int argc, char **argv)
 {

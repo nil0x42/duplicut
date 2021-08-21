@@ -55,7 +55,7 @@ static void close_file(struct file *file)
 }
 
 
-/** Destructor callback for optentially open files
+/** Destructor callback for potentially open files
  * Close infile, outfile and tmpfile (if exists)
  */
 static void close_all(void)
@@ -87,7 +87,7 @@ static void open_file(struct file *file, const char *pathname, int flags)
 
 
 /** Specific opener for g_tmpfile, which also uses mkstemp.
- * This function is a singleton (sould be called once).
+ * This function is a singleton (should be called once).
  */
 static void create_tmpfile(void)
 {
@@ -173,7 +173,7 @@ static void copy_file(int dst_fd, int src_fd, bool send_status)
  * - Handle src/dst files, and return a struct file* for use by duplicut.
  * - Can deal with non-regular files
  * - Registers cleanup functions with atexit()
- * - returned file has `addr` attribute mapped in memoy
+ * - returned file has `addr` attribute mapped in memory
  */
 void        init_file(const char *infile_name, const char *outfile_name)
 {
