@@ -37,7 +37,7 @@ static long long    get_mem_available(void)
 
 /** Update current memory state.
  * Unlike `init_memstate()`, this function only refreshes
- * ther values that may have changed.
+ * their values that may have changed.
  * For example, it does not changes `page_size`, which
  * is a static value.
  */

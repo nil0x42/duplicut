@@ -48,7 +48,7 @@ void            error(const char *fmt, ...)
 
 /** Suddenly exit the program with fatal error.
  * Unlike error(), this function does not allocates
- * any additionnal memory before exiting program.
+ * any additional memory before exiting program.
  */
 void            die(const char *msg)
 {

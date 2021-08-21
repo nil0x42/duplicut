@@ -39,7 +39,7 @@ if LOWERCASE:
 elif UPPERCASE:
     content = content.upper()
 
-# use re.split(), because str.spllitlines() assumes
+# use re.split(), because str.splitlines() assumes
 # that single "\r" are newline chars too..
 lines = re.split(b"\r\n|\n", content)
 
