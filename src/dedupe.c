@@ -10,6 +10,7 @@
 #include "hmap.h"
 #include "status.h"
 #include "error.h"
+#include "debug.h"
 
 #if MULTITHREADING == 1
 
@@ -44,7 +45,8 @@ void            tag_duplicates(void)
     threadpool  thpool;
     t_chunk     main_chunk = {
         .ptr = NULL,
-        .endptr = NULL
+        .endptr = NULL,
+        .skip_first_line = 0
     };
 
     /* thpool already prints error unless DISABLE_PRINT is defined */
@@ -92,7 +94,8 @@ void            tag_duplicates(void)
 {
     t_chunk     main_chunk = {
         .ptr = NULL,
-        .endptr = NULL
+        .endptr = NULL,
+        .skip_first_line = 0
     };
 
     while (get_next_chunk(&main_chunk, g_file))

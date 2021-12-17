@@ -74,6 +74,7 @@ void        populate_hmap(t_chunk *chunk)
             if (!LINE_ISSET(g_hmap.ptr[slot]))
             {
                 /* use first free slot */
+                /* DLOG4("ADD HMAP ENTRY, slot=%ld, line_addr=%p, line=%.20s", slot, line, (void*)line); */
                 g_hmap.ptr[slot] = line;
 #if DEBUG >= 2
                 filled++;

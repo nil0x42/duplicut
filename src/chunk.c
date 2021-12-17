@@ -16,7 +16,8 @@ int         count_chunks(void)
 {
     t_chunk     chunk = {
         .ptr = NULL,
-        .endptr = NULL
+        .endptr = NULL,
+        .skip_first_line = 0
     };
     int         result = 0;
 
@@ -35,32 +36,58 @@ bool        get_next_chunk(t_chunk *chunk, struct file *file)
 {
     char    *ptr;
     char    *endptr;
+    int     skip_first_line;
     ssize_t remaining_size;
 
-    if (chunk->ptr == NULL)
-    {
-        ptr = file->addr;
-        remaining_size = file->info.st_size;
-    }
-    else
-    {
-        ptr = chunk->endptr;
-        remaining_size = file->info.st_size - (ptr - file->addr);
-    }
-
-    if (remaining_size <= 0)
+    if (chunk->endptr == file->addr + file->info.st_size)
     {
         memset(chunk, 0, sizeof(t_chunk));
         return (false);
     }
 
-    if (remaining_size <= (ssize_t) g_conf.chunk_size)
-        endptr = ptr + remaining_size;
+    if (chunk->ptr == NULL)
+    {
+        skip_first_line = 0;
+        ptr = file->addr;
+        remaining_size = file->info.st_size;
+    }
     else
-        endptr = ptr + g_conf.chunk_size;
+    {
+        skip_first_line = 1;
+        /* set endptr go back 1 byte, because first line is ignored
+         * by get_next_line() if chunk is not the first.
+         * note that for each chunk MINUS LAST_CHUNK, endptr is set
+         * to o byte after the normal, so get_next_line() gets line
+         * overlapping between 2 chunks from the first one.
+         * ---
+         * In other words, we skip the line because it should have
+         * been already processed from previous chunk.
+         */
+        ptr = (chunk->endptr) - 1;
+        remaining_size = file->info.st_size - (ptr - file->addr);
+    }
+
+    if (remaining_size <= (ssize_t) g_conf.chunk_size)
+    {
+        endptr = ptr + remaining_size;
+    }
+    else
+    {
+        /* endptr +1 when chunk is not the last
+         * SEE PREVIOUS NOTE
+         */
+        endptr = ptr + g_conf.chunk_size + 1;
+    }
 
     chunk->ptr = ptr;
     chunk->endptr = endptr;
+    chunk->skip_first_line = skip_first_line;
+    DLOG4("get_next_chunk() returns ptr=%p, endptr=%p, skip_first_line=%d, remaining_size=%zd",
+            chunk->ptr,
+            chunk->endptr,
+            chunk->skip_first_line,
+            remaining_size
+         );
     return (true);
 }
 

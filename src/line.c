@@ -43,6 +43,16 @@ bool        get_next_line(t_line *dst, t_chunk *chunk)
     size_t  line_size;
 
     size = chunk->endptr - chunk->ptr;
+
+    if (chunk->skip_first_line)
+    {
+        if ((next = memchr(chunk->ptr, '\n', size)) == NULL)
+            return (false);
+        size -= (next - chunk->ptr) + 1;
+        chunk->ptr = next + 1;
+        chunk->skip_first_line = 0;
+    }
+
     while (size > 0)
     {
         if (chunk->ptr[0] == DISABLED_LINE)
