@@ -31,7 +31,7 @@ function test_wordlist ()
     rm -f nonreg_*.out
     p="[CMP] duplicut $args < $file:"
 
-    $timeout 5 $DUPLICUT -o nonreg_duplicut.out $args < $file
+    $timeout 5 $DUPLICUT -o nonreg_duplicut.out -m 64K $args < $file
     retval="$?"
     $COMPARATOR $file -o nonreg_comparator.out $args
 
