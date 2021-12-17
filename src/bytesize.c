@@ -54,6 +54,7 @@ char    *sizerepr(size_t size)
         size /= 1024;
         ++div;
     }
-    snprintf(buf, BUF_SIZE, "%.1f%c", (double)size + (double)rem / 1024.0, BYTESIZE_METRICS[div]);
+    snprintf(buf, BUF_SIZE, "%.1f%c",
+            (double)size + (double)rem / 1024.0, BYTESIZE_METRICS[div]);
     return buf;
 }
