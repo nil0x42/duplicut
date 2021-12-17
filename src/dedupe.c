@@ -45,8 +45,7 @@ void            tag_duplicates(void)
     threadpool  thpool;
     t_chunk     main_chunk = {
         .ptr = NULL,
-        .endptr = NULL,
-        .skip_first_line = 0
+        .endptr = NULL
     };
 
     /* thpool already prints error unless DISABLE_PRINT is defined */
@@ -94,8 +93,7 @@ void            tag_duplicates(void)
 {
     t_chunk     main_chunk = {
         .ptr = NULL,
-        .endptr = NULL,
-        .skip_first_line = 0
+        .endptr = NULL
     };
 
     while (get_next_chunk(&main_chunk, g_file))

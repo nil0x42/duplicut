@@ -8,7 +8,6 @@ typedef struct  chunk
 {
     char        *ptr;
     char        *endptr;
-    int         skip_first_line;
 }               t_chunk;
 
 /* source file: chunk.c */
