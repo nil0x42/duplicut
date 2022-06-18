@@ -3,7 +3,7 @@ SHELL        = /bin/sh
 
 # debug level
 level        = 1
- 
+
 CFLAGS       = -Iinclude -Wall -Wextra \
 			   -Wdisabled-optimization -Winline \
 			   -Wdouble-promotion -Wunknown-pragmas \
@@ -13,22 +13,22 @@ CFLAGS       = -Iinclude -Wall -Wextra \
 LDFLAGS      = -lm -pthread
 RELEASEFLAGS = -O2 -D NDEBUG
 DEBUGFLAGS   = -O0 -D DEBUG=$(level) -std=gnu99 -g3
- 
+
 SOURCES      = main.c thpool.c file.c chunk.c line.c dedupe.c \
 			   optparse.c config.c error.c memstate.c meminfo.c bytesize.c \
 			   hmap.c status.c uinput.c \
 
 COMMON       = include/const.h include/debug.h
 OBJECTS      = $(patsubst %.c, objects/%.o, $(SOURCES))
- 
+
 PREFIX       = $(DESTDIR)/usr/local
 BINDIR       = $(PREFIX)/bin
- 
- 
+
+
 all: $(TARGET)
 release: $(TARGET)
 re: $(TARGET)
- 
+
 debug: CFLAGS += $(DEBUGFLAGS)
 debug: distclean $(OBJECTS) $(COMMON)
 	-ctags src/* include/*
@@ -56,10 +56,10 @@ profile-use: rm-objects $(OBJECTS) $(COMMON)
 objects/%.o: src/%.c
 	mkdir -p `dirname $@`
 	$(CC) $(FLAGS) $(CFLAGS) -c $< -o $@
- 
+
 install: release
 	install -D $(TARGET) $(BINDIR)/$(TARGET)
- 
+
 uninstall:
 	rm $(BINDIR)/$(TARGET)
 
@@ -70,10 +70,10 @@ clean:
 	-rm -rf objects/
 	-rm -f gmon.out
 	-rm -f tags
- 
+
 distclean: clean
 	-rm -f $(TARGET)
 
- 
+
 .PHONY: all release profile clean distclean \
         install uninstall test
