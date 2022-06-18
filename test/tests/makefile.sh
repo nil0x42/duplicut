@@ -14,12 +14,12 @@ set -ve
 #### make with debug infos
 make debug
 test -d objects/
-which ctags 2>/dev/null && test -f tags
+test -f tags # ctags must be installed on system
 test -f duplicut -a -x duplicut
 ./duplicut &> /dev/null
 # check there is debug symbols AND NO profiling info (linux only)
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    nm --debug-syms duplicut | grep -Eq '\s+N\s+\.debug_[a-z]+'
+    nm --debug-syms duplicut | grep -Eq '\s+t\s+_dlog$'
     ! test -e gmon.out
 fi
 
@@ -49,7 +49,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     make profile
     ! test -e gmon.out
     ./duplicut > /dev/null
-    # ensure there is gmon.out
+    # ensure there is gmon.out after running duplicut
     test -e gmon.out
 fi
 
