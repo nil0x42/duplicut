@@ -7,9 +7,9 @@
 # include "xxhash.h"
 
 # if __SIZEOF_POINTER__ == 8
-#   define HASH(ln)   (XXH3_64bits(LINE_ADDR(*ln), LINE_SIZE(*ln)))
-# elif __SIZEOF_POINTER__ == 4
-#   define HASH(ln)   (XXH32(LINE_ADDR(*ln), LINE_SIZE(*ln), 0))
+#  define HASH(ln)   (XXH3_64bits(LINE_ADDR(*ln), LINE_SIZE(*ln)))
+# else
+#  error "not x64 arch (__SIZEOF_POINTER__ != 8)"
 # endif
 
 #endif /* HASH_H */
