@@ -68,3 +68,11 @@ fi
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     cat /proc/meminfo
 fi
+
+#### make coverage
+make coverage
+# ensure there is no gcov symbols
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    ! test -e gmon.out
+    ! nm --debug-syms duplicut | grep -Eq '\s+d\s+\.__gcov_\.'
+fi
