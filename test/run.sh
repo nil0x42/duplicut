@@ -41,13 +41,10 @@ function die ()
 function build_program ()
 {
     local _arch="$1"
-    local buildscript="$_MAIN_DIR/build.sh"
-
     case "$_arch" in
         "x64")
             export FLAGS=""
-            $buildscript \
-                || die "Failed to compile"
+            make coverage || die "Could not compile"
 
             fileinfo="$(file -b "$_PROGRAM" 2>&1)"
             grep -q "x86.64" <<< "$fileinfo" \
@@ -55,7 +52,7 @@ function build_program ()
 
             ;;
         *)
-            die "Invalid architecture: $_arch"
+            die "Bad arch: $_arch"
             ;;
     esac
 }
