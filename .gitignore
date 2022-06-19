@@ -1,2 +1,6 @@
 /duplicut
 /nonreg_*.out
+/objects
+*.gcno
+*.gcda
+*.gcov
