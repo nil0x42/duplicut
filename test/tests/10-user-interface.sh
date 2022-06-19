@@ -2,9 +2,21 @@
 
 # check user interface
 
+# faketty COMMAND
+faketty() {
+    if command -v unbuffer > /dev/null; then
+        # for macos (brew install expect)
+        unbuffer -p $@
+    else
+        script -eqfc "$(printf "%q " "$@")" /dev/null
+    fi
+}
+
 set -ve
 
-./duplicut > /dev/null
+< /dev/null ./duplicut 2>&1 | grep -q '^error: mandatory argument: --outfile$'
+
+faketty ./duplicut > /dev/null
 ./duplicut --help > /dev/null
 
 ./duplicut --unexistent-argument 2>&1 | grep -q "unrecognized"
