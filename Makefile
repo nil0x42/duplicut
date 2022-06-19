@@ -1,28 +1,29 @@
-TARGET       = duplicut
-SHELL        = /bin/sh
+TARGET        = duplicut
+SHELL         = /bin/sh
 
 # debug level
-level        = 1
+level         = 1
 
-CFLAGS       = -Iinclude -Wall -Wextra \
-			   -Wdisabled-optimization -Winline \
-			   -Wdouble-promotion -Wunknown-pragmas \
-			   -Wno-implicit-fallthrough \
-			   -Wno-error=implicit-function-declaration \
-			   -mtune=native -ffast-math
-LDFLAGS      = -lm -pthread
-RELEASEFLAGS = -O2 -D NDEBUG
-DEBUGFLAGS   = -O0 -D DEBUG=$(level) -std=gnu99 -g3
+CFLAGS        = -Iinclude -Wall -Wextra \
+                -Wdisabled-optimization -Winline \
+                -Wdouble-promotion -Wunknown-pragmas \
+                -Wno-implicit-fallthrough \
+                -Wno-error=implicit-function-declaration \
+                -mtune=native -ffast-math
+LDFLAGS       = -lm -pthread
+RELEASEFLAGS  = -O2 -D NDEBUG
+DEBUGFLAGS    = -O0 -D DEBUG=$(level) -std=gnu99 -g3
+COVERAGEFLAGS = -O0 -D NDEBUG -std=gnu99 -g3 --coverage
 
-SOURCES      = main.c thpool.c file.c chunk.c line.c dedupe.c \
-			   optparse.c config.c error.c memstate.c meminfo.c bytesize.c \
-			   hmap.c status.c uinput.c \
+SOURCES       = main.c thpool.c file.c chunk.c line.c dedupe.c \
+                optparse.c config.c error.c memstate.c meminfo.c bytesize.c \
+                hmap.c status.c uinput.c \
 
-COMMON       = include/const.h include/debug.h
-OBJECTS      = $(patsubst %.c, objects/%.o, $(SOURCES))
+COMMON        = include/const.h include/debug.h
+OBJECTS       = $(patsubst %.c, objects/%.o, $(SOURCES))
 
-PREFIX       = $(DESTDIR)/usr/local
-BINDIR       = $(PREFIX)/bin
+PREFIX        = $(DESTDIR)/usr/local
+BINDIR        = $(PREFIX)/bin
 
 
 all: $(TARGET)
@@ -32,6 +33,10 @@ re: $(TARGET)
 debug: CFLAGS += $(DEBUGFLAGS)
 debug: distclean $(OBJECTS) $(COMMON)
 	-ctags src/* include/*
+	$(CC) $(FLAGS) $(CFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
+
+coverage: CFLAGS += $(COVERAGEFLAGS)
+coverage: distclean $(OBJECTS) $(COMMON)
 	$(CC) $(FLAGS) $(CFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
 
 $(TARGET): CFLAGS += $(RELEASEFLAGS)
