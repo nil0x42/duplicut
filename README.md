@@ -46,13 +46,13 @@
 
 ### :book: Overview
 
-Modern password wordlist creation usually implies concatenating
+Nowadays, password wordlist creation usually implies concatenating
 multiple data sources.
 
 Ideally, most probable passwords should stand at start of the wordlist,
 so most common passwords are cracked instantly.
 
-With existing *dedupe tools* you are forced to choose
+With existing _dedupe tools_ you are forced to choose
 if you prefer to _preserve the order **OR** handle massive wordlists_.
 
 Unfortunately, **wordlist creation requires both**:
@@ -71,27 +71,23 @@ cd duplicut/ && make
 ./duplicut wordlist.txt -o clean-wordlist.txt
 ```
 
-
 ### :wrench: Options
 
 ![][img-4-help]
 
 * **Features**:
-    - Handle massive wordlists, even those whose size exceeds available RAM
-    - Filter lines by max length (`-l` option)
-    - Can remove lines containing non-printable ASCII chars (`-p` option)
-    - Press any key to show program status at runtime.
+    * Handle massive wordlists, even those whose size exceeds available RAM
+    * Filter lines by max length (`-l` option)
+    * Can remove lines containing non-printable ASCII chars (`-p` option)
+    * Press any key to show program status at runtime.
 
 * **Implementation**:
-    - Written in pure C code, designed to be fast
-    - Compressed hashmap items on 64 bit platforms
-    - Multithreading support
-    - **[TODO]:** Use huge memory pages to increase performance
+    * Written in pure C code, designed to be fast
+    * Compressed hashmap items on 64 bit platforms
+    * Multithreading support
 
 * **Limitations**:
-    - Any line longer than 255 chars is ignored
-    - Heavily tested on Linux x64, mostly untested on other platforms.
-
+    * Any line longer than 255 chars is ignored
 
 ### :book: Technical Details
 
@@ -102,16 +98,17 @@ An `uint64` is enough to index lines in hashmap, by packing
 
 ![][img-2-line-struct]
 
-
 #### :small_orange_diamond: 2- Massive file handling:
 
 If whole file can't fit in memory, it is split into ![][latex-n]
-virtual chunks, then each one is tested against next chunks.
+virtual chunks, in such way that each chunk uses as much RAM as possible.
 
-So complexity is equal to ![][latex-n]th *triangle number*:
+Each chunk is then loaded into hashmap, deduped, and tested against
+subsequent chunks.
+
+That way, execution time decreases to at most ![][latex-n]th *triangle number*:
 
 ![][img-3-chunked-processing]
-
 
 ## :bulb: Throubleshotting
 
