@@ -6,4 +6,4 @@ path_classifiers:
   docs:
     - README.md
   library:
-    - include/xxhash.h
+    - "**/xxhash.*"
