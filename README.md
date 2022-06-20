@@ -9,10 +9,22 @@
 <br>
 
 <p align="center">
-  <a href="https://travis-ci.com/nil0x42/duplicut">
-    <img src="https://img.shields.io/travis/com/nil0x42/duplicut?branch=master&logo=travis" alt="travis build">
+  <a href="https://github.com/nil0x42/duplicut/actions?query=branch%3Amaster">
+    <img src="https://img.shields.io/github/workflow/status/nil0x42/duplicut/Unit%20Tests/wip?logo=githubactions" alt="github workflows">
   </a>
-  <a href="https://github.com/enaqx/awesome-pentest">
+  <a href="https://app.codacy.com/gh/nil0x42/duplicut/dashboard">
+    <img src="https://img.shields.io/codacy/grade/b01c0228bd9148fb9d713a479dda4b25?logo=codacy&logoColor=green" alt="codacy code quality">
+  </a>
+  <a href="https://lgtm.com/projects/g/nil0x42/duplicut/alerts/">
+    <img src="https://img.shields.io/lgtm/alerts/github/nil0x42/duplicut?logo=lgtm&logoColor=yellow" alt="lgtm alerts">
+  </a>
+  <a href="https://codecov.io/gh/nil0x42/duplicut">
+    <img src="https://img.shields.io/codecov/c/github/nil0x42/duplicut?color=orange&label=coverage&logo=codecov" alt="codecov coverage">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/enaqx/awesome-pentest#hash-cracking-tools">
     <img src="https://awesome.re/mentioned-badge.svg" alt="Mentioned in awesome-pentest">
   </a>
   <a href="https://twitter.com/intent/follow?screen_name=nil0x42" target="_blank">

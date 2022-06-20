@@ -1,0 +1,9 @@
+path_classifiers:
+# https://lgtm.com/help/lgtm/file-classification
+  test:
+    - exclude: / # ignore lgtm test code default classification
+    - test
+  docs:
+    - README.md
+  library:
+    - include/xxhash.h
