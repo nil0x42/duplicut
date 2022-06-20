@@ -52,14 +52,14 @@ multiple data sources.
 Ideally, most probable passwords should stand at start of the wordlist,
 so most common passwords are cracked instantly.
 
-With existing _dedupe tools_ you are forced to choose
-if you prefer to _preserve the order **OR** handle massive wordlists_.
+With existing *dedupe tools* you are forced to choose
+if you prefer to *preserve the order **OR** handle massive wordlists*.
 
 Unfortunately, **wordlist creation requires both**:
 
 ![][img-1-comparison]
 
-> **So i wrote duplicut in [highly optimized C] to address this very specific need :nerd_face: :computer:**
+> **So i wrote duplicut in [highly optimized C][get-next-line] to address this very specific need :nerd\_face: :computer:**
 
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
@@ -75,19 +75,19 @@ cd duplicut/ && make
 
 ![][img-4-help]
 
-* **Features**:
-    * Handle massive wordlists, even those whose size exceeds available RAM
-    * Filter lines by max length (`-l` option)
-    * Can remove lines containing non-printable ASCII chars (`-p` option)
-    * Press any key to show program status at runtime.
+*   **Features**:
+    *   Handle massive wordlists, even those whose size exceeds available RAM
+    *   Filter lines by max length (`-l` option)
+    *   Can remove lines containing non-printable ASCII chars (`-p` option)
+    *   Press any key to show program status at runtime.
 
-* **Implementation**:
-    * Written in pure C code, designed to be fast
-    * Compressed hashmap items on 64 bit platforms
-    * Multithreading support
+*   **Implementation**:
+    *   Written in pure C code, designed to be fast
+    *   Compressed hashmap items on 64 bit platforms
+    *   Multithreading support
 
-* **Limitations**:
-    * Any line longer than 255 chars is ignored
+*   **Limitations**:
+    *   Any line longer than 255 chars is ignored
 
 ### :book: Technical Details
 
@@ -115,14 +115,14 @@ That way, execution time decreases to at most ![][latex-n]th *triangle number*:
 If you find a bug, or something doesn't work as expected,
 please compile duplicut in debug mode and post an [issue] with
 attached output:
+
 ```
 # debug level can be from 1 to 4
 make debug level=1
 ./duplicut [OPTIONS] 2>&1 | tee /tmp/duplicut-debug.log
 ```
 
-
-[highly optimized C]: https://github.com/nil0x42/duplicut/blob/master/src/line.c#L39
+[get-next-line]: https://github.com/nil0x42/duplicut/blob/master/src/line.c#L39
 
 [img-1-comparison]: data/img/1-comparison.png
 [img-2-line-struct]: data/img/2-line-struct.png
