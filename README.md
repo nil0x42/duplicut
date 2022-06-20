@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/nil0x42/duplicut/actions?query=branch%3Amaster">
-    <img src="https://img.shields.io/github/workflow/status/nil0x42/duplicut/Unit%20Tests/wip?logo=githubactions" alt="github workflows">
+    <img src="https://img.shields.io/github/workflow/status/nil0x42/duplicut/Unit%20Tests/master?logo=githubactions" alt="github workflows">
   </a>
   <a href="https://app.codacy.com/gh/nil0x42/duplicut/dashboard">
     <img src="https://img.shields.io/codacy/grade/b01c0228bd9148fb9d713a479dda4b25?logo=codacy&logoColor=green" alt="codacy code quality">
