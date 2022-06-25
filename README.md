@@ -27,6 +27,12 @@
   <a href="https://github.com/enaqx/awesome-pentest#hash-cracking-tools">
     <img src="https://awesome.re/mentioned-badge.svg" alt="Mentioned in awesome-pentest">
   </a>
+  <a href="https://inventory.raw.pm/tools.html#Duplicut">
+    <img src="https://inventory.raw.pm/img/badges/Rawsec-inventoried-FF5050_flat.svg">
+  </a>
+  <a href="https://www.blackarch.org/misc.html">
+    <img src="https://img.shields.io/static/v1?label=BlackArch&message=packaged&color=red&logo=archlinux&logoColor=006">
+  </a>
   <a href="https://twitter.com/intent/follow?screen_name=nil0x42" target="_blank">
     <img src="https://img.shields.io/twitter/follow/nil0x42.svg?logo=twitter" akt="follow on twitter">
   </a>
