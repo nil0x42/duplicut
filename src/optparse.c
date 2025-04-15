@@ -109,9 +109,9 @@ static void setopt_line_max_size(const char *value)
     {
         bad_argument("line_max_size", value, "not a positive number");
     }
-    else if (line_max_size > 255)
+    else if (line_max_size > 4095)
     {
-        bad_argument("line_max_size", value, "max value is 255");
+        bad_argument("line_max_size", value, "max value is 4095");
     }
     g_conf.line_max_size = (unsigned int) line_max_size;
 }
@@ -151,7 +151,7 @@ static void setopt_help(const char *value)
            "-o, --outfile <FILE>       Write result to <FILE>\n"
            "-t, --threads <NUM>        Max threads to use (default max)\n"
            "-m, --memlimit <VALUE>     Limit max used memory (default max)\n"
-           "-l, --line-max-size <NUM>  Max line size (default %d)\n"
+           "-l, --line-max-size <NUM>  Max line size (default %d, max 4095)\n"
            "-p, --printable            Filter ascii printable lines\n"
            "-c, --lowercase            Convert wordlist to lowercase\n"
            "-C, --uppercase            Convert wordlist to uppercase\n"
