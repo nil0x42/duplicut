@@ -23,9 +23,9 @@
 
 typedef size_t  t_line;
 # define LINE_ISSET(ln)         (ln != 0)
-# define LINE_SIZE(ln)          ((uint8_t)ln)
-# define LINE_ADDR(ln)          ((char*)(ln >> 8))
-# define SET_LINE(ln, ptr, sz)  (ln = ((((uintptr_t)ptr) << 8) + (uint8_t)sz))
+# define LINE_SIZE(ln)          ((uint16_t)(ln & 0xFFF))
+# define LINE_ADDR(ln)          ((char*)(ln >> 12))
+# define SET_LINE(ln, ptr, sz)  (ln = ((((uintptr_t)ptr) << 12) + ((uint16_t)(sz) & 0xFFF)))
 
 #else
 # error "not x64 arch (__SIZEOF_POINTER__ != 8)"
