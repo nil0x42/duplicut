@@ -24,10 +24,10 @@ faketty ./duplicut > /dev/null
 ! ./duplicut --version > /dev/null
 ./duplicut --version | grep -Eq "duplicut.+github"
 
-# -l max value is 255
-./duplicut /etc/passwd -o /tmp/x -l 255 &> /dev/null
-! ./duplicut /etc/passwd -o /tmp/x -l 256 &> /dev/null
-./duplicut /etc/passwd -o /tmp/x -l 256 2>&1 | grep -q "max value is 255"
+# -l max value is 4095
+./duplicut /etc/passwd -o /tmp/x -l 4095 &> /dev/null
+! ./duplicut /etc/passwd -o /tmp/x -l 4096 &> /dev/null
+./duplicut /etc/passwd -o /tmp/x -l 4096 2>&1 | grep -q "max value is 4095"
 
 # -c can't be used together with -C (lowere/upper case)
 ./duplicut /etc/passwd -o /tmp/x -c &> /dev/null
