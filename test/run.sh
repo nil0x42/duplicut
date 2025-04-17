@@ -9,7 +9,7 @@ _TESTS_DIR="$_MAIN_DIR/tests"
 _DEFAULT_ARCH="x64"
 
 _DEFAULT_TEST=$(find "$_TESTS_DIR" -maxdepth 1 -type f  \
-                -name '*.sh' -exec basename {} ';')
+                -name '*.sh' -exec basename {} ';' | sort)
 
 BANNER=$(perl -E 'print "="x79 . "\r\t\t"')
 
