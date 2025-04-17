@@ -57,11 +57,10 @@ jobs:
       - name: Set GCOV executable (macOS + gcc)
         if: matrix.os == 'macos-latest' && matrix.compiler == 'gcc'
         run: |
-          echo "XXXXXX $(brew --prefix gcc)/bin"
           ls -lah "$(brew --prefix gcc)/bin"
-          ls -lah "$(brew --prefix gcc)/"
-          ls -lah "$(brew --prefix gcc-15)/"
-          echo "GCOV_EXE=$(brew --prefix gcc)/bin/gcov-$(gcc -dumpversion | cut -d. -f1)" >> $GITHUB_ENV
+          echo "GCOV_EXE=$(brew --prefix gcc)/bin/gcov-1*"
+          ls -lah "$(brew --prefix gcc)/bin/gcov-1*"
+          echo "GCOV_EXE=$(brew --prefix gcc)/bin/gcov-1*" >> $GITHUB_ENV
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
