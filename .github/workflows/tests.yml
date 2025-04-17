@@ -19,7 +19,7 @@ jobs:
           - gcc
           - llvm
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 5
 
     steps:
       - name: Checkout repository
@@ -41,6 +41,7 @@ jobs:
         uses: aminya/setup-cpp@v1
         with:
           compiler: ${{ matrix.compiler }}
+          gcovr: true
 
       - name: Run unit tests
         # stdbuf has a bug on mac-latest (stdbuf is arm64, github wm arm64e)
@@ -58,7 +59,22 @@ jobs:
       - name: Override GCOV executable (macOS + gcc)
         if: startsWith(matrix.os, 'ubuntu') && matrix.compiler == 'llvm'
         run: |
+          echo xxx1
           echo "GCOV_EXE=llvm-cov gcov" >> $GITHUB_ENV
+          echo xxx2
+          which llvm-cov
+          echo xxx3
+          ls -lah $(which llvm-cov)
+          echo xxx4
+          which gcov
+          echo xxx5
+          ls -lah $(which gcov)
+          echo xxx6
+          find / -type f -name gcov 2>/dev/nul
+          echo xxx7
+          find / -type f -name llvm-cov 2>/dev/nul
+          echo xxx8
+          llvm-cov --help
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -68,5 +84,4 @@ jobs:
           verbose: true
           flags: ${{ runner.os }}
           name: ${{ runner.os }}-${{ runner.compiler }}-coverage
-          #env_vars: OS,CC
           gcov_executable: "${{ env.GCOV_EXE }}"
