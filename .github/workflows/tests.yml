@@ -14,10 +14,10 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          # - macos-latest
+          - macos-latest
         compiler:
-          - llvm
           - gcc
+          - llvm
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
 
