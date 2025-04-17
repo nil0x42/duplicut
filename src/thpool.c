@@ -8,7 +8,16 @@
  *
  ********************************/
 
+#if defined(__APPLE__)
+#include <AvailabilityMacros.h>
+#else
+#ifndef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE 200809L
+#endif
+#ifndef _XOPEN_SOURCE
+#define _XOPEN_SOURCE 500
+#endif
+#endif
 #include <unistd.h>
 #include <signal.h>
 #include <stdio.h>
@@ -18,6 +27,9 @@
 #include <time.h>
 #if defined(__linux__)
 #include <sys/prctl.h>
+#endif
+#if defined(__FreeBSD__) || defined(__OpenBSD__)
+#include <pthread_np.h>
 #endif
 
 #include "thpool.h"
@@ -33,6 +45,13 @@
 #else
 #define err(str)
 #endif
+
+#ifndef THPOOL_THREAD_NAME
+#define THPOOL_THREAD_NAME thpool
+#endif
+
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
 
 static volatile int threads_keepalive;
 static volatile int threads_on_hold;
@@ -317,14 +336,17 @@ static void thread_hold(int sig_id) {
 static void* thread_do(struct thread* thread_p){
 
 	/* Set thread name for profiling and debugging */
-	char thread_name[128] = {0};
-	sprintf(thread_name, "thread-pool-%d", thread_p->id);
+	char thread_name[16] = {0};
+
+	snprintf(thread_name, 16, TOSTRING(THPOOL_THREAD_NAME) "-%d", thread_p->id);
 
 #if defined(__linux__)
 	/* Use prctl instead to prevent using _GNU_SOURCE flag and implicit declaration */
 	prctl(PR_SET_NAME, thread_name);
 #elif defined(__APPLE__) && defined(__MACH__)
 	pthread_setname_np(thread_name);
+#elif defined(__FreeBSD__) || defined(__OpenBSD__)
+    pthread_set_name_np(thread_p->pthread, thread_name);
 #else
 	err("thread_do(): pthread_setname_np is not supported on this system");
 #endif
@@ -335,7 +357,7 @@ static void* thread_do(struct thread* thread_p){
 	/* Register signal handler */
 	struct sigaction act;
 	sigemptyset(&act.sa_mask);
-	act.sa_flags = 0;
+	act.sa_flags = SA_ONSTACK;
 	act.sa_handler = thread_hold;
 	if (sigaction(SIGUSR1, &act, NULL) == -1) {
 		err("thread_do(): cannot handle SIGUSR1");
@@ -514,6 +536,8 @@ static void bsem_init(bsem *bsem_p, int value) {
 
 /* Reset semaphore to 0 */
 static void bsem_reset(bsem *bsem_p) {
+	pthread_mutex_destroy(&(bsem_p->mutex));
+	pthread_cond_destroy(&(bsem_p->cond));
 	bsem_init(bsem_p, 0);
 }
 
