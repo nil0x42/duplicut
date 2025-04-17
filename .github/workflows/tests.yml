@@ -58,6 +58,7 @@ jobs:
         if: matrix.os == 'macos-latest' && matrix.compiler == 'gcc'
         run: |
           ls -lah "$(brew --prefix gcc)/bin"
+          echo YYY $(gcc -dumpversion)
           echo "GCOV_EXE=$(brew --prefix gcc)/bin/gcov-1*"
           ls -lah "$(brew --prefix gcc)/bin/gcov-1*"
           echo "GCOV_EXE=$(brew --prefix gcc)/bin/gcov-1*" >> $GITHUB_ENV
