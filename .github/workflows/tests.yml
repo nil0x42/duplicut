@@ -66,6 +66,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
           verbose: true
-          flags: tests
-          env_vars: OS,CC
-          gcov_executable: ${{ env.GCOV_EXE }}
+          flags: ${{ runner.os }}
+          name: ${{ runner.os }}-${{ runner.compiler }}-coverage
+          #env_vars: OS,CC
+          gcov_executable: "${{ env.GCOV_EXE }}"
