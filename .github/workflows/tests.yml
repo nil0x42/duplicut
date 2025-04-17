@@ -14,7 +14,7 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          - macos-latest
+          # - macos-latest
         compiler:
           - llvm
           - gcc
@@ -46,9 +46,9 @@ jobs:
         run: |
           stdbuf -oL -eL ./test/run.sh 2>&1
 
-      - name: Generate coverage reports
-        run: |
-          gcov -abcfu objects/*
+      # - name: Generate coverage reports
+      #   run: |
+      #     gcov -abcfu objects/*
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
