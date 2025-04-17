@@ -9,28 +9,28 @@
 <br>
 
 <p align="center">
-  <a href="https://github.com/nil0x42/duplicut/actions?query=branch%3Amaster">
+  <a href="https://github.com/nil0x42/duplicut/actions?query=branch%3Amaster" target="_blank">
     <img src="https://img.shields.io/github/workflow/status/nil0x42/duplicut/Unit%20Tests/master?logo=githubactions" alt="github workflows">
   </a>
-  <a href="https://app.codacy.com/gh/nil0x42/duplicut/dashboard">
+  <a href="https://app.codacy.com/gh/nil0x42/duplicut/dashboard" target="_blank">
     <img src="https://img.shields.io/codacy/grade/b01c0228bd9148fb9d713a479dda4b25?logo=codacy&logoColor=green" alt="codacy code quality">
   </a>
-  <a href="https://lgtm.com/projects/g/nil0x42/duplicut/alerts/">
+  <a href="https://lgtm.com/projects/g/nil0x42/duplicut/alerts/" target="_blank">
     <img src="https://img.shields.io/lgtm/alerts/github/nil0x42/duplicut?logo=lgtm&logoColor=yellow" alt="lgtm alerts">
   </a>
-  <a href="https://codecov.io/gh/nil0x42/duplicut">
+  <a href="https://codecov.io/gh/nil0x42/duplicut" target="_blank">
     <img src="https://img.shields.io/codecov/c/github/nil0x42/duplicut?color=orange&label=coverage&logo=codecov" alt="codecov coverage">
   </a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/enaqx/awesome-pentest#hash-cracking-tools">
+  <a href="https://github.com/enaqx/awesome-pentest#hash-cracking-tools" target="_blank">
     <img src="https://awesome.re/mentioned-badge.svg" alt="Mentioned in awesome-pentest">
   </a>
-  <a href="https://inventory.raw.pm/tools.html#Duplicut">
+  <a href="https://inventory.raw.pm/tools.html#Duplicut" target="_blank">
     <img src="https://inventory.raw.pm/img/badges/Rawsec-inventoried-FF5050_flat.svg">
   </a>
-  <a href="https://www.blackarch.org/misc.html">
+  <a href="https://www.blackarch.org/misc.html" target="_blank">
     <img src="https://img.shields.io/static/v1?label=BlackArch&message=packaged&color=red&logo=archlinux&logoColor=006">
   </a>
   <a href="https://twitter.com/intent/follow?screen_name=nil0x42" target="_blank">

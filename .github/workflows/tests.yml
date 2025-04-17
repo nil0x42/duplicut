@@ -1,0 +1,60 @@
+name: Tests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+        compiler:
+          - llvm
+          - gcc
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup MacOS environment
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          brew install coreutils ctags expect
+          echo "$(brew --prefix)/opt/gnu-sed/libexec/gnubin" >> $GITHUB_PATH
+
+      - name: Setup Linux environment
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y exuberant-ctags expect-dev
+
+      - name: Setup compiler
+        uses: aminya/setup-cpp@v1
+        with:
+          compiler: ${{ matrix.compiler }}
+
+      - name: Run unit tests
+        run: |
+          stdbuf -oL -eL ./test/run.sh 2>&1
+
+      - name: Generate coverage reports
+        run: |
+          gcov -abcfu objects/*
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
+          verbose: true
+          flags: tests
+          env_vars: OS,CC
