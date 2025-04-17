@@ -50,18 +50,14 @@ jobs:
         run: |
           unbuffer ./test/run.sh
 
-      - name: Set default GCOV executable
-        run: |
-          echo "GCOV_EXE=gcov" >> "$GITHUB_ENV"
-
       - name: Set GCOV executable (macOS + gcc)
         if: matrix.os == 'macos-latest' && matrix.compiler == 'gcc'
         run: |
           ls -lah "$(brew --prefix gcc)/bin"
-          echo YYY $(gcc -dumpversion)
-          echo "GCOV_EXE=$(brew --prefix gcc)/bin/gcov-1*"
-          ls -lah "$(brew --prefix gcc)/bin/gcov-1*"
-          echo "GCOV_EXE=$(brew --prefix gcc)/bin/gcov-1*" >> $GITHUB_ENV
+          echo YYY $(gcc -dumpversion | cut -d. -f1)
+          echo "GCOV_EXE=$(brew --prefix gcc)/bin/gcov-$(gcc -dumpversion | cut -d. -f1)"
+          ls -lah "$(brew --prefix gcc)/bin/gcov-$(gcc -dumpversion | cut -d. -f1)"
+          echo "GCOV_EXE=$(brew --prefix gcc)/bin/gcov-$(gcc -dumpversion | cut -d. -f1)" >> $GITHUB_ENV
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
