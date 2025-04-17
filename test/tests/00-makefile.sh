@@ -75,5 +75,6 @@ make coverage
 # ensure there are gcov symbols
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     ! test -e gmon.out
+    nm --debug-syms duplicut
     nm --debug-syms duplicut | grep -Eq '__gcov_\.'
 fi

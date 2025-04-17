@@ -50,9 +50,14 @@ jobs:
         run: |
           unbuffer ./test/run.sh
 
-      # - name: Generate coverage reports
-      #   run: |
-      #     gcov -abcfu objects/*
+      - name: Set default GCOV executable
+        run: |
+          echo "GCOV_EXE=gcov" >> "$GITHUB_ENV"
+
+      - name: Set GCOV executable (macOS + gcc)
+        if: matrix.os == 'macos-latest' && matrix.compiler == 'gcc'
+        run: |
+          echo "GCOV_EXE=gcov-$(gcc -dumpversion | cut -d. -f1)" >> $GITHUB_ENV
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -62,3 +67,4 @@ jobs:
           verbose: true
           flags: tests
           env_vars: OS,CC
+          gcov_executable: ${{ env.GCOV_EXE }}
