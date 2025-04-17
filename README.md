@@ -9,14 +9,14 @@
 <br>
 
 <p align="center">
-  <a href="https://github.com/nil0x42/duplicut/actions?query=branch%3Amaster" target="_blank">
-    <img src="https://img.shields.io/github/workflow/status/nil0x42/duplicut/Unit%20Tests/master?logo=githubactions" alt="github workflows">
+  <a href="https://github.com/nil0x42/duplicut/actions/workflows/tests.yml?query=branch%3Amaster" target="_blank">
+    <img src="https://github.com/nil0x42/duplicut/actions/workflows/tests.yml/badge.svg" alt="github tests">
   </a>
   <a href="https://app.codacy.com/gh/nil0x42/duplicut/dashboard" target="_blank">
     <img src="https://img.shields.io/codacy/grade/b01c0228bd9148fb9d713a479dda4b25?logo=codacy&logoColor=green" alt="codacy code quality">
   </a>
-  <a href="https://lgtm.com/projects/g/nil0x42/duplicut/alerts/" target="_blank">
-    <img src="https://img.shields.io/lgtm/alerts/github/nil0x42/duplicut?logo=lgtm&logoColor=yellow" alt="lgtm alerts">
+  <a href="https://github.com/nil0x42/duplicut/actions/workflows/codeql.yml?query=branch%3Amaster" target="_blank">
+    <img src="https://github.com/nil0x42/duplicut/actions/workflows/codeql.yml/badge.svg" alt="github codeql">
   </a>
   <a href="https://codecov.io/gh/nil0x42/duplicut" target="_blank">
     <img src="https://img.shields.io/codecov/c/github/nil0x42/duplicut?color=orange&label=coverage&logo=codecov" alt="codecov coverage">
