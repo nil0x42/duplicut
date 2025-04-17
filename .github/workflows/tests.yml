@@ -70,11 +70,17 @@ jobs:
           echo xxx5
           ls -lah $(which gcov)
           echo xxx6
-          find / -type f -name gcov 2>/dev/nul
+          find / -type f -name gcov* 2>/dev/null
           echo xxx7
-          find / -type f -name llvm-cov 2>/dev/nul
+          find / -type f -name llvm-cov* 2>/dev/null
           echo xxx8
           llvm-cov --help
+          echo xxx9
+          env
+          echo xxx10
+          cat $GITHUB_ENV
+          echo xxx11
+
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
