@@ -9,7 +9,7 @@ _TESTS_DIR="$_MAIN_DIR/tests"
 _DEFAULT_ARCH="x64"
 
 _DEFAULT_TEST=$(find "$_TESTS_DIR" -maxdepth 1 -type f  \
-                -name '*.sh' -exec basename {} ';')
+                -name '*.sh' -exec basename {} ';' | sort)
 
 BANNER=$(perl -E 'print "="x79 . "\r\t\t"')
 
@@ -47,7 +47,7 @@ function build_program ()
             make coverage || die "Could not compile"
 
             fileinfo="$(file -b "$_PROGRAM" 2>&1)"
-            grep -q "x86.64" <<< "$fileinfo" \
+            grep -q "64" <<< "$fileinfo" \
                 || die "Bad filetype: $_PROGRAM: $fileinfo"
 
             ;;

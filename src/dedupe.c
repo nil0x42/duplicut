@@ -20,7 +20,6 @@ static void     tag_subchunks(threadpool thpool, const t_chunk *parent)
 {
     t_chunk     chunk;
     t_chunk     *heap_chunk;
-    int         chunk_id = 1;
 
     memcpy(&chunk, parent, sizeof(t_chunk));
     while (get_next_chunk(&chunk, g_file))
@@ -32,7 +31,6 @@ static void     tag_subchunks(threadpool thpool, const t_chunk *parent)
         /* thpool already prints error unless DISABLE_PRINT is defined */
         if (thpool_add_work(thpool, (void*)cleanout_chunk, heap_chunk) != 0)
             exit(1);
-        chunk_id ++;
     }
     update_status(CHUNK_DONE);
 }

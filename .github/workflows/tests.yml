@@ -1,0 +1,72 @@
+name: Tests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+        compiler:
+          - gcc
+          - llvm
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup MacOS environment
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          brew install coreutils ctags expect
+          echo "$(brew --prefix)/opt/gnu-sed/libexec/gnubin" >> $GITHUB_PATH
+
+      - name: Setup Linux environment
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y exuberant-ctags expect-dev
+
+      - name: Setup compiler
+        uses: aminya/setup-cpp@v1
+        with:
+          compiler: ${{ matrix.compiler }}
+          gcovr: true
+
+      - name: Run unit tests
+        # stdbuf has a bug on mac-latest (stdbuf is arm64, github wm arm64e)
+        # using 'unbuffer' command (made availavble by 'expect' package);
+        # run: |
+        #   stdbuf -oL -eL ./test/run.sh 2>&1
+        run: |
+          unbuffer ./test/run.sh
+
+      - name: Override GCOV executable (macOS + gcc)
+        if: matrix.os == 'macos-latest' && matrix.compiler == 'gcc'
+        run: |
+          echo "GCOV=$(echo $(brew --prefix gcc)/bin/gcov-1*)" >> $GITHUB_ENV
+
+      - name: Override GCOV executable (macOS + gcc)
+        if: startsWith(matrix.os, 'ubuntu') && matrix.compiler == 'llvm'
+        run: |
+          echo 'GCOV="llvm-cov gcov"' >> $GITHUB_ENV
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
+          verbose: true
+          flags: ${{ runner.os }}
+          name: ${{ runner.os }}-${{ matrix.compiler }}-coverage
+          gcov_executable: ${{ env.GCOV }}
