@@ -93,7 +93,7 @@ cd duplicut/ && make
     *   Multithreading support
 
 *   **Limitations**:
-    *   Any line longer than 255 chars is ignored
+    *   Any line longer than 4095 chars is ignored
 
 ### :book: Technical Details
 
