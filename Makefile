@@ -12,8 +12,8 @@ CFLAGS        = -Iinclude -Wall -Wextra \
                 -mtune=native -ffast-math
 LDFLAGS       = -lm -pthread
 RELEASEFLAGS  = -O2 -D NDEBUG
-DEBUGFLAGS    = -O0 -D DEBUG=$(level) -std=gnu99 -g3
-COVERAGEFLAGS = -O0 -D NDEBUG -std=gnu99 -g3 --coverage -fprofile-update=atomic
+DEBUGFLAGS    = -O0 -D DEBUG=$(level) -std=gnu99 -g2
+COVERAGEFLAGS = -O0 -D NDEBUG -std=gnu99 -g2 --coverage -fprofile-update=atomic
 
 SOURCES       = main.c thpool.c file.c chunk.c line.c dedupe.c \
                 optparse.c config.c error.c memstate.c meminfo.c bytesize.c \
