@@ -68,5 +68,5 @@ jobs:
           fail_ci_if_error: true
           verbose: true
           flags: ${{ runner.os }}
-          name: ${{ runner.os }}-${{ runner.compiler }}-coverage
+          name: ${{ runner.os }}-${{ matrix.compiler }}-coverage
           gcov_executable: ${{ env.GCOV }}
