@@ -52,7 +52,7 @@ WORDLISTS=$(find "$WORDLIST_DIR" -maxdepth 1 -type f  \
     -name '*.txt' -exec basename {} ';' | sort)
 
 for wordlist in $WORDLISTS; do
-    for size in 1 5 14 15 40 64 65 128 255; do
+    for size in 1 5 14 15 40 64 65 128 255 2000 4095; do
         test_wordlist "$wordlist" -l $size
         test_wordlist "$wordlist" -l $size -p
         test_wordlist "$wordlist" -l $size -c
