@@ -130,10 +130,10 @@ make debug level=1
 
 [get-next-line]: https://github.com/nil0x42/duplicut/blob/master/src/line.c#L39
 
-[img-1-comparison]: data/img/1-comparison.png
-[img-2-line-struct]: data/img/2-line-struct.png
-[img-3-chunked-processing]: data/img/3-chunked-processing.png
-[img-4-help]: data/img/4-help.png
+[img-1-comparison]: .github/images/1-comparison.png
+[img-2-line-struct]: .github/images/2-line-struct.png
+[img-3-chunked-processing]: .github/images/3-chunked-processing.png
+[img-4-help]: .github/images/4-help.png
 
 [issue]: https://github.com/nil0x42/duplicut/issues
 [tagged-pointer]: https://en.wikipedia.org/wiki/Tagged_pointer
