@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <sys/types.h>
 #include "chunk.h"
 #include "line.h"
 #include "file.h"
