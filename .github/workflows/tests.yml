@@ -12,9 +12,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # available runners: https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
         os:
-          - ubuntu-latest
-          - macos-latest
+          - ubuntu-24.04
+          - ubuntu-22.04
+          - macos-15
+          - macos-13
         compiler:
           - gcc
           - llvm
@@ -38,7 +41,7 @@ jobs:
           sudo apt-get install -y exuberant-ctags expect-dev
 
       - name: Setup compiler
-        uses: aminya/setup-cpp@v1
+        uses: aminya/setup-cpp@v1.5.3
         with:
           compiler: ${{ matrix.compiler }}
           gcovr: true
@@ -51,15 +54,20 @@ jobs:
         run: |
           unbuffer ./test/run.sh
 
-      - name: Override GCOV executable (macOS + gcc)
-        if: matrix.os == 'macos-latest' && matrix.compiler == 'gcc'
+      - name: Setup $GCOV executable (llvm)
+        if: matrix.compiler == 'llvm'
         run: |
-          echo "GCOV=$(echo $(brew --prefix gcc)/bin/gcov-1*)" >> $GITHUB_ENV
+          echo GCOV=$(dirname $(which $CC))/llvm-cov gcov >> $GITHUB_ENV
 
-      - name: Override GCOV executable (macOS + gcc)
-        if: startsWith(matrix.os, 'ubuntu') && matrix.compiler == 'llvm'
+      - name: Setup $GCOV executable (gcc)
+        if: matrix.compiler == 'gcc'
         run: |
-          echo 'GCOV="llvm-cov gcov"' >> $GITHUB_ENV
+          echo GCOV=$(dirname $(which $CC))/gcov-$($CC -dumpversion|cut -d. -f1) >> $GITHUB_ENV
+
+      - name: Collect coverage info with gcovr
+        run: |
+          gcovr # for debug
+          gcovr --fail-under-line 30 --delete --xml coverage.xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -68,5 +76,6 @@ jobs:
           fail_ci_if_error: true
           verbose: true
           flags: ${{ runner.os }}
-          name: ${{ runner.os }}-${{ matrix.compiler }}-coverage
+          name: ${{ matrix.os }}-${{ matrix.compiler }}-coverage
           gcov_executable: ${{ env.GCOV }}
+          files: coverage.xml
