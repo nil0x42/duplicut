@@ -6,11 +6,14 @@ coverage:
   precision: 2
   round: down
   range: "70...100"
+  threshold: 1%
 
   status:
     project: yes
     patch: yes
     changes: no
+    ignore: 
+      - "test/*"
 
 parsers:
   gcov:
@@ -18,10 +21,11 @@ parsers:
       conditional: yes
       loop: yes
       method: no
-      macro: no
+      macro: yes
 
 comment:
-  layout: "header, diff"
+  # layout: "header, diff, flags, files"
+  layout: "condensed_header, diff, flags, condensed_files, condensed_footer"
   behavior: default
   require_changes: no
 
