@@ -5,3 +5,5 @@
 *.gcda
 *.gcov
 /cov*.xml
+/duplicut-macos-*
+/duplicut-linux-*

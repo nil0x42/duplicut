@@ -25,6 +25,8 @@ OBJECTS       = $(patsubst %.c, objects/%.o, $(SOURCES))
 PREFIX        = $(DESTDIR)/usr/local
 BINDIR        = $(PREFIX)/bin
 
+STRIP_CMD    ?= strip
+
 
 all: $(TARGET)
 release: $(TARGET)
@@ -42,7 +44,7 @@ coverage: distclean $(OBJECTS) $(COMMON)
 $(TARGET): CFLAGS += $(RELEASEFLAGS)
 $(TARGET): distclean $(OBJECTS) $(COMMON)
 	$(CC) $(FLAGS) $(CFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
-	strip --strip-all $(TARGET) || strip -Sx $(TARGET) # osx fallback
+	$(STRIP_CMD) --strip-all $(TARGET) || $(STRIP_CMD) -Sx $(TARGET) # osx fallback
 
 profile: CFLAGS += -pg
 profile: distclean $(TARGET)
