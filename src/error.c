@@ -10,6 +10,13 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-result"
 
+
+/* Internal helper that writes the buffer to STDERR in a single syscall. */
+static inline void     err_write(const char *buf, size_t len)
+{
+    write(STDERR_FILENO, buf, len);
+}
+
 /** Print a formatted warning message without leaving the program.
  * The use of printf() inside this function causes it
  * to potentially allocate memory.
@@ -18,13 +25,19 @@
  */
 void            warning(const char *fmt, ...)
 {
+    char        buf[4096];
+    size_t      offset = 0;
     va_list     ap;
 
+    /* Prefix */
+    offset += snprintf(buf + offset, sizeof(buf) - offset, "\nwarning: ");
+    /* User‑provided format */
     va_start(ap, fmt);
-    write(STDERR_FILENO, "warning: ", 9);
-    vdprintf(STDERR_FILENO, fmt, ap);
-    write(STDERR_FILENO, "\n", 1);
+    offset += vsnprintf(buf + offset, sizeof(buf) - offset, fmt, ap);
     va_end(ap);
+    /* Trailing newline */
+    offset += snprintf(buf + offset, sizeof(buf) - offset, "\n");
+    err_write(buf, offset);
 }
 
 
@@ -35,13 +48,19 @@ void            warning(const char *fmt, ...)
  */
 void            error(const char *fmt, ...)
 {
+    char        buf[4096];
+    size_t      offset = 0;
     va_list     ap;
 
+    /* Prefix */
+    offset += snprintf(buf + offset, sizeof(buf) - offset, "\nerror: ");
+    /* User‑provided format */
     va_start(ap, fmt);
-    write(STDERR_FILENO, "\nerror: ", 8);
-    vdprintf(STDERR_FILENO, fmt, ap);
-    write(STDERR_FILENO, "\n", 1);
+    offset += vsnprintf(buf + offset, sizeof(buf) - offset, fmt, ap);
     va_end(ap);
+    /* Trailing newline */
+    offset += snprintf(buf + offset, sizeof(buf) - offset, "\n");
+    err_write(buf, offset);
     exit(1);
 }
 
