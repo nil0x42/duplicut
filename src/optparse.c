@@ -14,7 +14,7 @@
 
 /** Arguments configuration for getopt_long().
  */
-#define OPTSTRING "o:t:m:l:pcChv"
+#define OPTSTRING "o:t:m:l:pcCD:hv"
 
 static struct option    g_options[] = {
     { "outfile",       required_argument, NULL, 'o' },
@@ -24,6 +24,7 @@ static struct option    g_options[] = {
     { "printable",     no_argument,       NULL, 'p' },
     { "lowercase",     no_argument,       NULL, 'c' },
     { "uppercase",     no_argument,       NULL, 'C' },
+    { "dupfile",       required_argument, NULL, 'D' },
     { "help",          no_argument,       NULL, 'h' },
     { "version",       no_argument,       NULL, 'v' },
     { NULL,            0,                 NULL, '\0'},
@@ -61,6 +62,14 @@ static void setopt_infile(const char *value)
 static void setopt_outfile(const char *value)
 {
     g_conf.outfile_name = value;
+}
+
+/** Set dup file (-D option) [OPTIONAL]
+ * --> The destination file
+ */
+static void setopt_dupfile(const char *value)
+{
+    g_conf.dupfile_name = value;
 }
 
 
@@ -109,9 +118,9 @@ static void setopt_line_max_size(const char *value)
     {
         bad_argument("line_max_size", value, "not a positive number");
     }
-    else if (line_max_size > 4095)
+    else if (line_max_size > MAX_MAX_LINE_SIZE)
     {
-        bad_argument("line_max_size", value, "max value is 4095");
+        bad_argument("line_max_size", value, "max value is " STR(MAX_MAX_LINE_SIZE));
     }
     g_conf.line_max_size = (unsigned int) line_max_size;
 }
@@ -155,6 +164,7 @@ static void setopt_help(const char *value)
            "-p, --printable            Filter ascii printable lines\n"
            "-c, --lowercase            Convert wordlist to lowercase\n"
            "-C, --uppercase            Convert wordlist to uppercase\n"
+           "-D, --dupfile <FILE>       Write dupes to <FILE> (slows down duplicut)\n"
            "-h, --help                 Display this help and exit\n"
            "-v, --version              Output version information and exit\n"
            "\n"
@@ -193,6 +203,7 @@ static void setopt(int opt, const char *value)
         { 'p', setopt_printable },
         { 'c', setopt_lowercase },
         { 'C', setopt_uppercase },
+        { 'D', setopt_dupfile },
         { 'h', setopt_help },
         { 'v', setopt_version },
         { '\0', NULL }

@@ -128,6 +128,11 @@ void            config(void)
     DLOG1("---------- g_conf ------------");
     DLOG1("g_conf.infile_name:       %s", g_conf.infile_name);
     DLOG1("g_conf.outfile_name:      %s", g_conf.outfile_name);
+    if (g_conf.dupfile_name != NULL) {
+        DLOG1("g_conf.dupfile_name:      %s", g_conf.dupfile_name);
+    } else {
+        DLOG1("g_conf.dupfile_name:      (null)");
+    }
     DLOG1("g_conf.threads:           %u", g_conf.threads);
     DLOG1("g_conf.line_max_size:     %u", g_conf.line_max_size);
     DLOG1("g_conf.hmap_size:         %s (%ld slots of %dbits)",

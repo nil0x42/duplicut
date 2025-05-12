@@ -6,6 +6,7 @@ struct              conf
 {
     const char      *infile_name;
     const char      *outfile_name;
+    const char      *dupfile_name;
     unsigned int    threads;
     unsigned int    line_max_size;
     size_t          hmap_size;

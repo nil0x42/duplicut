@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <ctype.h>
 #include "file.h"
+#include "line.h"
 #include "const.h"
 #include "status.h"
 #include "error.h"
@@ -21,12 +22,15 @@
 static struct file  g_infile;
 static struct file  g_outfile;
 static struct file  g_tmpfile;
+static struct file  g_dupfile;
 
 
 /** Ensure that infile and outfile don't point to the same
  * file on filesystem, by comparing device & inode.
  */
-static void check_files(const char *infile_name, const char *outfile_name)
+static void check_files_difer(
+        const char *infile_name,
+        const char *outfile_name)
 {
     struct stat     infile_info;
     struct stat     outfile_info;
@@ -62,6 +66,7 @@ static void close_all(void)
 {
     close_file(&g_infile);
     close_file(&g_outfile);
+    close_file(&g_dupfile);
 
     if (FILE_ISSET(&g_tmpfile))
     {
@@ -175,19 +180,24 @@ static void copy_file(int dst_fd, int src_fd, bool send_status)
  * - Registers cleanup functions with atexit()
  * - returned file has `addr` attribute mapped in memory
  */
-void        init_file(const char *infile_name, const char *outfile_name)
+void        init_files(void)
 {
     struct file  *file;
 
-    check_files(infile_name, outfile_name);
+    check_files_difer(g_conf.infile_name, g_conf.outfile_name);
 
     memset(&g_infile, -1, sizeof(g_infile));
-    memset(&g_outfile, -1, sizeof(g_infile));
-    memset(&g_tmpfile, -1, sizeof(g_infile));
+    memset(&g_outfile, -1, sizeof(g_outfile));
+    memset(&g_tmpfile, -1, sizeof(g_tmpfile));
+    memset(&g_dupfile, -1, sizeof(g_dupfile));
 
     atexit(close_all);
-    open_file(&g_infile, infile_name, O_RDONLY);
-    open_file(&g_outfile, outfile_name, O_TRUNC | O_CREAT | O_RDWR);
+    open_file(&g_infile, g_conf.infile_name, O_RDONLY);
+    open_file(&g_outfile, g_conf.outfile_name, O_TRUNC | O_CREAT | O_RDWR);
+
+    if (g_conf.dupfile_name != NULL) {
+        open_file(&g_dupfile, g_conf.dupfile_name, O_TRUNC | O_CREAT | O_RDWR);
+    }
 
     if (S_ISREG(g_outfile.info.st_mode))
         file = &g_outfile;
@@ -230,7 +240,7 @@ void        init_file(const char *infile_name, const char *outfile_name)
  * - truncate file with new size.
  * - Call close_all() for cleanout.
  */
-void        destroy_file(void)
+void        cleanup_files(void)
 {
     struct file     *file;
 
@@ -251,4 +261,20 @@ void        destroy_file(void)
     }
 
     close_all();
+}
+
+/** Write a duplicate to dupfile_name (must be atomic)
+ */
+void        log_duplicate(char *line_ptr, int line_sz)
+{
+    ssize_t n;
+    char buf[MAX_MAX_LINE_SIZE + 1];
+    memcpy(buf, line_ptr, line_sz);
+    buf[line_sz] = '\n';
+    do {
+        n = write(g_dupfile.fd, buf, line_sz + 1);
+    } while (n == -1 && errno == EINTR);
+    if (n == -1) {
+        error("log_duplicate() -> write(): %s", ERRNO);
+    }
 }

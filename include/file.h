@@ -15,5 +15,6 @@ struct file
 extern struct file  *g_file;
 
 /* source file: file.c */
-void    init_file(const char *infile_name, const char *outfile_name);
-void    destroy_file(void);
+void    init_files(void);
+void    cleanup_files(void);
+void    log_duplicate(char *ln, int sz);

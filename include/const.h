@@ -4,6 +4,10 @@
 #define PROJECT_VERSION         "2.3"
 #define PROJECT_URL             "http://github.com/nil0x42/duplicut"
 
+/* cast a preprocessor int to string */
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
 /* portion of available memory to allow to hashmap */
 #define HMAP_MAX_SIZE           (0.5)
 
@@ -24,3 +28,6 @@
 
 /* display program status periodically instead of waiting keypress */
 #define DEBUG_PROGRAM_STATUS    (0)
+
+/* max supported max-line-size */
+#define MAX_MAX_LINE_SIZE       4095

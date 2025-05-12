@@ -7,19 +7,20 @@ import sys
 import re
 
 try:
-    assert len(sys.argv) >= 6
+    assert len(sys.argv) >= 8
     assert sys.argv[2] == '-o'
-    assert sys.argv[4] == '-l'
-    if len(sys.argv) > 6:
-        for x in sys.argv[6:]:
+    assert sys.argv[4] == '-D'
+    assert sys.argv[6] == '-l'
+    if len(sys.argv) > 8:
+        for x in sys.argv[8:]:
             assert x in ['-p', '-c', '-C']
-        if '-c' in sys.argv[6:]:
-            assert '-C' not in sys.argv[6:]
+        if '-c' in sys.argv[8:]:
+            assert '-C' not in sys.argv[8:]
 except AssertionError:
-    print("Usage: %s <wordlist> -o <output> -l <max-line-size> [-pcC]" % sys.argv[0])
-    print("Example: %s old.txt -o new.txt -l 14" % sys.argv[0])
-    print("Example: %s old.txt -o new.txt -l 40 -p" % sys.argv[0])
-    print("Example: %s old.txt -o new.txt -l 40 -p -C" % sys.argv[0])
+    print("Usage: %s <wordlist> -o <output> -D <dupfile> -l <max-line-size> [-pcC]" % sys.argv[0])
+    print("Example: %s old.txt -o new.txt -D dupes.txt -l 14" % sys.argv[0])
+    print("Example: %s old.txt -o new.txt -D dupes.txt -l 40 -p" % sys.argv[0])
+    print("Example: %s old.txt -o new.txt -D dupes.txt -l 40 -p -C" % sys.argv[0])
     sys.exit(1)
 
 with open(sys.argv[1], 'rb') as f:
@@ -27,12 +28,13 @@ with open(sys.argv[1], 'rb') as f:
 OLD_CONTENT_LEN = len(content)
 
 output = open(sys.argv[3], 'wb')
+dupfile = open(sys.argv[5], 'wb')
 
-MAX_LINE_SIZE = int(sys.argv[5])
+MAX_LINE_SIZE = int(sys.argv[7])
 
-FILTER_PRINTABLE = '-p' in sys.argv[6:]
-LOWERCASE = '-c' in sys.argv[6:]
-UPPERCASE = '-C' in sys.argv[6:]
+FILTER_PRINTABLE = '-p' in sys.argv[8:]
+LOWERCASE = '-c' in sys.argv[8:]
+UPPERCASE = '-C' in sys.argv[8:]
 
 if LOWERCASE:
     content = content.lower()
@@ -57,6 +59,7 @@ elif sys.version_info.major == 2:
                 return False
         return True
 
+dupes = []
 uniques = []
 for index, line in enumerate(lines):
     if not line:
@@ -65,9 +68,10 @@ for index, line in enumerate(lines):
         continue
     if line.startswith(b"\0"):
         continue
-    if line in uniques:
-        continue
     if FILTER_PRINTABLE and not line_isprint(line):
+        continue
+    if line in uniques:
+        dupes.append(line)
         continue
     uniques.append(line)
 
@@ -75,6 +79,9 @@ for index, line in enumerate(lines):
 result = b"\n".join(uniques)
 if 0 < len(result) < OLD_CONTENT_LEN:
     result += b'\n'
-
 output.write(result)
 output.close()
+
+if dupes:
+    dupfile.write(b"\n".join(dupes)+b"\n")
+dupfile.close()

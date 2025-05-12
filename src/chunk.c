@@ -103,6 +103,7 @@ void        cleanout_chunk(t_chunk *chunk)
     char    *base_ptr;
     int     i;
     long    duplicates;
+    const int has_dupfile = (g_conf.dupfile_name != NULL);
 
     duplicates = 0;
     i = 0;
@@ -115,6 +116,9 @@ void        cleanout_chunk(t_chunk *chunk)
         {
             if (cmp_line(&line, &g_hmap.ptr[slot]) == 0)
             {
+                if (has_dupfile) {
+                    log_duplicate(LINE_ADDR(line), LINE_SIZE(line));
+                }
                 LINE_ADDR(line)[0] = DISABLED_LINE;
                 ++duplicates;
                 break;

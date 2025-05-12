@@ -34,3 +34,8 @@ faketty ./duplicut > /dev/null
 ./duplicut /etc/passwd -o /tmp/x -C &> /dev/null
 ! ./duplicut /etc/passwd -o /tmp/x -c -C &> /dev/null
 ./duplicut /etc/passwd -o /tmp/x -c -C 2>&1 | grep -q "cannot use '--lowercase' and '--uppercase' together"
+
+# -D is optional
+./duplicut /etc/passwd -o /tmp/x
+./duplicut /etc/passwd -o /tmp/x -D /tmp/y
+! ./duplicut /etc/passwd -o /tmp/uniq -D /

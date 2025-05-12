@@ -15,6 +15,7 @@
 struct conf g_conf = {
     .infile_name = NULL,
     .outfile_name = NULL,
+    .dupfile_name = NULL,
     .threads = 0,
     .line_max_size = DEFAULT_LINE_MAX_SIZE,
     .hmap_size = 0,
@@ -76,7 +77,7 @@ int             main(int argc, char **argv)
         watch_user_input();
 
     update_status(FCOPY_START);
-    init_file(g_conf.infile_name, g_conf.outfile_name);
+    init_files();
     config(); /* configure g_conf options */
     set_status(CHUNK_SIZE, g_conf.chunk_size);
 
@@ -87,7 +88,7 @@ int             main(int argc, char **argv)
 
     update_status(FCLEAN_START);
     remove_duplicates();
-    destroy_file();
+    cleanup_files();
 
     display_report();
     return (0);
