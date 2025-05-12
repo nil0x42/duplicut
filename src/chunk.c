@@ -98,7 +98,8 @@ bool        get_next_chunk(t_chunk *chunk, struct file *file)
  */
 void        cleanout_chunk(t_chunk *chunk)
 {
-    t_line  line;
+    char    *line_ptr;
+    int     line_sz;
     long    slot;
     char    *base_ptr;
     int     i;
@@ -109,17 +110,17 @@ void        cleanout_chunk(t_chunk *chunk)
     i = 0;
     base_ptr = chunk->ptr;
     size_t junk_lines = 0;
-    while (get_next_line(&line, chunk, &junk_lines))
+    while (get_next_line(&line_ptr, &line_sz, chunk, &junk_lines))
     {
-        slot = HASH(&line) % g_hmap.size;
+        slot = HASH(line_ptr, line_sz) % g_hmap.size;
         while (LINE_ISSET(g_hmap.ptr[slot]))
         {
-            if (cmp_line(&line, &g_hmap.ptr[slot]) == 0)
+            if (cmp_line(g_hmap.ptr[slot], line_ptr, line_sz) == 0)
             {
                 if (has_dupfile) {
-                    log_duplicate(LINE_ADDR(line), LINE_SIZE(line));
+                    log_duplicate(line_ptr, line_sz);
                 }
-                LINE_ADDR(line)[0] = DISABLED_LINE;
+                *line_ptr = DISABLED_LINE;
                 ++duplicates;
                 break;
             }

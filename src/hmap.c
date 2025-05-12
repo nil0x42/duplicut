@@ -48,7 +48,8 @@ void        destroy_hmap(void)
 void        populate_hmap(t_chunk *chunk)
 {
     DLOG2("CALL populate_hmap()");
-    t_line  line;
+    char    *line_ptr;
+    int     line_sz;
     long    slot;
     size_t  has_slots;
     char    *base_ptr;
@@ -72,16 +73,16 @@ void        populate_hmap(t_chunk *chunk)
     memset(g_hmap.ptr, 0, g_hmap.size * sizeof(t_line));
 
     size_t junk_lines = 0;
-    while (get_next_line(&line, chunk, &junk_lines))
+    while (get_next_line(&line_ptr, &line_sz, chunk, &junk_lines))
     {
-        slot = HASH(&line) % g_hmap.size;
+        slot = HASH(line_ptr, line_sz) % g_hmap.size;
         has_slots = (g_hmap.size * 7) / 10;
         while (has_slots--)
         {
             if (!LINE_ISSET(g_hmap.ptr[slot]))
             {
                 /* use first free slot */
-                g_hmap.ptr[slot] = line;
+                g_hmap.ptr[slot] = MAKE_LINE(line_ptr, line_sz);
                 /* DLOG4("ADD HMAP ENTRY, slot=%ld, line_addr=%p, line_size=%d, line=%.*s", slot, LINE_ADDR(line), LINE_SIZE(line), LINE_SIZE(line), LINE_ADDR(line)); */
 #if DEBUG >= 2
                 filled++;
@@ -96,12 +97,12 @@ void        populate_hmap(t_chunk *chunk)
 #endif
                 break;
             }
-            else if (cmp_line(&line, &g_hmap.ptr[slot]) == 0)
+            else if (cmp_line(g_hmap.ptr[slot], line_ptr, line_sz) == 0)
             {
                 if (has_dupfile) {
-                    log_duplicate(LINE_ADDR(line), LINE_SIZE(line));
+                    log_duplicate(line_ptr, line_sz);
                 }
-                LINE_ADDR(line)[0] = DISABLED_LINE;
+                *line_ptr = DISABLED_LINE;
                 ++duplicates;
                 break;
             }

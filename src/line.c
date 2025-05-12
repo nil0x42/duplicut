@@ -32,11 +32,11 @@ static bool filter_line(char *str, size_t size)
 }
 
 
-/** Set `dst` to next line in `chunk`
+/** Set `*p_lnptr & *p_lnsz` to next valid line in `chunk`
  * The function returns false when end-of-chunk is reached.
  * You are not expected to understand this
  */
-bool        get_next_line(t_line *dst, t_chunk *chunk, size_t *junk_lines)
+bool        get_next_line(char **p_lnptr, int *p_lnsz, t_chunk *chunk, size_t *junk_lines)
 {
     size_t  size;
     char    *next;
@@ -77,7 +77,8 @@ bool        get_next_line(t_line *dst, t_chunk *chunk, size_t *junk_lines)
                 ++*junk_lines;
                 return (false);
             }
-            SET_LINE(*dst, chunk->ptr, size);
+            *p_lnptr = chunk->ptr;
+            *p_lnsz = size;
             chunk->ptr += size;
             return (true);
         }
@@ -94,7 +95,8 @@ bool        get_next_line(t_line *dst, t_chunk *chunk, size_t *junk_lines)
                 }
                 else
                 {
-                    SET_LINE(*dst, chunk->ptr, line_size - 1);
+                    *p_lnptr = chunk->ptr;
+                    *p_lnsz = line_size - 1;
                     chunk->ptr += line_size + 1;
                     return (true);
                 }
@@ -109,7 +111,8 @@ bool        get_next_line(t_line *dst, t_chunk *chunk, size_t *junk_lines)
                 }
                 else
                 {
-                    SET_LINE(*dst, chunk->ptr, line_size);
+                    *p_lnptr = chunk->ptr;
+                    *p_lnsz = line_size;
                     chunk->ptr += line_size + 1;
                     return (true);
                 }
@@ -120,16 +123,13 @@ bool        get_next_line(t_line *dst, t_chunk *chunk, size_t *junk_lines)
 }
 
 
-/** Compare two t_line objects.
+/** Compare a t_line (hmap item) with a line
  * If the function returns 0, then lines are equal
  */
-int         cmp_line(t_line *l1, t_line *l2)
+int         cmp_line(t_line hmap_item, char *line_ptr, int line_sz)
 {
-    int     size;
-
-    size = LINE_SIZE(*l1);
-    if (LINE_SIZE(*l2) != size)
+    if (LINE_SIZE(hmap_item) != line_sz)
         return (1);
     else
-        return (memcmp(LINE_ADDR(*l1), LINE_ADDR(*l2), size));
+        return (memcmp(LINE_ADDR(hmap_item), line_ptr, line_sz));
 }

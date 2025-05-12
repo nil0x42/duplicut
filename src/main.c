@@ -34,8 +34,8 @@ struct hmap g_hmap;
 static void     remove_duplicates(void)
 {
     t_chunk     file_chunk;
-    t_line      line;
-    size_t      line_size;
+    char        *line_ptr;
+    int         line_sz;
     char        *dst;
     char        *base_ptr;
     int         i;
@@ -48,11 +48,10 @@ static void     remove_duplicates(void)
 
     dst = file_chunk.ptr;
     size_t junk_lines = 0;
-    while (get_next_line(&line, &file_chunk, &junk_lines))
+    while (get_next_line(&line_ptr, &line_sz, &file_chunk, &junk_lines))
     {
-        line_size = LINE_SIZE(line);
-        memmove(dst, LINE_ADDR(line), line_size);
-        dst += line_size;
+        memmove(dst, line_ptr, line_sz);
+        dst += line_sz;
         if (dst != file_chunk.endptr)
             *dst++ = '\n';
         i++;
