@@ -14,8 +14,8 @@
 /* ideal portion of hashmap to be filled */
 #define HMAP_LOAD_FACTOR        (0.5)
 
-/* medium line size for determining hashmap min size */
-#define MEDIUM_LINE_BYTES       (8)
+/* average line size for determining hashmap min size */
+#define AVG_LINE_BYTES          (8)
 
 /* char used to mark duplicate lines for removal */
 #define DISABLED_LINE           '\0'

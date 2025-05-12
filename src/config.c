@@ -68,7 +68,7 @@ static void     config_hmap_size(struct file *file, struct memstate *memstate)
     double      hmap_size;
 
     hmap_size = (double)file->info.st_size;
-    hmap_size /= HMAP_LOAD_FACTOR * MEDIUM_LINE_BYTES;
+    hmap_size /= HMAP_LOAD_FACTOR * AVG_LINE_BYTES;
     if (hmap_size < 10000.0)
         hmap_size = 10000.0;
 
@@ -92,7 +92,7 @@ static void     config_chunk_size(struct file *file)
 
     file_size = (double) file->info.st_size;
     chunk_size = (double) g_conf.hmap_size;
-    chunk_size *= HMAP_LOAD_FACTOR * MEDIUM_LINE_BYTES;
+    chunk_size *= HMAP_LOAD_FACTOR * AVG_LINE_BYTES;
     portions = round(file_size / chunk_size);
     if (portions < 1.0)
         portions = 1.0;
