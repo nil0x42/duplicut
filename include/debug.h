@@ -23,7 +23,7 @@ static void _dlog(int level, const char *file, int line, const char *fmt, ...)
     va_list ap;
 
     if (isatty(STDERR_FILENO))
-        i = snprintf(&out[i], 64, "\e[34;1m[\e[33;1mDLOG%d\e[0;35m ", level);
+        i = snprintf(&out[i], 64, "\r\033[2K\e[34;1m[\e[33;1mDLOG%d\e[0;35m ", level);
     else
         i = snprintf(&out[i], 64, "[DLOG%d ", level);
 
