@@ -1,7 +1,7 @@
 #pragma once
 
 #define PROGNAME                "duplicut"
-#define PROJECT_VERSION         "2.3"
+#define PROJECT_VERSION         "v2.4"
 #define PROJECT_URL             "http://github.com/nil0x42/duplicut"
 
 /* cast a preprocessor int to string */
