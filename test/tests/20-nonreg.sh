@@ -29,6 +29,7 @@ function test_wordlist ()
     shift 1
     args="$@"
     rm -f nonreg_*.out
+    rm -f nonregdupes_*.out
     p="[CMP] duplicut $args < $file:"
 
     $timeout 5 $DUPLICUT -o nonreg_duplicut.out -D nonregdupes_duplicut.out -m 64K $args < $file
