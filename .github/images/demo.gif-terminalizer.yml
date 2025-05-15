@@ -1,0 +1,260 @@
+# The configurations that used for the recording, feel free to edit them
+config:
+
+  # Specify a command to be executed
+  # like `/bin/bash -l`, `ls`, or any other commands
+  # the default is bash for Linux
+  # or powershell.exe for Windows
+  command: /bin/bash -l
+  
+  # Specify the current working directory path
+  # the default is the current working directory path
+  cwd: /tmp/uu
+  
+  # Export additional ENV variables
+  env:
+    recording: true
+  
+  # Explicitly set the number of columns
+  # or use `auto` to take the current
+  # number of columns of your shell
+  cols: 81
+  
+  # Explicitly set the number of rows
+  # or use `auto` to take the current
+  # number of rows of your shell
+  rows: 17
+  
+  # Amount of times to repeat GIF
+  # If value is -1, play once
+  # If value is 0, loop indefinitely
+  # If value is a positive number, loop n times
+  repeat: 0
+  
+  # Quality
+  # 1 - 100
+  quality: 100
+  
+  # Delay between frames in ms
+  # If the value is `auto` use the actual recording delays
+  frameDelay: auto
+  
+  # Maximum delay between frames in ms
+  # Ignored if the `frameDelay` isn't set to `auto`
+  # Set to `auto` to prevent limiting the max idle time
+  maxIdleTime: 10000
+  
+  # The surrounding frame box
+  # The `type` can be null, window, floating, or solid`
+  # To hide the title use the value null
+  # Don't forget to add a backgroundColor style with a null as type
+  frameBox:
+    type: floating
+    title: github.com/nil0x42/duplicut
+    style:
+      backgroundColor: black
+      border: 0px black solid
+      # boxShadow: none
+      # margin: 0px
+  
+  # Add a watermark image to the rendered gif
+  # You need to specify an absolute path for
+  # the image on your machine or a URL, and you can also
+  # add your own CSS styles
+  watermark:
+    imagePath: null
+    style:
+      position: absolute
+      right: 15px
+      bottom: 15px
+      width: 100px
+      opacity: 0.9
+  
+  # Cursor style can be one of
+  # `block`, `underline`, or `bar`
+  cursorStyle: block
+  
+  # Font family
+  # You can use any font that is installed on your machine
+  # in CSS-like syntax
+  fontFamily: "Monaco, Lucida Console, Ubuntu Mono, Monospace"
+  
+  # The size of the font
+  fontSize: 18
+  
+  # The height of lines
+  lineHeight: 1
+  
+  # The spacing between letters
+  letterSpacing: 0
+  
+  # Theme
+  # theme:
+  #   background: "transparent"
+  #   foreground: "#afafaf"
+  #   cursor: "#c7c7c7"
+  #   black: "#232628"
+  #   red: "#fc4384"
+  #   green: "#b3e33b"
+  #   yellow: "#ffa727"
+  #   blue: "#75dff2"
+  #   magenta: "#ae89fe"
+  #   cyan: "#708387"
+  #   white: "#d5d5d0"
+  #   brightBlack: "#626566"
+  #   brightRed: "#ff7fac"
+  #   brightGreen: "#c8ed71"
+  #   brightYellow: "#ebdf86"
+  #   brightBlue: "#75dff2"
+  #   brightMagenta: "#ae89fe"
+  #   brightCyan: "#b1c6ca"
+  #   brightWhite: "#f9f9f4"
+  
+  theme:
+    # background & texte
+    background: "transparent"
+    foreground: "#afafaf"   # gris clair
+    cursor:     "#FFFFFF"   # blanc
+  
+    # Couleurs standard
+    black:   "#000000"
+    red:     "#AA0000"
+    green:   "#00AA00"
+    yellow:  "#AA5500"
+    blue:    "#0000AA"
+    magenta: "#AA00AA"
+    cyan:    "#00AAAA"
+    white:   "#AAAAAA"
+  
+    # Couleurs vives (bright)
+    brightBlack:   "#444444"
+    brightRed:     "#FF4444"
+    brightGreen:   "#44FF44"
+    brightYellow:  "#FFFF44"
+    brightBlue:    "#4444FF"
+    brightMagenta: "#FF44FF"
+    brightCyan:    "#44FFFF"
+    brightWhite:   "#FFFFFF"
+  
+# Records, feel free to edit them
+records:
+  - delay: 3
+    content: "\e[?2004h\r\e[35mduplicut@localhost $ \e[0m"
+  - delay: 139
+    content: d
+  - delay: 113
+    content: u
+  - delay: 123
+    content: p
+  - delay: 44
+    content: l
+  - delay: 75
+    content: i
+  - delay: 120
+    content: c
+  - delay: 123
+    content: u
+  - delay: 100
+    content: t
+  - delay: 114
+    content: ' '
+  - delay: 109
+    content: '-'
+  - delay: 213
+    content: o
+  - delay: 140
+    content: ' '
+  - delay: 101
+    content: d
+  - delay: 136
+    content: e
+  - delay: 139
+    content: d
+  - delay: 50
+    content: u
+  - delay: 106
+    content: p
+  - delay: 82
+    content: e
+  - delay: 140
+    content: .
+  - delay: 94
+    content: t
+  - delay: 108
+    content: x
+  - delay: 101
+    content: t
+  - delay: 102
+    content: ' '
+  - delay: 101
+    content: w
+  - delay: 87
+    content: o
+  - delay: 102
+    content: r
+  - delay: 100
+    content: d
+  - delay: 108
+    content: 'list.txt '
+  - delay: 64
+    content: "\r\n\e[?2004l\r"
+  - delay: 770
+    content: "\r\e[2K\e[0mtime: \e[1m1s      \e[1;33m12.4%\e[0m (ETA: \e[1m     9s\e[0m) \e[36m[2/3] \e[1mdedupe chunk 1/1 \e[0;2;36m(task 1/1)\e[0;36m ...\e[0m"
+  - delay: 253
+    content: "\r\e[2K\e[0mtime: \e[1m1s      \e[1;33m18.2%\e[0m (ETA: \e[1m     9s\e[0m) \e[36m[2/3] \e[1mdedupe chunk 1/1 \e[0;2;36m(task 1/1)\e[0;36m ...\e[0m"
+  - delay: 254
+    content: "\r\e[2K\e[0mtime: \e[1m1s      \e[1;33m25.1%\e[0m (ETA: \e[1m     9s\e[0m) \e[36m[2/3] \e[1mdedupe chunk 1/1 \e[0;2;36m(task 1/1)\e[0;36m ...\e[0m"
+  - delay: 253
+    content: "\r\e[2K\e[0mtime: \e[1m1s      \e[1;33m30.9%\e[0m (ETA: \e[1m     9s\e[0m) \e[36m[2/3] \e[1mdedupe chunk 1/1 \e[0;2;36m(task 1/1)\e[0;36m ...\e[0m"
+  - delay: 253
+    content: "\r\e[2K\e[0mtime: \e[1m2s      \e[1;33m34.6%\e[0m (ETA: \e[1m     6s\e[0m) \e[36m[2/3] \e[1mdedupe chunk 1/1 \e[0;2;36m(task 1/1)\e[0;36m ...\e[0m"
+  - delay: 253
+    content: "\r\e[2K\e[0mtime: \e[1m2s      \e[1;33m40.5%\e[0m (ETA: \e[1m     6s\e[0m) \e[36m[2/3] \e[1mdedupe chunk 1/1 \e[0;2;36m(task 1/1)\e[0;36m ...\e[0m"
+  - delay: 253
+    content: "\r\e[2K\e[0mtime: \e[1m2s      \e[1;33m45.1%\e[0m (ETA: \e[1m     6s\e[0m) \e[36m[2/3] \e[1mdedupe chunk 1/1 \e[0;2;36m(task 1/1)\e[0;36m ...\e[0m"
+  - delay: 254
+    content: "\r\e[2K\e[0mtime: \e[1m2s      \e[1;33m50.0%\e[0m (ETA: \e[1m     6s\e[0m) \e[36m[2/3] \e[1mdedupe chunk 1/1 \e[0;2;36m(task 1/1)\e[0;36m ...\e[0m"
+  - delay: 254
+    content: "\r\e[2K\e[0mtime: \e[1m3s      \e[1;33m54.6%\e[0m (ETA: \e[1m     4s\e[0m) \e[36m[2/3] \e[1mdedupe chunk 1/1 \e[0;2;36m(task 1/1)\e[0;36m ...\e[0m"
+  - delay: 253
+    content: "\r\e[2K\e[0mtime: \e[1m3s      \e[1;33m58.7%\e[0m (ETA: \e[1m     4s\e[0m) \e[36m[2/3] \e[1mdedupe chunk 1/1 \e[0;2;36m(task 1/1)\e[0;36m ...\e[0m"
+  - delay: 254
+    content: "\r\e[2K\e[0mtime: \e[1m3s      \e[1;33m62.7%\e[0m (ETA: \e[1m     4s\e[0m) \e[36m[2/3] \e[1mdedupe chunk 1/1 \e[0;2;36m(task 1/1)\e[0;36m ...\e[0m"
+  - delay: 254
+    content: "\r\e[2K\e[0mtime: \e[1m3s      \e[1;33m74.9%\e[0m (ETA: \e[1m     4s\e[0m) \e[36m[2/3] \e[1mdedupe chunk 1/1 \e[0;2;36m(task 1/1)\e[0;36m ...\e[0m"
+  - delay: 254
+    content: "\r\e[2K\e[0mtime: \e[1m4s      \e[1;33m86.3%\e[0m (ETA: \e[1m     0s\e[0m) \e[36m[2/3] \e[1mdedupe chunk 1/1 \e[0;2;36m(task 1/1)\e[0;36m ...\e[0m"
+  - delay: 253
+    content: "\r\e[2K\e[0mtime: \e[1m4s      \e[1;33m90.2%\e[0m (ETA: \e[1m     0s\e[0m) \e[36m[2/3] \e[1mdedupe chunk 1/1 \e[0;2;36m(task 1/1)\e[0;36m ...\e[0m"
+  - delay: 253
+    content: "\r\e[2K\e[0mtime: \e[1m4s      \e[1;33m94.7%\e[0m (ETA: \e[1m     0s\e[0m) \e[36m[3/3] \e[1mremoving tagged lines\e[0;36m ...\e[0m"
+  - delay: 254
+    content: "\r\e[2K\e[0mtime: \e[1m4s      \e[1;33m97.4%\e[0m (ETA: \e[1m     0s\e[0m) \e[36m[3/3] \e[1mremoving tagged lines\e[0;36m ...\e[0m"
+  - delay: 182
+    content: "\r\e[2K\e[0mtime: \e[1m5s      \e[1;33m100.0%\e[0m (ETA: \e[1m     0s\e[0m) \e[36m[3/3] \e[1mremoving tagged lines\e[0;36m ...\e[0m\r\nduplicut successfully removed \e[1m20107865\e[0m duplicates and \e[1m12548\e[0m filtered lines in \e[1m5s\e[0m\r\n\e[?2004h\r\e[35mduplicut@localhost $ \e[0m"
+  - delay: 943
+    content: l
+  - delay: 114
+    content: l
+  - delay: 269
+    content: " * | grep -E '[0-9]+M'\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b"
+  - delay: 159
+    content: "\r\n\e[?2004l\r"
+  - delay: 12
+    content: "-rw-r--r-- 1 user user \e[01;31m\e[K438M\e[m\e[K May 15 16:22 dedupe.txt\r\n-rw-r--r-- 1 user user \e[01;31m\e[K622M\e[m\e[K May 12 16:53 wordlist.txt\r\n\e[?2004h\r\e[35mduplicut@localhost $ \e[0m"
+  - delay: 860
+    content: h
+  - delay: 132
+    content: e
+  - delay: 50
+    content: a
+  - delay: 133
+    content: d
+  - delay: 213
+    content: " -n3 *\b\b\b\b\b\b"
+  - delay: 265
+    content: "\r\n\e[?2004l\r"
+  - delay: 10
+    content: "==> dedupe.txt <==\r\n12345\r\nabc123\r\npassword\r\n\r\n==> wordlist.txt <==\r\n12345\r\nabc123\r\npassword\r\n\e[?2004h\r\e[35mduplicut@localhost $ \e[0m"
+  - delay: 6000
+    content: "\r"

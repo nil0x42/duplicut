@@ -33,8 +33,9 @@
   <a href="https://www.blackarch.org/misc.html" target="_blank">
     <img src="https://img.shields.io/static/v1?label=BlackArch&message=packaged&color=red&logo=archlinux&logoColor=006">
   </a>
-  <a href="https://twitter.com/intent/follow?screen_name=nil0x42" target="_blank">
-    <img src="https://img.shields.io/twitter/follow/nil0x42.svg?logo=twitter" akt="follow on twitter">
+  </a>
+  <a href="https://x.com/intent/follow?screen_name=nil0x42" target="_blank">
+    <img src="https://img.shields.io/badge/Follow-@nil0x42-6aa?logo=x" akt="Follow on X">
   </a>
 </p>
 
@@ -50,6 +51,8 @@
 
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
+<a href="#"><img align="right" src=".github/images/1-comparison-v2.png" width="55%" /></a>
+
 ### :book: Overview
 
 Nowadays, password wordlist creation usually implies concatenating
@@ -58,34 +61,50 @@ multiple data sources.
 Ideally, most probable passwords should stand at start of the wordlist,
 so most common passwords are cracked instantly.
 
+
 With existing *dedupe tools* you are forced to choose
 if you prefer to *preserve the order **OR** handle massive wordlists*.
 
-Unfortunately, **wordlist creation requires both**:
+Unfortunately, **wordlist creation requires both**
 
-![][img-1-comparison]
 
 > **So i wrote duplicut in [highly optimized C][get-next-line] to address this very specific need :nerd\_face: :computer:**
+
+<a href="#"><img align="center" src=".github/images/demo.gif" width="80%" /></a>
+<br>
 
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
 ### :bulb: Quick start
 
 ```sh
-git clone https://github.com/nil0x42/duplicut
-cd duplicut/ && make
-./duplicut wordlist.txt -o clean-wordlist.txt
+git clone https://github.com/nil0x42/duplicut  # download ...
+cd duplicut/ && make                           # compile ...
+./duplicut wordlist.txt -o clean-wordlist.txt  # dedupe !!!
 ```
 
 ### :wrench: Options
 
-![][img-4-help]
+```
+-o, --outfile <FILE>       Write result to <FILE>
+-t, --threads <NUM>        Max threads to use (default max)
+-m, --memlimit <VALUE>     Limit max used memory (default max)
+-l, --line-max-size <NUM>  Max line size (default 1024, max 4095)
+-p, --printable            Filter ascii printable lines
+-c, --lowercase            Convert wordlist to lowercase
+-C, --uppercase            Convert wordlist to uppercase
+-D, --dupfile <FILE>       Write dupes to <FILE> (slows down duplicut)
+-h, --help                 Display this help and exit
+-v, --version              Output version information and exit
+```
 
 *   **Features**:
     *   Handle massive wordlists, even those whose size exceeds available RAM
-    *   Filter lines by max length (`-l` option)
-    *   Can remove lines containing non-printable ASCII chars (`-p` option)
-    *   Press any key to show program status at runtime.
+    *   Filter lines by max length (`--line-max-size` option)
+    *   Filter-out lines with non-printable ASCII chars (`--printable` option)
+    *   Save found duplicates to another file (`--dupfile` option)
+    *   Ignore case with `--lowercase` or `--uppercase` options
+    *   Displays a nice progress bar with ETA
 
 *   **Implementation**:
     *   Written in pure C code, designed to be fast
@@ -93,7 +112,7 @@ cd duplicut/ && make
     *   Multithreading support
 
 *   **Limitations**:
-    *   Any line longer than 4095 chars is ignored
+    *   `--line-max-size` can't exceed 4095
 
 ### :book: Technical Details
 
@@ -130,7 +149,6 @@ make debug level=1
 
 [get-next-line]: https://github.com/nil0x42/duplicut/blob/master/src/line.c#L39
 
-[img-1-comparison]: .github/images/1-comparison.png
 [img-2-line-struct]: .github/images/2-line-struct.png
 [img-3-chunked-processing]: .github/images/3-chunked-processing.png
 [img-4-help]: .github/images/4-help.png
