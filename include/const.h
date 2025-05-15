@@ -26,8 +26,5 @@
 /* minimum needed memory (change with care... can throw bugs if too low */
 #define MIN_MEMORY              (65536)
 
-/* display program status periodically instead of waiting keypress */
-#define DEBUG_PROGRAM_STATUS    (0)
-
 /* max supported max-line-size */
 #define MAX_MAX_LINE_SIZE       4095

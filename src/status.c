@@ -3,9 +3,11 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>              /* fabs() */
 #include "status.h"
 #include "chunk.h"
 #include "debug.h"
+#include "cprintferr.h"
 
 #define TRIANGULAR(n)       (n * (n + 1) / 2)
 
@@ -64,9 +66,73 @@ static struct status    g_status = {
 
 pthread_mutex_t         g_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+/* ------------------------------------------------------------------------ */
+/* ETA smoothing helpers                                                    */
+/* ------------------------------------------------------------------------ */
 
-/** Update program status
+/*
+ * Smooth ETA with a simple EWMA + hysteresis so that the progress bar
+ * doesn’t jitter every 250 ms, yet still follows real trend changes.
+ *   eta_raw : freshly computed ETA for this tick.
+ *   return  : value to display (seconds).
+ * All state is kept static inside the function — no new global needed.
  */
+static time_t   smooth_eta(time_t eta_raw)
+{
+    /* tuning parameters (empirically good defaults) */
+    const double TAU_SEC   = 1.0;     /* EWMA time constant                 */
+    const double EPS_ABS   = 0.8;     /* ignore variation < 0.8 s             */
+    const double EPS_REL   = 0.01;    /*   or   < 1 %                       */
+    const double JUMP_PERC = 0.30;    /* jump if deviation > 30 %           */
+    const double JUMP_ABS  = 10.0;    /*   and > 10 s                       */
+
+    static double displayed = -1.0;   /* last ETA value actually shown      */
+    static time_t last_t    = 0;      /* last call timestamp                */
+
+    if (eta_raw <= 0)
+        return 0;                     /* nothing to smooth */
+
+    time_t now = time(NULL);
+
+    /* first tick — initialise */
+    if (displayed < 0) {
+        displayed = (double)eta_raw;
+        last_t    = now;
+        return eta_raw;
+    }
+
+    /* compute time since previous update */
+    double dt = difftime(now, last_t);
+    if (dt < 1e-3)
+        return (time_t)displayed;     /* timer glitch */
+
+    /* EWMA directly on ETA (simpler than speed-based) */
+    double alpha = dt / (TAU_SEC + dt);
+    double eta_smooth = (1.0 - alpha) * displayed + alpha * (double)eta_raw;
+
+    /* hysteresis: keep previous value if the change is tiny */
+    double diff = fabs(displayed - eta_smooth);
+    if (diff < EPS_ABS || diff < displayed * EPS_REL)
+        eta_smooth = displayed;
+
+    /* big deviation -> follow immediately (jump) */
+    diff = fabs(displayed - eta_raw);
+    if (diff > JUMP_ABS && diff > displayed * JUMP_PERC)
+        eta_smooth = (double)eta_raw;
+
+    /* guarantee a visible countdown (≈ 1 s/s) */
+    double min_dec = dt;                        /* here dt ≈ 0,25 s           */
+    if (eta_smooth > displayed - min_dec)
+        eta_smooth = fmax(displayed - min_dec, (double)eta_raw);
+
+
+    displayed = eta_smooth;
+    last_t    = now;
+
+    return (time_t)displayed;
+}
+
+/** Update program status */
 void            update_status(enum e_status_update action)
 {
     switch (action) {
@@ -142,60 +208,22 @@ void            set_status(enum e_status_set var, size_t val)
 }
 
 
-static void     repr_elapsed_time(char *buffer, unsigned long seconds)
+/* human‑friendly elapsed‑time formatter */
+static void repr_time(char *buf, unsigned long sec)
 {
-    unsigned long   days, hours, minutes;
-
-    days = seconds / DAY;
-    seconds %= DAY;
-    hours = seconds / HOUR;
-    seconds %= HOUR;
-    minutes = seconds / MINUTE;
-    seconds %= MINUTE;
-
-    snprintf(buffer, BUF_SIZE - 1, "%lu:%02lu:%02lu:%02lu",
-            days, hours, minutes, seconds);
-}
-
-
-static void     repr_elapsed_time2(char *buffer, unsigned long seconds)
-{
-    unsigned long   days, hours, minutes;
-
-    days = seconds / DAY;
-    seconds %= DAY;
-    hours = seconds / HOUR;
-    seconds %= HOUR;
-    minutes = seconds / MINUTE;
-    seconds %= MINUTE;
+    unsigned long days =  sec / DAY;
+    unsigned long hrs  = (sec / HOUR)   % 24;
+    unsigned long mins = (sec / MINUTE)    % 60;
+    unsigned long secs =  sec           % 60;
 
     if (days)
-        snprintf(buffer, BUF_SIZE - 1, "%lu days, %02lu:%02lu:%02lu",
-                days, hours, minutes, seconds);
-    else if (hours)
-        snprintf(buffer, BUF_SIZE - 1, "%02lu:%02lu:%02lu hours",
-                hours, minutes, seconds);
-    else if (minutes)
-        snprintf(buffer, BUF_SIZE - 1, "%02lu:%02lu minutes",
-                minutes, seconds);
+        snprintf(buf, BUF_SIZE, "%lud %luh", days, hrs);
+    else if (hrs)
+        snprintf(buf, BUF_SIZE, "%luh %lum", hrs, mins);
+    else if (mins)
+        snprintf(buf, BUF_SIZE, "%lum %lus", mins, secs);
     else
-        snprintf(buffer, BUF_SIZE - 1, "%02lu seconds",
-                seconds);
-}
-
-
-static void     repr_arrival_time(char *buffer, time_t arrival)
-{
-    time_t      current_time = time(NULL);
-
-    if (arrival == 0)
-        strncpy(buffer, "unknown", BUF_SIZE - 1);
-    else
-    {
-        if (arrival <= current_time)
-            arrival = current_time + 3;
-        strftime(buffer, BUF_SIZE, "%a %b %e %T %Y", localtime(&arrival));
-    }
+        snprintf(buf, BUF_SIZE, "%lus", secs);
 }
 
 
@@ -204,16 +232,12 @@ static void     repr_current_task(char *buffer)
     int cur_chunk;
     int cur_ctask;
 
-    if (!FCOPY_TERMINATED())
-    {
-        if (isatty(STDERR_FILENO))
-            strncpy(buffer,
-                    "\e[36mstep 1/3: \e[1mcreating output file\e[0;36m ...",
-                    BUF_SIZE - 1);
-        else
-            strncpy(buffer,
-                    "step 1/3: creating output file ...",
-                    BUF_SIZE - 1);
+    if (!FCOPY_TERMINATED()) {
+        strncpy(buffer,
+                "\e[36m[1/3] "
+                "\e[1mcreating output file"
+                "\e[0;36m ...",
+                BUF_SIZE - 1);
     }
     else if (!TAGDUP_TERMINATED()) {
         cur_chunk = g_status.done_chunks;
@@ -222,146 +246,120 @@ static void     repr_current_task(char *buffer)
         cur_ctask = g_status.done_ctasks;
         if (cur_ctask < g_status.total_ctasks)
             ++cur_ctask;
-        if (isatty(STDERR_FILENO))
-            snprintf(buffer, BUF_SIZE - 1,
-                    "\e[36mstep 2/3: \e[1mcleaning chunk %d/%d "
-                    "\e[0;2;36m(task %d/%d)\e[0;36m ...",
-                    cur_chunk, g_status.total_chunks,
-                    cur_ctask, g_status.total_ctasks);
-        else
-            snprintf(buffer, BUF_SIZE - 1,
-                    "step 2/3: cleaning chunk %d/%d "
-                    "(task %d/%d) ...",
-                    cur_chunk, g_status.total_chunks,
-                    cur_ctask, g_status.total_ctasks);
+        snprintf(buffer, BUF_SIZE - 1,
+                "\e[36m[2/3] "
+                "\e[1mdedupe chunk %d/%d "
+                "\e[0;2;36m(task %d/%d)"
+                "\e[0;36m ...",
+                cur_chunk, g_status.total_chunks,
+                cur_ctask, g_status.total_ctasks
+                );
     }
     else {
-        if (isatty(STDERR_FILENO))
-            strncpy(buffer,
-                    "\e[36mstep 3/3: \e[1mremoving tagged lines\e[0;36m ...",
-                    BUF_SIZE - 1);
-        else
-            strncpy(buffer,
-                    "step 3/3: removing tagged lines ...",
-                    BUF_SIZE - 1);
+        strncpy(buffer,
+                "\e[36m[3/3] "
+                "\e[1mremoving tagged lines"
+                "\e[0;36m ...",
+                BUF_SIZE - 1);
     }
 }
 
-/** Display final report
- */
+/** Display final report */
 void            display_report(void)
 {
-    char        elapsed_time_str[BUF_SIZE] = {0};
-    time_t      elapsed_time = 0;
+    char elapsed[BUF_SIZE];
 
-    elapsed_time = time(NULL) - START_TIME();
-    repr_elapsed_time2(elapsed_time_str, elapsed_time);
-
-    if (isatty(STDERR_FILENO))
-        fprintf(stderr, "\nduplicut successfully removed "
-                "\e[1m%ld\e[0m duplicates "
-                "and \e[1m%ld\e[0m filtered lines "
-                "in \e[1m%s\e[0m\n",
-                g_status.tagdup_duplicates,
-                g_status.tagdup_junk_lines,
-                elapsed_time_str);
-    else
-        fprintf(stderr, "\nduplicut successfully removed "
-                "%ld duplicates "
-                "and %ld filtered lines "
-                "in %s\n",
-                g_status.tagdup_duplicates,
-                g_status.tagdup_junk_lines,
-                elapsed_time_str);
+    repr_time(elapsed, time(NULL) - START_TIME());
+    cprintferr(
+            "duplicut successfully removed "
+            "\e[1m%ld\e[0m duplicates "
+            "and \e[1m%ld\e[0m filtered lines "
+            "in \e[1m%s\e[0m\n",
+            g_status.tagdup_duplicates,
+            g_status.tagdup_junk_lines,
+            elapsed
+            );
 }
 
-
-/** Display program status (current progression)
- */
-void            display_status(void)
+/* ------------------------------------------------------------------------ */
+/* Display current progression                                              */
+/* ------------------------------------------------------------------------ */
+void    display_status(int finished)
 {
-    char        elapsed_time_str[BUF_SIZE] = {0};
-    char        arrival_time_str[BUF_SIZE] = {0};
-    char        current_task_str[BUF_SIZE] = {0};
-    time_t      current_time = 0;
-    time_t      elapsed_time = 0;
-    time_t      arrival_time = 0;
-    double      progress = 0.0; /* 1.0 == 100% */
-    double      remain_time = 0.0;
+    char   elapsed_time_str[BUF_SIZE]   = {0};
+    char   remaining_time_str[BUF_SIZE] = {0};
+    char   current_task_str[BUF_SIZE]   = {0};
 
-    current_time = time(NULL);
-    elapsed_time = current_time - START_TIME();
+    time_t now          = time(NULL);
+    time_t elapsed_time = now - START_TIME();
+    if (elapsed_time == 0)                 /* need at least 1 s runtime   */
+        return;
 
-    /* we need at least 1 sec execution to show status */
-    if (elapsed_time == 0)
-        return ;
+    double progress     = 0.0;             /* 0.0 - 1.0                  */
+    double remain_d     = 0.0;             /* remaining time (seconds)   */
+    time_t remaining    = 0;               /* cast of remain_d           */
 
-    /* FCLEAN [3/3] --> 94% to 100% */
+    /* ---------- [3/3] FCLEAN : 94 % → 100 % --------------------------- */
     if (g_status.fclean_bytes) {
-        double fclean_part =
-            (double)g_status.fclean_bytes / (double)g_status.file_size;
-        progress = 0.94 + (fclean_part * 0.06);
+        double part = (double)g_status.fclean_bytes /
+                      (double)g_status.file_size;
+        progress = 0.94 + part * 0.06;
         if (progress > 0.9999)
             progress = 0.9999;
 
-        double fclean_elapsed_time = elapsed_time;
-        fclean_elapsed_time -= FCOPY_DURATION() + TAGDUP_DURATION();
-        if (fclean_elapsed_time >= 1) {
-            remain_time = fclean_elapsed_time / fclean_part;
-            remain_time -= fclean_elapsed_time;
-            arrival_time = current_time + remain_time;
+        double elapsed_fclean = elapsed_time
+                              - FCOPY_DURATION()
+                              - TAGDUP_DURATION();
+        if (elapsed_fclean >= 1.0 && part > 0.0) {
+            remain_d   = elapsed_fclean / part - elapsed_fclean;
+            remaining  = (time_t)remain_d;
         }
     }
-    /* TAGDUP [2/3] --> 4% to 94% */
+    /* ---------- [2/3] TAGDUP : 4 % → 94 % ----------------------------- */
     else if (g_status.tagdup_bytes) {
-        double total_bytes = g_status.total_ctasks * g_status.chunk_size;
-        double tagdup_part = (double)g_status.tagdup_bytes / total_bytes;
-        progress = 0.04 + (tagdup_part * 0.90);
+        double total_bytes = (double)g_status.total_ctasks *
+                             (double)g_status.chunk_size;
+        double part = (double)g_status.tagdup_bytes / total_bytes;
+        progress = 0.04 + part * 0.90;
 
-        double tagdup_elapsed_time = elapsed_time;
-        tagdup_elapsed_time -= FCOPY_DURATION();
-        if (tagdup_elapsed_time >= 1) {
-            remain_time = tagdup_elapsed_time / tagdup_part;
-            remain_time -= tagdup_elapsed_time;
-            arrival_time = current_time + remain_time;
-            /* add estimation of FCLEAN duration: */
-            arrival_time += (FCOPY_DURATION() * 6) / 4;
+        double elapsed_tagdup = elapsed_time - FCOPY_DURATION();
+        if (elapsed_tagdup >= 1.0 && part > 0.0) {
+            remain_d   = elapsed_tagdup / part - elapsed_tagdup;
+            /* crude estimate of upcoming FCLEAN duration                */
+            remain_d  += (FCOPY_DURATION() * 6.0) / 4.0;
+            remaining  = (time_t)remain_d;
         }
     }
-    /* FCOPY [1/3] --> 0% to 4% */
+    /* ---------- [1/3] FCOPY : 0 % → 4 % ------------------------------ */
     else if (g_status.fcopy_bytes) {
-        progress = (double)g_status.fcopy_bytes / (double)g_status.file_size;
-        progress *= 0.04;
+        progress = 0.04 *
+                   (double)g_status.fcopy_bytes /
+                   (double)g_status.file_size;
     }
-    else {
-        return;
+    else
+        return;                            /* nothing yet to display     */
+
+    /* ---------- fallback ETA if still unknown ------------------------- */
+    if (progress > 0.0 && remaining == 0) {
+        remain_d  = ((double)elapsed_time / progress) - elapsed_time;
+        remaining = (time_t)remain_d;
     }
 
-    /* fallback method to display ETA */
-    if (progress > 0 && arrival_time == 0) {
-        remain_time = (double)elapsed_time / progress;
-        remain_time -= elapsed_time;
-        arrival_time = current_time + remain_time;
-    }
+    /* ---------- smooth ETA to avoid jitter ---------------------------- */
+    remaining = smooth_eta(remaining);
 
-    repr_elapsed_time(elapsed_time_str, elapsed_time);
-    repr_arrival_time(arrival_time_str, arrival_time);
+    /* ---------- render strings & print -------------------------------- */
+    repr_time(elapsed_time_str,   (unsigned long)elapsed_time);
+    repr_time(remaining_time_str, (unsigned long)remaining);
     repr_current_task(current_task_str);
 
-    if (isatty(STDERR_FILENO))
-        fprintf(stderr,
-                "\e[0mtime: \e[1m%s \e[1;33m%5.2f%%\e[0m "
-                "(ETA: \e[1m%s\e[0m)  \e[0m%s\e[0m\n",
-                elapsed_time_str,
-                progress * 100.0,
-                arrival_time_str,
-                current_task_str);
-    else
-        fprintf(stderr,
-                "time: %s %5.2f%% "
-                "(ETA: %s)  %s\n",
-                elapsed_time_str,
-                progress * 100.0,
-                arrival_time_str,
-                current_task_str);
+    cprintferr(
+            "\r\e[2K\e[0mtime: \e[1m%-7s \e[1;33m%4.1f%%\e[0m "
+            "(ETA: \e[1m%7s\e[0m) %s\e[0m%s",
+            elapsed_time_str,
+            progress * 100.0,
+            remaining_time_str,
+            current_task_str,
+            finished ? "\n" : ""
+            );
 }

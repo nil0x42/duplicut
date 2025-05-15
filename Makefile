@@ -17,7 +17,7 @@ COVERAGEFLAGS = -O0 -D NDEBUG -std=gnu99 -g2 --coverage -fprofile-update=atomic
 
 SOURCES       = main.c thpool.c file.c chunk.c line.c dedupe.c \
                 optparse.c config.c error.c memstate.c meminfo.c bytesize.c \
-                hmap.c status.c uinput.c \
+                hmap.c status.c progressbar.c cprintferr.c \
 
 COMMON        = include/const.h include/debug.h
 OBJECTS       = $(patsubst %.c, objects/%.o, $(SOURCES))

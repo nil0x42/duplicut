@@ -24,6 +24,6 @@ enum    e_status_set
 
 /* source file: status.c */
 void                display_report(void);
-void                display_status(void);
+void                display_status(int finished);
 void                update_status(enum e_status_update action);
 void                set_status(enum e_status_set var, size_t val);

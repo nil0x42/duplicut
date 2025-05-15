@@ -7,7 +7,7 @@
 #include "file.h"
 #include "hmap.h"
 #include "dedupe.h"
-#include "uinput.h"
+#include "progressbar.h"
 #include "status.h"
 #include "error.h"
 
@@ -72,8 +72,7 @@ int             main(int argc, char **argv)
 {
     optparse(argc, argv); /* setup g_conf options */
 
-    if (isatty(STDIN_FILENO))
-        watch_user_input();
+    start_progressbar();
 
     update_status(FCOPY_START);
     init_files();
@@ -88,6 +87,8 @@ int             main(int argc, char **argv)
     update_status(FCLEAN_START);
     remove_duplicates();
     cleanup_files();
+
+    stop_progressbar();
 
     display_report();
     return (0);
