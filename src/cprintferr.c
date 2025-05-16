@@ -29,6 +29,8 @@ int cprintferr(const char *fmt, ...)
         color_ok = isatty(STDERR_FILENO);
 
     char buf[1024];
+    char *bufptr = buf;
+
     va_list ap;
     va_start(ap, fmt);
     int len = vsnprintf(buf, sizeof(buf) - 1, fmt, ap);
@@ -40,15 +42,18 @@ int cprintferr(const char *fmt, ...)
         len = sizeof(buf) - 2;
 
     if (!color_ok) {
-        len = strip_ansi_inplace(buf);
-        if (len > 0 && buf[len-1] != '\n') {
-            buf[len++] = '\n';
-            buf[len] = '\0';
+        // strip leading '\r'
+        while (*bufptr == '\r')
+            ++bufptr;
+        len = strip_ansi_inplace(bufptr);
+        if (len > 0 && bufptr[len-1] != '\n') {
+            bufptr[len++] = '\n';
+            bufptr[len] = '\0';
         }
     }
     if (len > 0) {
-        fwrite(buf, 1, len, stderr);
-        if (buf[len-1] != '\n')
+        fwrite(bufptr, 1, len, stderr);
+        if (bufptr[len-1] != '\n')
             fflush(stderr);
     }
     return len;
