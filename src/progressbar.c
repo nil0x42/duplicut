@@ -13,6 +13,7 @@
 #define BUF_SIZE    (1024)
 
 static struct termios           g_old_tio, g_new_tio;
+static int                      g_termios_updated = 0;
 
 static pthread_t                g_pbarthread_id = 0;
 static volatile sig_atomic_t    g_pbarthread_running = 1;
@@ -45,13 +46,18 @@ static void *progressbar_worker(void *arg)
  */
 static void restore_termios(void)
 {
+    if (!g_termios_updated)
+        return;
     tcsetattr(STDERR_FILENO, TCSANOW, &g_old_tio);
+    g_termios_updated = 0;
 }
 
 /** disable terminal's line buffering & echo
  */
 static void config_termios(void)
 {
+    if (g_termios_updated)
+        return; // already set
     if (tcgetattr(STDERR_FILENO, &g_old_tio) < 0)
         error("tcgetattr(): %s", ERRNO);
 
@@ -60,7 +66,7 @@ static void config_termios(void)
 
     if (tcsetattr(STDERR_FILENO, TCSANOW, &g_new_tio) < 0)
         error("tcsetattr(): %s", ERRNO);
-
+    g_termios_updated = 1;
     atexit(restore_termios);
 }
 
