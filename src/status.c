@@ -12,18 +12,11 @@
 #define TRIANGULAR(n)       (n * (n + 1) / 2)
 
 #define START_TIME()        (g_status.fcopy_date)
-#define FCOPY_STARTED()     (g_status.fcopy_date != 0)
 #define FCOPY_TERMINATED()  (g_status.ctasks_date != 0)
 #define FCOPY_DURATION()    (g_status.ctasks_date - g_status.fcopy_date)
-#define TAGDUP_STARTED()    (FCOPY_TERMINATED())
 #define TAGDUP_TERMINATED() (g_status.fclean_date != 0)
 #define TAGDUP_DURATION()   (g_status.fclean_date - g_status.ctasks_date)
-#define FCLEAN_STARTED()    (TAGDUP_TERMINATED())
-#define MISSING_CTASKS()    (g_status.total_ctasks - g_status.done_ctasks)
-
-#define MINUTE              (60)
-#define HOUR                (MINUTE * 60)
-#define DAY                 (HOUR * 24)
+#define FCLEAN_TERMINATED() (g_status.fclean_bytes == g_status.file_size)
 
 #define BUF_SIZE            (128)
 
@@ -66,70 +59,67 @@ static struct status    g_status = {
 
 pthread_mutex_t         g_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-/* ------------------------------------------------------------------------ */
-/* ETA smoothing helpers                                                    */
-/* ------------------------------------------------------------------------ */
-
-/*
- * Smooth ETA with a simple EWMA + hysteresis so that the progress bar
- * doesn’t jitter every 250 ms, yet still follows real trend changes.
- *   eta_raw : freshly computed ETA for this tick.
- *   return  : value to display (seconds).
- * All state is kept static inside the function — no new global needed.
+/*  smooth_eta ‒ Present a human-friendly, steadily changing ETA
+ *
+ *  Applies an exponentially weighted moving average (τ = 1 s) directly to the
+ *  raw time-remaining estimate, then adds hysteresis and jump logic so the
+ *  number a user sees is stable yet responsive:
+ *
+ *    • Minor changes (< 0.8 s or 1 %) are suppressed.
+ *    • Large deviations (> 10 s and 30 %) are accepted immediately.
+ *    • Between updates the displayed value is forced to drop by ≈ 1 s per
+ *      real-time second so the countdown never stalls or counts up.
+ *
+ *  All state is kept in two static variables:
+ *    displayed ― last ETA shown (seconds, double for sub-second precision)
+ *    last_t    ― wall-clock time of the previous call
+ *
+ *  Returns a monotone-decreasing, smoothed ETA in whole seconds; returns 0 if
+ *  the raw ETA is non-positive.
  */
-static time_t   smooth_eta(time_t eta_raw)
+static time_t smooth_eta(time_t eta_raw)
 {
-    /* tuning parameters (empirically good defaults) */
-    const double TAU_SEC   = 1.0;     /* EWMA time constant                 */
-    const double EPS_ABS   = 0.8;     /* ignore variation < 0.8 s             */
-    const double EPS_REL   = 0.01;    /*   or   < 1 %                       */
-    const double JUMP_PERC = 0.30;    /* jump if deviation > 30 %           */
-    const double JUMP_ABS  = 10.0;    /*   and > 10 s                       */
+    const double TAU_SEC   = 1.0;
+    const double EPS_ABS   = 0.8;
+    const double EPS_REL   = 0.01;
+    const double JUMP_PERC = 0.30;
+    const double JUMP_ABS  = 10.0;
 
-    static double displayed = -1.0;   /* last ETA value actually shown      */
-    static time_t last_t    = 0;      /* last call timestamp                */
+    static double displayed = -1.0;
+    static time_t last_t    = 0;
 
     if (eta_raw <= 0)
-        return 0;                     /* nothing to smooth */
+        return 0;
 
     time_t now = time(NULL);
-
-    /* first tick — initialise */
     if (displayed < 0) {
-        displayed = (double)eta_raw;
+        displayed = eta_raw;
         last_t    = now;
         return eta_raw;
     }
 
-    /* compute time since previous update */
-    double dt = difftime(now, last_t);
+    double dt   = difftime(now, last_t);
     if (dt < 1e-3)
-        return (time_t)displayed;     /* timer glitch */
+        return (time_t)displayed;
 
-    /* EWMA directly on ETA (simpler than speed-based) */
     double alpha = dt / (TAU_SEC + dt);
-    double eta_smooth = (1.0 - alpha) * displayed + alpha * (double)eta_raw;
+    double eta   = (1.0 - alpha) * displayed + alpha * eta_raw;
 
-    /* hysteresis: keep previous value if the change is tiny */
-    double diff = fabs(displayed - eta_smooth);
+    double diff  = fabs(displayed - eta);
     if (diff < EPS_ABS || diff < displayed * EPS_REL)
-        eta_smooth = displayed;
+        eta = displayed;
 
-    /* big deviation -> follow immediately (jump) */
-    diff = fabs(displayed - eta_raw);
+    diff = fabs(displayed - (double)eta_raw);
     if (diff > JUMP_ABS && diff > displayed * JUMP_PERC)
-        eta_smooth = (double)eta_raw;
+        eta = eta_raw;
 
-    /* guarantee a visible countdown (≈ 1 s/s) */
-    double min_dec = dt;                        /* here dt ≈ 0,25 s           */
-    if (eta_smooth > displayed - min_dec)
-        eta_smooth = fmax(displayed - min_dec, (double)eta_raw);
+    double min_dec = dt;           /* keep countdown at ≈1 s/s */
+    if (eta > displayed - min_dec)
+        eta = fmax(displayed - min_dec, (double)eta_raw);
 
-
-    displayed = eta_smooth;
+    displayed = eta;
     last_t    = now;
-
-    return (time_t)displayed;
+    return (time_t)eta;
 }
 
 /** Update program status */
@@ -208,30 +198,25 @@ void            set_status(enum e_status_set var, size_t val)
 }
 
 
-/* human‑friendly elapsed‑time formatter */
-static void repr_time(char *buf, unsigned long sec)
+/* Print a human-readable duration into `buf`.  
+   Caller must ensure the buffer is large enough. */
+static void repr_time(char *buf, time_t sec)
 {
-    unsigned long days =  sec / DAY;
-    unsigned long hrs  = (sec / HOUR)   % 24;
-    unsigned long mins = (sec / MINUTE)    % 60;
-    unsigned long secs =  sec           % 60;
+    enum { MIN = 60, HR = 60 * MIN, DAY = 24 * HR };
 
-    if (days)
-        snprintf(buf, BUF_SIZE, "%lud %luh", days, hrs);
-    else if (hrs)
-        snprintf(buf, BUF_SIZE, "%luh %lum", hrs, mins);
-    else if (mins)
-        snprintf(buf, BUF_SIZE, "%lum %lus", mins, secs);
+    if (sec >= DAY)
+        sprintf(buf, "%lud %luh", sec / DAY, (sec % DAY) / HR);
+    else if (sec >= HR)
+        sprintf(buf, "%luh %lum", sec / HR, (sec % HR) / MIN);
+    else if (sec >= MIN)
+        sprintf(buf, "%lum %lus", sec / MIN, sec % MIN);
     else
-        snprintf(buf, BUF_SIZE, "%lus", secs);
+        sprintf(buf, "%lus", sec);
 }
 
 
 static void     repr_current_task(char *buffer)
 {
-    int cur_chunk;
-    int cur_ctask;
-
     if (!FCOPY_TERMINATED()) {
         strncpy(buffer,
                 "\e[36m[1/3] "
@@ -240,12 +225,10 @@ static void     repr_current_task(char *buffer)
                 BUF_SIZE - 1);
     }
     else if (!TAGDUP_TERMINATED()) {
-        cur_chunk = g_status.done_chunks;
-        if (cur_chunk < g_status.total_chunks)
-            ++cur_chunk;
-        cur_ctask = g_status.done_ctasks;
-        if (cur_ctask < g_status.total_ctasks)
-            ++cur_ctask;
+        int cur_chunk = g_status.done_chunks
+            + (g_status.done_chunks < g_status.total_chunks);
+        int cur_ctask = g_status.done_ctasks
+            + (g_status.done_ctasks < g_status.total_ctasks);
         snprintf(buffer, BUF_SIZE - 1,
                 "\e[36m[2/3] "
                 "\e[1mdedupe chunk %d/%d "
@@ -286,80 +269,54 @@ void            display_report(void)
 /* ------------------------------------------------------------------------ */
 void    display_status(int finished)
 {
-    char   elapsed_time_str[BUF_SIZE]   = {0};
-    char   remaining_time_str[BUF_SIZE] = {0};
-    char   current_task_str[BUF_SIZE]   = {0};
 
-    time_t now          = time(NULL);
-    time_t elapsed_time = now - START_TIME();
-    if (elapsed_time == 0)                 /* need at least 1 s runtime   */
-        return;
+    char            s_t_elapsed[32];
+    char            s_t_remaining[32];
+    char            s_cur_task[BUF_SIZE];
+    const time_t    t_elapsed = time(NULL) - START_TIME();
+    time_t          t_remaining = 0;
+    double          progress;
 
-    double progress     = 0.0;             /* 0.0 - 1.0                  */
-    double remain_d     = 0.0;             /* remaining time (seconds)   */
-    time_t remaining    = 0;               /* cast of remain_d           */
-
+    if (!g_status.fcopy_bytes || t_elapsed < 1)
+        return; // only display after 1st second
     /* ---------- [3/3] FCLEAN : 94 % → 100 % --------------------------- */
     if (g_status.fclean_bytes) {
-        double part = (double)g_status.fclean_bytes /
-                      (double)g_status.file_size;
-        progress = 0.94 + part * 0.06;
-        if (progress > 0.9999)
-            progress = 0.9999;
-
-        double elapsed_fclean = elapsed_time
-                              - FCOPY_DURATION()
-                              - TAGDUP_DURATION();
-        if (elapsed_fclean >= 1.0 && part > 0.0) {
-            remain_d   = elapsed_fclean / part - elapsed_fclean;
-            remaining  = (time_t)remain_d;
-        }
+        double step_ratio = (double) g_status.fclean_bytes / g_status.file_size;
+        progress = 0.94 + (step_ratio * 0.06);
+        if (progress > 0.999 && !FCLEAN_TERMINATED())
+            progress = 0.999; // limit to 99.9% while not fully terminated
+        double step_elapsed = t_elapsed - FCOPY_DURATION() - TAGDUP_DURATION();
+        if (step_elapsed >= 1 && step_ratio > 0)
+            t_remaining = step_elapsed / step_ratio - step_elapsed;
     }
     /* ---------- [2/3] TAGDUP : 4 % → 94 % ----------------------------- */
     else if (g_status.tagdup_bytes) {
-        double total_bytes = (double)g_status.total_ctasks *
-                             (double)g_status.chunk_size;
-        double part = (double)g_status.tagdup_bytes / total_bytes;
-        progress = 0.04 + part * 0.90;
-
-        double elapsed_tagdup = elapsed_time - FCOPY_DURATION();
-        if (elapsed_tagdup >= 1.0 && part > 0.0) {
-            remain_d   = elapsed_tagdup / part - elapsed_tagdup;
-            /* crude estimate of upcoming FCLEAN duration                */
-            remain_d  += (FCOPY_DURATION() * 6.0) / 4.0;
-            remaining  = (time_t)remain_d;
-        }
+        long total_bytes = g_status.total_ctasks * g_status.chunk_size;
+        double step_ratio = (double)g_status.tagdup_bytes / total_bytes;
+        progress = 0.04 + (step_ratio * 0.90);
+        double step_elapsed = t_elapsed - FCOPY_DURATION();
+        if (step_elapsed >= 1 && step_ratio > 0)
+            t_remaining = (
+                    (step_elapsed / step_ratio - step_elapsed) +
+                    // estimate of upcomming FCLEAN duration:
+                    (FCOPY_DURATION() * 1.5));
     }
     /* ---------- [1/3] FCOPY : 0 % → 4 % ------------------------------ */
     else if (g_status.fcopy_bytes) {
-        progress = 0.04 *
-                   (double)g_status.fcopy_bytes /
-                   (double)g_status.file_size;
+        double step_ratio = (double)g_status.fcopy_bytes / g_status.file_size;
+        progress = 0.0 + (step_ratio * 0.04);
     }
-    else
-        return;                            /* nothing yet to display     */
-
     /* ---------- fallback ETA if still unknown ------------------------- */
-    if (progress > 0.0 && remaining == 0) {
-        remain_d  = ((double)elapsed_time / progress) - elapsed_time;
-        remaining = (time_t)remain_d;
-    }
-
-    /* ---------- smooth ETA to avoid jitter ---------------------------- */
-    remaining = smooth_eta(remaining);
-
+    if (progress > 0 && t_remaining == 0)
+        t_remaining = t_elapsed / progress - t_elapsed;
     /* ---------- render strings & print -------------------------------- */
-    repr_time(elapsed_time_str,   (unsigned long)elapsed_time);
-    repr_time(remaining_time_str, (unsigned long)remaining);
-    repr_current_task(current_task_str);
-
+    t_remaining = smooth_eta(t_remaining);
+    repr_time(s_t_remaining, t_remaining);
+    repr_time(s_t_elapsed, t_elapsed);
+    repr_current_task(s_cur_task);
     cprintferr(
             "\r\e[2K\e[0mtime: \e[1m%-7s \e[1;33m%4.1f%%\e[0m "
             "(ETA: \e[1m%7s\e[0m) %s\e[0m%s",
-            elapsed_time_str,
-            progress * 100.0,
-            remaining_time_str,
-            current_task_str,
-            finished ? "\n" : ""
-            );
+            s_t_elapsed, progress * 100.0, s_t_remaining,
+            s_cur_task, finished ? "\n" : "");
 }
