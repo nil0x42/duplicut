@@ -16,8 +16,8 @@ jobs:
         os:
           - ubuntu-24.04
           - ubuntu-22.04
-          - macos-15
-          - macos-13
+          - macos-26
+          - macos-14
         compiler:
           - gcc
           - llvm
