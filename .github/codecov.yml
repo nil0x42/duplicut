@@ -6,14 +6,21 @@ coverage:
   precision: 2
   round: down
   range: "70...100"
-  threshold: 1%
-
   status:
-    project: yes
-    patch: yes
-    changes: no
-    ignore: 
-      - "test/*"
+    project:
+      default:
+        target: auto
+        threshold: 0%
+        paths:
+          - "^src/(?!thpool\\.c$).*"
+          - "^include/(?!(xxhash|thpool)\\.h$).*"
+    patch:
+      default:
+        target: auto
+        threshold: 0%
+        paths:
+          - "^src/(?!thpool\\.c$).*"
+          - "^include/(?!(xxhash|thpool)\\.h$).*"
 
 parsers:
   gcov:
@@ -23,11 +30,10 @@ parsers:
       method: no
       macro: yes
 
-comment:
-  # layout: "header, diff, flags, files"
-  layout: "condensed_header, diff, flags, condensed_files, condensed_footer"
-  behavior: default
-  require_changes: no
+comment: false
 
 ignore:
-  - "**/xxhash.*"
+  - "^include/xxhash\\.h$"
+  - "^include/thpool\\.h$"
+  - "^src/thpool\\.c$"
+  - "test/**"
