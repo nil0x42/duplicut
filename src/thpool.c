@@ -114,7 +114,7 @@ typedef struct thpool_{
 
 
 static int  thread_init(thpool_* thpool_p, struct thread** thread_p, int id);
-static void* thread_do(struct thread* thread_p);
+static void* thread_do(void* arg);
 static void  thread_hold(int sig_id);
 static void  thread_destroy(struct thread* thread_p);
 
@@ -310,7 +310,7 @@ static int thread_init (thpool_* thpool_p, struct thread** thread_p, int id){
 	(*thread_p)->thpool_p = thpool_p;
 	(*thread_p)->id       = id;
 
-	pthread_create(&(*thread_p)->pthread, NULL, (void * (*)(void *)) thread_do, (*thread_p));
+	pthread_create(&(*thread_p)->pthread, NULL, thread_do, (*thread_p));
 	pthread_detach((*thread_p)->pthread);
 	return 0;
 }
@@ -331,10 +331,11 @@ static void thread_hold(int sig_id) {
 * In principle this is an endless loop. The only time this loop gets interrupted is once
 * thpool_destroy() is invoked or the program exits.
 *
-* @param  thread        thread that will run this function
-* @return nothing
+* @param  arg           thread that will run this function
+* @return NULL
 */
-static void* thread_do(struct thread* thread_p){
+static void* thread_do(void* arg){
+	struct thread* thread_p = arg;
 
 	/* Set thread name for profiling and debugging */
 	char thread_name[16] = {0};

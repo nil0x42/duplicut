@@ -96,8 +96,9 @@ bool        get_next_chunk(t_chunk *chunk, struct file *file)
  * by tagging them with 'DISABLED_LINE'
  * Main work for threads in thread pool.
  */
-void        cleanout_chunk(t_chunk *chunk)
+void        cleanout_chunk(void *arg)
 {
+    t_chunk *chunk = arg;
     char    *line_ptr;
     int     line_sz;
     long    slot;
