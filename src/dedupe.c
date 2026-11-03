@@ -29,7 +29,7 @@ static void     tag_subchunks(threadpool thpool, const t_chunk *parent)
             die("cannot malloc() heap_chunk");
         memcpy(heap_chunk, &chunk, sizeof(t_chunk));
         /* thpool already prints error unless DISABLE_PRINT is defined */
-        if (thpool_add_work(thpool, (void*)cleanout_chunk, heap_chunk) != 0)
+        if (thpool_add_work(thpool, cleanout_chunk, heap_chunk) != 0)
             exit(1);
     }
     update_status(CHUNK_DONE);

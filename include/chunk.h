@@ -13,4 +13,4 @@ typedef struct  chunk
 /* source file: chunk.c */
 int         count_chunks(void);
 bool        get_next_chunk(t_chunk *chunk, struct file *file);
-void        cleanout_chunk(t_chunk *chunk);
+void        cleanout_chunk(void *arg);
