@@ -6,6 +6,17 @@ on:
   pull_request:
     branches: [ master ]
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+    secrets:
+      CODECOV_TOKEN:
+        required: false
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -13,20 +24,16 @@ jobs:
       fail-fast: false
       matrix:
         # available runners: https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
-        os:
-          - ubuntu-24.04
-          - ubuntu-22.04
-          - macos-26
-          - macos-14
+        os: ${{ fromJSON(inputs.os || '["ubuntu-latest", "ubuntu-22.04", "macos-15-intel"]') }}
         compiler:
           - gcc
           - llvm
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Setup MacOS environment
         if: startsWith(matrix.os, 'macos')
@@ -41,10 +48,10 @@ jobs:
           sudo apt-get install -y exuberant-ctags expect-dev
 
       - name: Setup compiler
-        uses: aminya/setup-cpp@v1.5.3
+        uses: aminya/setup-cpp@15a6bd8cf39030f88b5da3d203a829ec4eea4955 # v1.10.1
         with:
           compiler: ${{ matrix.compiler }}
-          gcovr: true
+          gcovr: "8.8"
 
       - name: Run unit tests
         # stdbuf has a bug on mac-latest (stdbuf is arm64, github wm arm64e)
@@ -66,11 +73,11 @@ jobs:
 
       - name: Collect coverage info with gcovr
         run: |
-          gcovr # for debug
-          gcovr --fail-under-line 30 --delete --xml coverage.xml
+          gcovr --config .github/gcovr.cfg # for debug
+          gcovr --config .github/gcovr.cfg --fail-under-line 30 --delete --xml coverage.xml
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true

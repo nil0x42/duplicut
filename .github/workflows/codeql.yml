@@ -44,7 +44,7 @@ jobs:
           build-mode: autobuild
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
     # Add any setup steps before running the `github/codeql-action/init` action.
     # This includes steps like installing compilers or runtimes (`actions/setup-node`
@@ -54,7 +54,7 @@ jobs:
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
+      uses: github/codeql-action/init@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4
       with:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
@@ -82,6 +82,18 @@ jobs:
         exit 1
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+      uses: github/codeql-action/analyze@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4
       with:
         category: "/language:${{matrix.language}}"
+        output: sarif-results
+        upload: failure-only
+
+    - name: Filter bundled code quality alerts
+      if: matrix.language == 'c-cpp'
+      run: python3 .github/scripts/filter-codeql.py sarif-results/cpp.sarif
+
+    - name: Upload CodeQL results
+      uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4
+      with:
+        category: "/language:${{matrix.language}}"
+        sarif_file: sarif-results
