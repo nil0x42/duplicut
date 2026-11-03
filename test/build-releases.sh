@@ -34,7 +34,7 @@ declare -A TARGET_FLAGS=(
 )
 
 # Minimal, size‑oriented CFLAGS shared by all builds
-BASE_CFLAGS="-Iinclude -Wall -Wextra -Wdisabled-optimization -Winline \
+BASE_CFLAGS="-std=gnu99 -Iinclude -Wall -Wextra -Wdisabled-optimization -Winline \
 -Wdouble-promotion -Wunknown-pragmas -Wno-implicit-fallthrough \
 -Wno-error=implicit-function-declaration -ffast-math -O2 -DNDEBUG"
 
