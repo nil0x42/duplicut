@@ -1,7 +1,4 @@
-#!/usr/bin/env python
-
-# script must be compatible with both python2 & python3
-# (for backward compat on old osx test @travis-ci)
+#!/usr/bin/env python3
 
 import sys
 import re
@@ -46,18 +43,11 @@ elif UPPERCASE:
 lines = re.split(b"\r\n|\n", content)
 
 
-if sys.version_info.major == 3:
-    def line_isprint(line):
-        for c in line:
-            if not 31 < c < 127:
-                return False
-        return True
-elif sys.version_info.major == 2:
-    def line_isprint(line):
-        for c in line:
-            if not 31 < ord(c) < 127:
-                return False
-        return True
+def line_isprint(line):
+    for c in line:
+        if not 31 < c < 127:
+            return False
+    return True
 
 dupes = []
 uniques = []
