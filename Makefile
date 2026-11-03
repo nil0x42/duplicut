@@ -4,7 +4,7 @@ SHELL         = /bin/sh
 # debug level
 level         = 1
 
-CFLAGS        = -Iinclude -Wall -Wextra \
+CFLAGS        = -std=gnu99 -Iinclude -Wall -Wextra \
                 -Wdisabled-optimization -Winline \
                 -Wdouble-promotion -Wunknown-pragmas \
                 -Wno-implicit-fallthrough \
@@ -12,8 +12,8 @@ CFLAGS        = -Iinclude -Wall -Wextra \
                 -mtune=native -ffast-math
 LDFLAGS       = -lm -pthread
 RELEASEFLAGS  = -O2 -D NDEBUG
-DEBUGFLAGS    = -O0 -D DEBUG=$(level) -std=gnu99 -g2
-COVERAGEFLAGS = -O0 -D NDEBUG -std=gnu99 -g2 --coverage -fprofile-update=atomic
+DEBUGFLAGS    = -O0 -D DEBUG=$(level) -g2
+COVERAGEFLAGS = -O0 -D NDEBUG -g2 --coverage -fprofile-update=atomic
 
 SOURCES       = main.c thpool.c file.c chunk.c line.c dedupe.c \
                 optparse.c config.c error.c memstate.c meminfo.c bytesize.c \
@@ -49,14 +49,14 @@ $(TARGET): distclean $(OBJECTS) $(COMMON)
 profile: CFLAGS += -pg
 profile: distclean $(TARGET)
 
-profile-generate: CFLAGS += $(RELEASEFLAGS) -fprofile-generate -fprofile-arcs
+profile-generate: CFLAGS += $(RELEASEFLAGS) -fprofile-generate -fprofile-update=atomic
 profile-generate: distclean $(OBJECTS) $(COMMON)
 	$(CC) $(FLAGS) $(CFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
 
 rm-objects:
 	rm objects/*.o
 
-profile-use: CFLAGS += $(RELEASEFLAGS) -fprofile-use -fprofile-arcs
+profile-use: CFLAGS += $(RELEASEFLAGS) -fprofile-use
 profile-use: rm-objects $(OBJECTS) $(COMMON)
 	$(CC) $(FLAGS) $(CFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
 
