@@ -25,24 +25,16 @@ static struct file  g_tmpfile;
 static struct file  g_dupfile;
 
 
-/** Ensure that infile and outfile don't point to the same
+/** Ensure that two open files don't point to the same
  * file on filesystem, by comparing device & inode.
  */
 static void check_files_difer(
-        const char *infile_name,
-        const char *outfile_name)
+        const struct file *infile,
+        const struct file *outfile)
 {
-    struct stat     infile_info;
-    struct stat     outfile_info;
-
-    if (stat(infile_name, &infile_info) < 0)
-        return ;
-    if (stat(outfile_name, &outfile_info) < 0)
-        return ;
-
-    if (infile_info.st_dev == outfile_info.st_dev
-            && infile_info.st_ino == outfile_info.st_ino)
-        error("infile and outfile must be different");
+    if (infile->info.st_dev == outfile->info.st_dev
+            && infile->info.st_ino == outfile->info.st_ino)
+        error("%s and %s must be different", infile->name, outfile->name);
 }
 
 
@@ -88,6 +80,15 @@ static void open_file(struct file *file, const char *pathname, int flags)
         error("couldn't stat %s: %s", pathname, ERRNO);
 
     file->name = pathname;
+}
+
+
+/** Truncate regular output files after checking for aliases.
+ */
+static void truncate_file(struct file *file)
+{
+    if (S_ISREG(file->info.st_mode) && ftruncate(file->fd, 0) < 0)
+        error("cannot ftruncate() %s: %s", file->name, ERRNO);
 }
 
 
@@ -184,8 +185,6 @@ void        init_files(void)
 {
     struct file  *file;
 
-    check_files_difer(g_conf.infile_name, g_conf.outfile_name);
-
     memset(&g_infile, -1, sizeof(g_infile));
     memset(&g_outfile, -1, sizeof(g_outfile));
     memset(&g_tmpfile, -1, sizeof(g_tmpfile));
@@ -193,11 +192,21 @@ void        init_files(void)
 
     atexit(close_all);
     open_file(&g_infile, g_conf.infile_name, O_RDONLY);
-    open_file(&g_outfile, g_conf.outfile_name, O_TRUNC | O_CREAT | O_RDWR);
+    open_file(&g_outfile, g_conf.outfile_name, O_CREAT | O_RDWR);
 
     if (g_conf.dupfile_name != NULL) {
-        open_file(&g_dupfile, g_conf.dupfile_name, O_TRUNC | O_CREAT | O_RDWR);
+        open_file(&g_dupfile, g_conf.dupfile_name, O_CREAT | O_RDWR);
     }
+
+    check_files_difer(&g_infile, &g_outfile);
+    if (FILE_ISSET(&g_dupfile)) {
+        check_files_difer(&g_infile, &g_dupfile);
+        check_files_difer(&g_outfile, &g_dupfile);
+    }
+
+    truncate_file(&g_outfile);
+    if (FILE_ISSET(&g_dupfile))
+        truncate_file(&g_dupfile);
 
     if (S_ISREG(g_outfile.info.st_mode))
         file = &g_outfile;
