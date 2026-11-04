@@ -10,7 +10,9 @@ from collections import Counter
 from pathlib import Path
 
 
-dedupe = runpy.run_path(str(Path(__file__).with_name('reference-dedupe.py')))['dedupe']
+reference = runpy.run_path(str(Path(__file__).with_name('reference-dedupe.py')))
+dedupe = reference['dedupe']
+line_count = reference['line_count']
 
 
 def check(program, directory, content, flags=()):
@@ -19,16 +21,20 @@ def check(program, directory, content, flags=()):
     duplicates = directory / 'duplicates'
     source.write_bytes(content)
     expected, removed = dedupe(content, 1024, '-p' in flags, '-c' in flags, '-C' in flags)
+    counts = b'%d duplicates and %d filtered lines' % (
+        line_count(removed), line_count(content) - line_count(expected) - line_count(removed))
     for threads in sorted({1, min(4, os.cpu_count() or 1)}):
         result = subprocess.run([program, str(source), '-o', str(output),
                                  '-D', str(duplicates), '-m', '64K', '-t', str(threads),
                                  *flags], stderr=subprocess.PIPE, timeout=5)
         assert result.returncode == 0, (threads, flags, result.stderr)
+        assert counts in result.stderr, result.stderr
         assert output.read_bytes() == expected, (threads, flags)
         assert Counter(duplicates.read_bytes().split(b'\n')) == Counter(removed.split(b'\n'))
     result = subprocess.run([program, '-m', '64K', '-t', '1', *flags], input=content,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5)
     assert result.returncode == 0, result.stderr
+    assert counts in result.stderr, result.stderr
     assert result.stdout == expected
 
 

@@ -67,6 +67,9 @@ static void     remove_duplicates(void)
         }
     }
 
+    /* Count filtered lines once, excluding the duplicates already reported. */
+    set_status(FCLEAN_SKIPPED, junk_lines);
+
     /* update file size */
     g_file->info.st_size = dst - g_file->addr;
     set_status(FCLEAN_BYTES, (size_t)(file_chunk.ptr - base_ptr));

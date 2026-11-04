@@ -12,7 +12,9 @@ from pathlib import Path
 from threading import Event
 
 
-dedupe = runpy.run_path(str(Path(__file__).with_name('reference-dedupe.py')))['dedupe']
+reference = runpy.run_path(str(Path(__file__).with_name('reference-dedupe.py')))
+dedupe = reference['dedupe']
+line_count = reference['line_count']
 
 
 def default_jobs():
@@ -29,6 +31,9 @@ def test_case(wordlist, content, size, flags, stop):
         return None
     args = ['-l', str(size), *flags]
     expected = dedupe(content, size, '-p' in flags, '-c' in flags, '-C' in flags)
+    duplicates = line_count(expected[1])
+    filtered = line_count(content) - line_count(expected[0]) - duplicates
+    summary = b'%d duplicates and %d filtered lines' % (duplicates, filtered)
     with tempfile.TemporaryDirectory(prefix='duplicut-tests-') as directory:
         output = Path(directory) / 'output'
         dupfile = Path(directory) / 'duplicates'
@@ -49,6 +54,8 @@ def test_case(wordlist, content, size, flags, stop):
                 reason = 'different unique lines'
             elif sorted(dupfile.read_bytes().split(b'\n')) != sorted(expected[1].split(b'\n')):
                 reason = 'different duplicate lines'
+            elif content and summary not in stderr:
+                reason = 'different duplicate or filtered counts'
             else:
                 return True
         except subprocess.TimeoutExpired as error:

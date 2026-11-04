@@ -258,7 +258,7 @@ void            config_partitions(void)
 
 
 /** Count exact record ranges before creating the partition file. */
-static size_t   count_partitions(struct partition_work *work, size_t *filtered)
+static size_t   count_partitions(struct partition_work *work)
 {
     t_chunk     chunk;
     size_t      count = work->count;
@@ -289,7 +289,6 @@ static size_t   count_partitions(struct partition_work *work, size_t *filtered)
         }
     }
     set_status(TAGDUP_BYTES, g_file->orig_size - (base - g_file->addr));
-    *filtered = junk;
     work->lines = lines;
     return (bytes);
 }
@@ -376,7 +375,7 @@ static void     dedupe_partitions(struct partition_work *work, size_t workers)
 
 
 /** Apply the bitmap in source order, counting each occurrence once. */
-static void     mark_partitions(const struct partition_work *work, size_t filtered)
+static void     mark_partitions(const struct partition_work *work)
 {
     t_chunk     chunk;
     size_t      junk = 0;
@@ -408,7 +407,6 @@ static void     mark_partitions(const struct partition_work *work, size_t filter
         }
     }
     set_status(TAGDUP_DUPLICATES, duplicates);
-    set_status(TAGDUP_JUNK_LINES, filtered);
     set_status(TAGDUP_BYTES, g_file->orig_size - (base - g_file->addr));
 }
 
@@ -422,14 +420,13 @@ bool            tag_partitions(void)
     size_t      memory;
     size_t      bytes;
     size_t      bitmap;
-    size_t      filtered;
 
     if (!work.count)
         return (false);
     work.parts = calloc(work.count, sizeof(struct partition));
     if (work.parts == NULL)
         die("cannot calloc() partitions");
-    bytes = count_partitions(&work, &filtered);
+    bytes = count_partitions(&work);
     bitmap = work.lines / 8 + (work.lines % 8 != 0);
     memory = budget - work.count * sizeof(struct partition);
     if (bitmap > budget / 2 || bitmap > memory
@@ -468,7 +465,7 @@ bool            tag_partitions(void)
         die("cannot calloc() duplicate bitmap");
     partition_status(2, bytes);
     dedupe_partitions(&work, workers);
-    mark_partitions(&work, filtered);
+    mark_partitions(&work);
     if (close(work.fd) < 0)
         error("cannot close partitions: %s", ERRNO);
     free(work.duplicates);
