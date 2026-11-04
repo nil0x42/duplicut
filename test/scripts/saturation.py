@@ -63,7 +63,7 @@ def main():
             include.mkdir()
             constants = (root / 'include/const.h').read_text()
             (include / 'const.h').write_text(constants.replace(
-                '#define AVG_LINE_BYTES          (8)', '#define AVG_LINE_BYTES          (64)'))
+                '#define HMAP_MAX_LOAD           (0.7)', '#define HMAP_MAX_LOAD           (0.25)'))
             (include / 'hash.h').write_text('#pragma once\n#include <stdint.h>\n'
                                           '#define HASH(line, size) ((uint64_t)0)\n')
             collision_program = str(directory / 'collisions')

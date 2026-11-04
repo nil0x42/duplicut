@@ -134,9 +134,9 @@ def test_faults(program, directory, root, content, expected):
         env={**environment, 'DUPLICUT_TEST_FAULT': 'stream'})
     assert output.read_bytes() == expected
     assert Counter(duplicate_file.read_bytes().splitlines()) == Counter(dedupe(content, 1024)[1].splitlines())
-    legacy = [program, str(source), '-o', str(output), '-D', str(duplicate_file),
+    chunks = [program, str(source), '-o', str(output), '-D', str(duplicate_file),
               '-m', '64K', '-t', THREADS]
-    run(legacy, env={**environment, 'DUPLICUT_TEST_FAULT': 'stream'})
+    run(chunks, env={**environment, 'DUPLICUT_TEST_FAULT': 'stream'})
     assert output.read_bytes() == expected
     assert Counter(duplicate_file.read_bytes().splitlines()) == Counter(dedupe(content, 1024)[1].splitlines())
     for deny, parent in ((None, source_dir), (str(source_dir) + '/', output_dir)):
@@ -184,11 +184,11 @@ def test_faults(program, directory, root, content, expected):
         for unused in range(256):
             stream.write(block)
     log.unlink(missing_ok=True)
-    run([*production, '-m', '32M'], env={**environment, 'DUPLICUT_TEST_FAULT': 'cached',
+    run([*production, '-m', '16M'], env={**environment, 'DUPLICUT_TEST_FAULT': 'cached',
                          'DUPLICUT_TEST_LOG': str(log)})
     assert output.read_bytes() == b'x' * 4095 + b'\n'
     assert not log.exists()
-    run([*production, '-m', '32M'], env={**environment, 'DUPLICUT_TEST_FAULT': 'uncached',
+    run([*production, '-m', '16M'], env={**environment, 'DUPLICUT_TEST_FAULT': 'uncached',
                          'DUPLICUT_TEST_LOG': str(log)})
     assert output.read_bytes() == b'x' * 4095 + b'\n'
     assert log.read_text().splitlines()
@@ -196,13 +196,13 @@ def test_faults(program, directory, root, content, expected):
     with source.open('r+b') as stream:
         stream.write(word * (65536 // len(word)))
     log.unlink()
-    run([*production, '-m', '32M'], env={**environment, 'DUPLICUT_TEST_FAULT': 'cached',
+    run([*production, '-m', '16M'], env={**environment, 'DUPLICUT_TEST_FAULT': 'cached',
                          'DUPLICUT_TEST_LOG': str(log)})
     assert output.read_bytes() == word + b'x' * 4095 + b'\n'
     assert not log.exists()
     print('[+] distributed samples with an unrepresentative short prefix')
     source.write_bytes((word + b'\0' * (4096 - len(word) - 1) + b'\n') * 2048)
-    for memory, partitioned in (('8M', False), ('1M', True), ('512K', True), ('256K', False)):
+    for memory, partitioned in (('8M', False), ('1M', False), ('768K', True), ('512K', True), ('256K', False)):
         result = run([*production, '-m', memory], success=not partitioned,
                      env={**environment, 'DUPLICUT_TEST_FAULT': 'zero'})
         if partitioned:
@@ -213,11 +213,11 @@ def test_faults(program, directory, root, content, expected):
     assert output.read_bytes() == word
     print('[+] relative chunk selection and bounded workers below 1 MiB')
     source.write_bytes((b'x' * 4095 + b'\n') * 2048)
-    for available, partitioned in ((4096, True), (8448, True), (9216, False),
+    for available, partitioned in ((4096, True), (8256, True), (8448, False), (9216, False),
                                     (4 * 1024 * 1024, False), (128 * 1024 * 1024, False)):
         env = {**environment, 'DUPLICUT_TEST_FAULT': 'zero',
                'DUPLICUT_TEST_AVAILABLE': str(available)}
-        result = run([*production, '-m', '1M'], success=not partitioned, env=env)
+        result = run([*production, '-m', '768K'], success=not partitioned, env=env)
         if partitioned:
             assert b'cannot write partitions' in result.stderr, (available, result.stderr)
         else:
@@ -228,7 +228,7 @@ def test_faults(program, directory, root, content, expected):
     run([*production, '-m', '512K'], env=env)
     assert output.read_bytes() == b'x' * 4095 + b'\n'
     with source.open('ab') as stream:
-        stream.write((b'x' * 4095 + b'\n') * 2048)
+        stream.write((b'x' * 4095 + b'\n') * 6144)
     result = run([*production, '-m', '512K'], success=False, env=env)
     assert b'cannot write partitions' in result.stderr, result.stderr
     print('[+] cached long lines with many estimated passes')

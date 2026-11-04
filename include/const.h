@@ -17,7 +17,7 @@
 /* maximum hash table load before continuing in another pass */
 #define HMAP_MAX_LOAD           (0.7)
 
-/* estimated average line size in bytes for hash table and chunk sizing */
+/* fallback line size when no accepted sample is available */
 #define AVG_LINE_BYTES          (8)
 
 /* char used to mark duplicate lines for removal */
