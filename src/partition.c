@@ -239,15 +239,28 @@ static bool     short_lines(void)
     size_t  count = 0;
     size_t  bytes = 0;
     size_t  junk = 0;
+    int     i;
 
-    if (size > 0x10000)
-        size = 0x10000;
-    chunk.ptr = g_file->addr;
-    chunk.endptr = chunk.ptr + size;
-    while (get_next_line(&line, &length, &chunk, &junk))
+    if (size > 0x4000)
+        size = 0x4000;
+    for (i = 0; i < 4; ++i)
     {
-        bytes += length;
-        ++count;
+        chunk.ptr = g_file->addr + (g_file->orig_size - size) / 3 * i;
+        chunk.endptr = chunk.ptr + size;
+        if (i)
+        {
+            line = memchr(chunk.ptr, '\n', size);
+            if (line == NULL)
+                continue;
+            chunk.ptr = line + 1;
+        }
+        while (chunk.endptr > chunk.ptr && chunk.endptr[-1] != '\n')
+            --chunk.endptr;
+        while (get_next_line(&line, &length, &chunk, &junk))
+        {
+            bytes += length;
+            ++count;
+        }
     }
     return (count && bytes <= count * 16);
 }
@@ -286,8 +299,11 @@ bool            tag_partitions(void)
     if (g_file->orig_size < PARTITION_MIN_BYTES)
         return (false);
 #endif
-    chunks = count_chunks();
-    if (chunks < PARTITION_MIN_CHUNKS || budget < WORKER_MEMORY)
+    if (budget < WORKER_MEMORY || !g_conf.chunk_size)
+        return (false);
+    chunks = g_file->orig_size / g_conf.chunk_size
+        + (g_file->orig_size % g_conf.chunk_size != 0);
+    if (chunks < PARTITION_MIN_CHUNKS)
         return (false);
 #if PARTITION_MIN_BYTES > 0
     available = meminfo(MEMAVAILABLE);
