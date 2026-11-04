@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdbool.h>
@@ -6,6 +7,13 @@
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <ctype.h>
+#include <sys/statvfs.h>
+#ifdef __APPLE__
+# include <sys/mount.h>
+#else
+# include <sys/vfs.h>
+# include <linux/magic.h>
+#endif
 #include "file.h"
 #include "line.h"
 #include "const.h"
@@ -131,24 +139,103 @@ static void truncate_file(struct file *file)
 }
 
 
-/** Specific opener for g_tmpfile, which also uses mkstemp.
- * This function should be called once.
- */
+/** Try a disk-backed temporary file beside a named file or in a directory. */
+static int      try_tmpfile(const char *path, bool directory, size_t size)
+{
+    const char      pattern[] = "/" PROGNAME "_tmpfile.XXXXXX";
+    char            *resolved;
+    char            *name;
+    char            *slash;
+    struct stat     info;
+    struct statfs   fs;
+    struct statvfs  space;
+    int             fd;
+
+    if ((resolved = realpath(path, NULL)) == NULL)
+        return (-1);
+    if (!directory)
+    {
+        if (stat(resolved, &info) < 0 || !S_ISREG(info.st_mode)
+                || strncmp(resolved, "/dev/", 5) == 0)
+        {
+            free(resolved);
+            return (-1);
+        }
+        slash = strrchr(resolved, '/');
+        slash[1] = '\0';
+    }
+    if (statfs(resolved, &fs) < 0)
+    {
+        free(resolved);
+        return (-1);
+    }
+#ifdef __APPLE__
+    if (!strcmp(fs.f_fstypename, "tmpfs") || !strcmp(fs.f_fstypename, "mfs"))
+#else
+    if (fs.f_type == TMPFS_MAGIC || fs.f_type == RAMFS_MAGIC)
+#endif
+    {
+        free(resolved);
+        errno = ENOSPC;
+        return (-1);
+    }
+    name = malloc(strlen(resolved) + sizeof(pattern));
+    if (name == NULL)
+    {
+        free(resolved);
+        errno = ENOMEM;
+        return (-1);
+    }
+    sprintf(name, "%s%s", resolved, pattern);
+    free(resolved);
+    fd = mkstemp(name);
+    if (fd >= 0)
+    {
+        if (unlink(name) < 0)
+            error("cannot unlink %s: %s", name, ERRNO);
+        if (fstatvfs(fd, &space) < 0 || !space.f_frsize || !space.f_bavail
+                || size / space.f_frsize + (size % space.f_frsize != 0)
+                    > space.f_bavail)
+        {
+            close(fd);
+            fd = -1;
+            errno = ENOSPC;
+        }
+    }
+    if (fd >= 0)
+    {
+        DLOG1("temporary file: %s", name);
+    }
+    free(name);
+    return (fd);
+}
+
+
+/** Prefer the source volume, then the output volume, then the current volume. */
+int             open_tmpfile(size_t size)
+{
+    int fd;
+
+    fd = try_tmpfile(g_conf.infile_name, false, size);
+    if (fd < 0)
+        fd = try_tmpfile(g_conf.outfile_name, false, size);
+    if (fd < 0)
+        fd = try_tmpfile(".", true, size);
+    return (fd);
+}
+
+
+/** Open an anonymous working file on an available source or output volume. */
 static void create_tmpfile(void)
 {
     struct file *file = &g_tmpfile;
-    static char template[] = PROGNAME "_tmpfile.XXXXXX";
 
-    if ((file->fd = mkstemp(template)) < 0)
-        error("couldn't create tmpfile '%s': %s", template, ERRNO);
-
-    if (unlink(template) < 0)
-        error("cannot unlink %s: %s", template, ERRNO);
-
+    file->fd = open_tmpfile(g_infile.info.st_size);
+    if (file->fd < 0)
+        error("cannot create temporary file on a disk volume: %s", ERRNO);
     if (fstat(file->fd, &(file->info)) < 0)
-        error("couldn't stat tmpfile '%s': %s", template, ERRNO);
-
-    file->name = template;
+        error("cannot stat temporary file: %s", ERRNO);
+    file->name = "temporary file";
 }
 
 
@@ -182,11 +269,16 @@ static void copy_file(int dst_fd, int src_fd, bool send_status)
     posix_fadvise(src_fd, 0, 0, POSIX_FADV_SEQUENTIAL);
 #endif
     read_bytes = 0;
-    while ((nread = read(src_fd, buffer, BUF_SIZE)) > 0)
+    while (true)
     {
         char    *dst_ptr = buffer;
         ssize_t nwrite;
 
+        do {
+            nread = read(src_fd, buffer, BUF_SIZE);
+        } while (nread < 0 && errno == EINTR);
+        if (nread <= 0)
+            break;
         if (g_conf.lowercase_wordlist)
             buf_tolower(buffer, nread);
         else if (g_conf.uppercase_wordlist)
@@ -196,14 +288,14 @@ static void copy_file(int dst_fd, int src_fd, bool send_status)
 
         do
         {
-            if ((nwrite = write(dst_fd, dst_ptr, (size_t) nread)) >= 0)
+            if ((nwrite = write(dst_fd, dst_ptr, (size_t) nread)) > 0)
             {
                 nread -= nwrite;
                 dst_ptr += nwrite;
             }
-            else if (errno != EINTR)
+            else if (nwrite == 0 || errno != EINTR)
             {
-                error("copy_file() -> write(): %s", ERRNO);
+                error("copy_file() -> write(): %s", nwrite < 0 ? ERRNO : "short write");
             }
         } while (nread > 0);
 
@@ -281,6 +373,7 @@ void        init_files(void)
     if (file->addr == MAP_FAILED)
         error("couldn't mmap %s: %s", file->name, ERRNO);
 
+    set_status(FILE_SIZE, file->info.st_size);
     file->orig_size = file->info.st_size;
     g_file = file;
 
@@ -333,13 +426,19 @@ void        cleanup_files(void)
 void        log_duplicate(char *line_ptr, int line_sz)
 {
     ssize_t n;
-    char buf[MAX_MAX_LINE_SIZE + 1];
+    size_t  written = 0;
+    size_t  size = line_sz + 1;
+    char    buf[MAX_MAX_LINE_SIZE + 1];
+
     memcpy(buf, line_ptr, line_sz);
     buf[line_sz] = '\n';
-    do {
-        n = write(g_dupfile.fd, buf, line_sz + 1);
-    } while (n == -1 && errno == EINTR);
-    if (n == -1) {
-        error("log_duplicate() -> write(): %s", ERRNO);
+    while (written < size)
+    {
+        n = write(g_dupfile.fd, buf + written, size - written);
+        if (n < 0 && errno == EINTR)
+            continue;
+        if (n <= 0)
+            error("log_duplicate() -> write(): %s", n < 0 ? ERRNO : "short write");
+        written += n;
     }
 }

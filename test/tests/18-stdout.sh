@@ -6,7 +6,7 @@ set -ve
 
 program="$(pwd)/duplicut"
 scripts="$(pwd)/test/scripts"
-tmpdir=$(mktemp -d)
+tmpdir=$(mktemp -d "$(pwd)/duplicut-stdout.XXXXXX")
 trap 'rm -rf "$tmpdir"' EXIT
 cd "$tmpdir"
 
