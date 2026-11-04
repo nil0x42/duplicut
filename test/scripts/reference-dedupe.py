@@ -3,45 +3,6 @@
 import sys
 import re
 
-try:
-    assert len(sys.argv) >= 8
-    assert sys.argv[2] == '-o'
-    assert sys.argv[4] == '-D'
-    assert sys.argv[6] == '-l'
-    if len(sys.argv) > 8:
-        for x in sys.argv[8:]:
-            assert x in ['-p', '-c', '-C']
-        if '-c' in sys.argv[8:]:
-            assert '-C' not in sys.argv[8:]
-except AssertionError:
-    print("Usage: %s <wordlist> -o <output> -D <dupfile> -l <max-line-size> [-pcC]" % sys.argv[0])
-    print("Example: %s old.txt -o new.txt -D dupes.txt -l 14" % sys.argv[0])
-    print("Example: %s old.txt -o new.txt -D dupes.txt -l 40 -p" % sys.argv[0])
-    print("Example: %s old.txt -o new.txt -D dupes.txt -l 40 -p -C" % sys.argv[0])
-    sys.exit(1)
-
-with open(sys.argv[1], 'rb') as f:
-    content = f.read()
-OLD_CONTENT_LEN = len(content)
-
-output = open(sys.argv[3], 'wb')
-dupfile = open(sys.argv[5], 'wb')
-
-MAX_LINE_SIZE = int(sys.argv[7])
-
-FILTER_PRINTABLE = '-p' in sys.argv[8:]
-LOWERCASE = '-c' in sys.argv[8:]
-UPPERCASE = '-C' in sys.argv[8:]
-
-if LOWERCASE:
-    content = content.lower()
-elif UPPERCASE:
-    content = content.upper()
-
-# use re.split(), because str.splitlines() assumes
-# that single "\r" are newline chars too..
-lines = re.split(b"\r\n|\n", content)
-
 
 def line_isprint(line):
     for c in line:
@@ -49,29 +10,69 @@ def line_isprint(line):
             return False
     return True
 
-dupes = []
-uniques = []
-for index, line in enumerate(lines):
-    if not line:
-        continue
-    if len(line) > MAX_LINE_SIZE:
-        continue
-    if line.startswith(b"\0"):
-        continue
-    if FILTER_PRINTABLE and not line_isprint(line):
-        continue
-    if line in uniques:
-        dupes.append(line)
-        continue
-    uniques.append(line)
+
+def dedupe(content, max_line_size, printable=False, lowercase=False, uppercase=False):
+    old_content_len = len(content)
+    if lowercase:
+        content = content.lower()
+    elif uppercase:
+        content = content.upper()
+
+    # use re.split(), because bytes.splitlines() also splits on single '\r'
+    lines = re.split(b"\r\n|\n", content)
+    dupes = []
+    uniques = []
+    for line in lines:
+        if not line:
+            continue
+        if len(line) > max_line_size:
+            continue
+        if line.startswith(b"\0"):
+            continue
+        if printable and not line_isprint(line):
+            continue
+        if line in uniques:
+            dupes.append(line)
+            continue
+        uniques.append(line)
+
+    result = b"\n".join(uniques)
+    if 0 < len(result) < old_content_len:
+        result += b'\n'
+    duplicates = b"\n".join(dupes) + b"\n" if dupes else b""
+    return result, duplicates
 
 
-result = b"\n".join(uniques)
-if 0 < len(result) < OLD_CONTENT_LEN:
-    result += b'\n'
-output.write(result)
-output.close()
+def main():
+    try:
+        assert len(sys.argv) >= 8
+        assert sys.argv[2] == '-o'
+        assert sys.argv[4] == '-D'
+        assert sys.argv[6] == '-l'
+        if len(sys.argv) > 8:
+            for x in sys.argv[8:]:
+                assert x in ['-p', '-c', '-C']
+            if '-c' in sys.argv[8:]:
+                assert '-C' not in sys.argv[8:]
+    except AssertionError:
+        print("Usage: %s <wordlist> -o <output> -D <dupfile> -l <max-line-size> [-pcC]" % sys.argv[0])
+        print("Example: %s old.txt -o new.txt -D dupes.txt -l 14" % sys.argv[0])
+        print("Example: %s old.txt -o new.txt -D dupes.txt -l 40 -p" % sys.argv[0])
+        print("Example: %s old.txt -o new.txt -D dupes.txt -l 40 -p -C" % sys.argv[0])
+        return 1
 
-if dupes:
-    dupfile.write(b"\n".join(dupes)+b"\n")
-dupfile.close()
+    with open(sys.argv[1], 'rb') as f:
+        content = f.read()
+    result, duplicates = dedupe(content, int(sys.argv[7]),
+                                '-p' in sys.argv[8:],
+                                '-c' in sys.argv[8:],
+                                '-C' in sys.argv[8:])
+    with open(sys.argv[3], 'wb') as f:
+        f.write(result)
+    with open(sys.argv[5], 'wb') as f:
+        f.write(duplicates)
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())
