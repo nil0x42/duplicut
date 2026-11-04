@@ -369,7 +369,10 @@ void        init_files(void)
     if (fstat(file->fd, &(file->info)) < 0)
         error("couldn't stat %s: %s", file->name, ERRNO);
     if (file->info.st_size == 0)
+    {
+        DLOG1("empty input: nothing to deduplicate");
         exit(0);
+    }
 
     file->addr = mmap(NULL, (size_t) file->info.st_size,
             (PROT_READ | PROT_WRITE), MAP_SHARED, file->fd, 0);

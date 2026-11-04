@@ -96,6 +96,8 @@ bool        populate_hmap(t_chunk *chunk)
         {
             if (filled == capacity)
             {
+                DLOG1("mmap-chunks load limit: %zu/%zu entries, %zu remaining bytes",
+                        filled, g_hmap.size, (size_t)(chunk->endptr - line_ptr));
                 chunk->ptr = line_ptr;
                 break;
             }
