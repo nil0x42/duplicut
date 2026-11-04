@@ -16,6 +16,7 @@ enum    e_status_set
     FILE_SIZE,          /* total file size (g_infile) */
     FCOPY_BYTES,        /* bytes currently processed by FCOPY */
     CHUNK_SIZE,         /* chunk size */
+    CTASK_EXTRA,        /* extra tasks for a saturated chunk */
     TAGDUP_BYTES,       /* bytes currently processed by TAGDUP */
     TAGDUP_DUPLICATES,  /* total duplicates found */
     TAGDUP_JUNK_LINES,  /* total junk-lines (filtered) found */

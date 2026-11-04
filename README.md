@@ -143,7 +143,8 @@ boundaries are extended to the next newline.
 Each chunk is indexed in the hashmap and deduped. Subsequent chunks are
 then checked against that table.
 
-For `n` chunks, this schedules up to `n(n+1)/2` chunk-processing tasks.
+Without hash table saturation, `n` chunks schedule up to `n(n+1)/2`
+chunk-processing tasks. Saturated chunks are processed in additional passes.
 This task count is not an execution-time bound:
 
 ![][img-3-chunked-processing]

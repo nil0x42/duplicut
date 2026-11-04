@@ -12,9 +12,22 @@
 #include "error.h"
 #include "debug.h"
 
+
+/** Account for the remainder, next population and following chunks. */
+static void     add_split_tasks(const t_chunk *parent)
+{
+    t_chunk chunk = *parent;
+    size_t  tasks = 2;
+
+    while (get_next_chunk(&chunk, g_file))
+        ++tasks;
+    set_status(CTASK_EXTRA, tasks);
+}
+
+
 #if MULTITHREADING == 1
 
-/** For each chunk following `parent`, add a cleanout_chunk() worker.
+/** Queue the remainder and following chunks against the current table.
  */
 static void     tag_subchunks(threadpool *thpool, const t_chunk *parent,
                     bool populated)
@@ -23,8 +36,10 @@ static void     tag_subchunks(threadpool *thpool, const t_chunk *parent,
     t_chunk     *heap_chunk;
 
     memcpy(&chunk, parent, sizeof(t_chunk));
-    while (get_next_chunk(&chunk, g_file))
+    do
     {
+        if (chunk.ptr == chunk.endptr)
+            continue;
         if (!populated)
         {
             update_status(CTASK_DONE);
@@ -43,8 +58,7 @@ static void     tag_subchunks(threadpool *thpool, const t_chunk *parent,
         /* thpool already prints error unless DISABLE_PRINT is defined */
         if (thpool_add_work(*thpool, cleanout_chunk, heap_chunk) != 0)
             exit(1);
-    }
-    update_status(CHUNK_DONE);
+    } while (get_next_chunk(&chunk, g_file));
 }
 
 /** For each chunk, load it into hmap and remove all duplicates
@@ -62,11 +76,17 @@ void            tag_duplicates(void)
 
     while (get_next_chunk(&main_chunk, g_file))
     {
-        populated = populate_hmap(&main_chunk);
-        update_status(CTASK_DONE);
-        tag_subchunks(&thpool, &main_chunk, populated);
-        if (thpool != NULL)
-            thpool_wait(thpool);
+        do
+        {
+            populated = populate_hmap(&main_chunk);
+            if (main_chunk.ptr < main_chunk.endptr)
+                add_split_tasks(&main_chunk);
+            update_status(CTASK_DONE);
+            tag_subchunks(&thpool, &main_chunk, populated);
+            if (thpool != NULL)
+                thpool_wait(thpool);
+        } while (main_chunk.ptr < main_chunk.endptr);
+        update_status(CHUNK_DONE);
     }
 
     thpool_destroy(thpool);
@@ -75,7 +95,7 @@ void            tag_duplicates(void)
 
 #else /* MULTITHREADING != 1 */
 
-/** For each chunk following `parent`, call cleanout_chunk().
+/** Check the remainder and following chunks against the current table.
  */
 static void     tag_subchunks(const t_chunk *parent, bool populated)
 {
@@ -83,8 +103,10 @@ static void     tag_subchunks(const t_chunk *parent, bool populated)
     t_chunk     *heap_chunk;
 
     memcpy(&chunk, parent, sizeof(t_chunk));
-    while (get_next_chunk(&chunk, g_file))
+    do
     {
+        if (chunk.ptr == chunk.endptr)
+            continue;
         if (!populated)
         {
             update_status(CTASK_DONE);
@@ -95,8 +117,7 @@ static void     tag_subchunks(const t_chunk *parent, bool populated)
             die("cannot malloc() heap_chunk");
         memcpy(heap_chunk, &chunk, sizeof(t_chunk));
         cleanout_chunk(heap_chunk);
-    }
-    update_status(CHUNK_DONE);
+    } while (get_next_chunk(&chunk, g_file));
 }
 
 /** For each chunk, load it into hmap and remove all duplicates
@@ -113,9 +134,15 @@ void            tag_duplicates(void)
 
     while (get_next_chunk(&main_chunk, g_file))
     {
-        populated = populate_hmap(&main_chunk);
-        update_status(CTASK_DONE);
-        tag_subchunks(&main_chunk, populated);
+        do
+        {
+            populated = populate_hmap(&main_chunk);
+            if (main_chunk.ptr < main_chunk.endptr)
+                add_split_tasks(&main_chunk);
+            update_status(CTASK_DONE);
+            tag_subchunks(&main_chunk, populated);
+        } while (main_chunk.ptr < main_chunk.endptr);
+        update_status(CHUNK_DONE);
     }
 }
 

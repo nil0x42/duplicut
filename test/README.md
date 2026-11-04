@@ -35,6 +35,11 @@ repository root contain the expected and actual outputs for inspection.
 On failure, pending cases are cancelled and running processes are allowed to
 finish. Only the first failure received is reported; it may vary between runs.
 
+Saturation tests exercise short words with a small table, forced collisions,
+remaining lines in a saturated chunk, filters and final lines. They compare
+stable output and duplicate counts with the Python reference, using one or
+several threads and a five-second subprocess timeout.
+
 
 The partition tests build a small-input variant to exercise bounded memory,
 collisions, filters, output order and concurrent bitmap updates. Linux tests

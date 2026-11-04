@@ -44,6 +44,7 @@ void        destroy_hmap(void)
  * - Handle collisions & disable duplicate lines from `chunk`
  *   by tagging them with 'DISABLED_LINE'.
  * - Unique lines are normally written into `hmap`.
+ * - On saturation, chunk->ptr marks the first unindexed line.
  */
 bool        populate_hmap(t_chunk *chunk)
 {
@@ -51,20 +52,20 @@ bool        populate_hmap(t_chunk *chunk)
     char    *line_ptr;
     int     line_sz;
     long    slot;
-    size_t  has_slots;
+    size_t  filled;
+    size_t  capacity;
     char    *base_ptr;
     int     i;
     long    duplicates;
-    bool    populated;
     const int has_dupfile = (g_conf.dupfile_name != NULL);
 
     duplicates = 0;
-    populated = false;
+    filled = 0;
+    capacity = (size_t)(g_hmap.size * HMAP_MAX_LOAD);
     i = 0;
     base_ptr = chunk->ptr;
 
 #if DEBUG >= 2
-    size_t      filled = 0;
     size_t      collisions = 0;
 #endif
 #if DEBUG >= 3
@@ -75,48 +76,50 @@ bool        populate_hmap(t_chunk *chunk)
     memset(g_hmap.ptr, 0, g_hmap.size * sizeof(t_line));
 
     size_t junk_lines = 0;
-    while (get_next_line(&line_ptr, &line_sz, chunk, &junk_lines))
+    while (true)
     {
-        slot = HASH(line_ptr, line_sz) % g_hmap.size;
-        has_slots = (g_hmap.size * 7) / 10;
-        while (has_slots--)
+        if (!get_next_line(&line_ptr, &line_sz, chunk, &junk_lines))
         {
-            if (!LINE_ISSET(g_hmap.ptr[slot]))
-            {
-                /* use first free slot */
-                g_hmap.ptr[slot] = MAKE_LINE(line_ptr, line_sz);
-                populated = true;
-                /* DLOG4("ADD HMAP ENTRY, slot=%ld, line_addr=%p, line_size=%d, line=%.*s", slot, LINE_ADDR(line), LINE_SIZE(line), LINE_SIZE(line), LINE_ADDR(line)); */
-#if DEBUG >= 2
-                filled++;
-#endif
-#if DEBUG >= 3
-                tmp = (int)((double)filled / (double)g_hmap.size * 100.0);
-                if (tmp > last_percent_filled) {
-                    last_percent_filled = tmp;
-                    DLOG3("populate_hmap(): used %ld/%ld slots (%d%%) ...",
-                            filled, g_hmap.size, tmp);
-                }
-#endif
-                break;
-            }
-            else if (cmp_line(g_hmap.ptr[slot], line_ptr, line_sz) == 0)
-            {
-                if (has_dupfile) {
-                    log_duplicate(line_ptr, line_sz);
-                }
-                *line_ptr = DISABLED_LINE;
-                ++duplicates;
-                break;
-            }
-            /* open addressing with linear probing */
+            chunk->ptr = chunk->endptr;
+            break;
+        }
+        slot = HASH(line_ptr, line_sz) % g_hmap.size;
+        while (LINE_ISSET(g_hmap.ptr[slot])
+                && cmp_line(g_hmap.ptr[slot], line_ptr, line_sz))
+        {
 #if DEBUG >= 2
             ++collisions;
 #endif
             slot = (slot + 1) % g_hmap.size;
         }
-        if (!has_slots)
-            error("populate_hmap(): too much slots in use");
+        if (!LINE_ISSET(g_hmap.ptr[slot]))
+        {
+            if (filled == capacity)
+            {
+                chunk->ptr = line_ptr;
+                break;
+            }
+            /* use first free slot */
+            g_hmap.ptr[slot] = MAKE_LINE(line_ptr, line_sz);
+            ++filled;
+            /* DLOG4("ADD HMAP ENTRY, slot=%ld, line_addr=%p, line_size=%d, line=%.*s", slot, LINE_ADDR(line), LINE_SIZE(line), LINE_SIZE(line), LINE_ADDR(line)); */
+#if DEBUG >= 3
+            tmp = (int)((double)filled / (double)g_hmap.size * 100.0);
+            if (tmp > last_percent_filled) {
+                last_percent_filled = tmp;
+                DLOG3("populate_hmap(): used %ld/%ld slots (%d%%) ...",
+                        filled, g_hmap.size, tmp);
+            }
+#endif
+        }
+        else
+        {
+            if (has_dupfile) {
+                log_duplicate(line_ptr, line_sz);
+            }
+            *line_ptr = DISABLED_LINE;
+            ++duplicates;
+        }
         i++;
         if (i == 500000) {
             set_status(TAGDUP_BYTES, (size_t)(chunk->ptr - base_ptr));
@@ -133,5 +136,5 @@ bool        populate_hmap(t_chunk *chunk)
             (double)filled / (double)g_hmap.size * 100.0,
             collisions);
 #endif
-    return (populated);
+    return (filled != 0);
 }
