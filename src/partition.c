@@ -17,6 +17,7 @@
 #include "thpool.h"
 #include "error.h"
 #include "debug.h"
+#include "meminfo.h"
 
 #ifndef PARTITION_MIN_CHUNKS
 # define PARTITION_MIN_CHUNKS 16
@@ -227,6 +228,32 @@ static void     partition_worker(void *arg)
 }
 
 
+#if PARTITION_MIN_BYTES > 0
+/** Cached long lines usually do not repay the extra partition I/O. */
+static bool     short_lines(void)
+{
+    t_chunk chunk;
+    char    *line;
+    int     length;
+    size_t  size = g_file->orig_size;
+    size_t  count = 0;
+    size_t  bytes = 0;
+    size_t  junk = 0;
+
+    if (size > 0x10000)
+        size = 0x10000;
+    chunk.ptr = g_file->addr;
+    chunk.endptr = chunk.ptr + size;
+    while (get_next_line(&line, &length, &chunk, &junk))
+    {
+        bytes += length;
+        ++count;
+    }
+    return (count && bytes <= count * 16);
+}
+#endif
+
+
 /** Partition complete contents so comparisons never reread distant source lines. */
 bool            tag_partitions(void)
 {
@@ -251,6 +278,9 @@ bool            tag_partitions(void)
     char        *line;
     char        *base;
     threadpool  pool;
+#if PARTITION_MIN_BYTES > 0
+    long long   available;
+#endif
 
 #if PARTITION_MIN_BYTES > 0
     if (g_file->orig_size < PARTITION_MIN_BYTES)
@@ -259,6 +289,11 @@ bool            tag_partitions(void)
     chunks = count_chunks();
     if (chunks < PARTITION_MIN_CHUNKS || budget < WORKER_MEMORY)
         return (false);
+#if PARTITION_MIN_BYTES > 0
+    available = meminfo(MEMAVAILABLE);
+    if (available > 0 && g_file->orig_size <= (size_t)available && !short_lines())
+        return (false);
+#endif
     workers = g_conf.threads;
 #if MULTITHREADING != 1
     workers = 1;
@@ -266,7 +301,7 @@ bool            tag_partitions(void)
     if (workers > budget / WORKER_MEMORY)
         workers = budget / WORKER_MEMORY;
     while (count < MAX_PARTITIONS && count / workers < chunks
-            && count < budget / (16 * (BUF_SIZE + sizeof(struct partition))))
+            && count < budget / (4 * (BUF_SIZE + sizeof(struct partition))))
         count *= 2;
     partition_status(0, g_file->orig_size);
     work.parts = calloc(count, sizeof(struct partition));
@@ -298,9 +333,6 @@ bool            tag_partitions(void)
         partition_status(-1, 0);
         return (false);
     }
-    work.duplicates = calloc(bitmap, 1);
-    if (work.duplicates == NULL)
-        die("cannot calloc() duplicate bitmap");
     position = 0;
     for (index = 0; index < count; ++index)
     {
@@ -353,6 +385,9 @@ bool            tag_partitions(void)
         free(work.parts[index].buffer);
         work.parts[index].buffer = NULL;
     }
+    work.duplicates = calloc(bitmap, 1);
+    if (work.duplicates == NULL)
+        die("cannot calloc() duplicate bitmap");
     partition_status(2, bytes);
     work.count = count;
     work.memory = (budget - bitmap - count * sizeof(struct partition)) / workers;
