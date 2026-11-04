@@ -191,6 +191,11 @@ void            set_status(enum e_status_set var, size_t val)
             g_status.tagdup_bytes += val;
             pthread_mutex_unlock(&g_mutex);
             break ;
+        case CTASK_EXTRA:
+            pthread_mutex_lock(&g_mutex);
+            g_status.total_ctasks += val;
+            pthread_mutex_unlock(&g_mutex);
+            break ;
         case TAGDUP_DUPLICATES:
             DLOG2("CALL set_status(TAGDUP_DUPLICATES, %lu)", val);
             pthread_mutex_lock(&g_mutex);

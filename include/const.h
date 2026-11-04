@@ -14,6 +14,9 @@
 /* target hash table load factor for sizing */
 #define HMAP_LOAD_FACTOR        (0.5)
 
+/* maximum hash table load before continuing in another pass */
+#define HMAP_MAX_LOAD           (0.7)
+
 /* estimated average line size in bytes for hash table and chunk sizing */
 #define AVG_LINE_BYTES          (8)
 
