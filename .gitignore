@@ -1,6 +1,8 @@
 /duplicut
 /nonreg_*.out
 /nonregdupes_*.out
+/differential-unique-*.out
+/differential-duplicates-*.out
 /objects
 *.gcno
 *.gcda

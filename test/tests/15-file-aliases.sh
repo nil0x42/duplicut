@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# ensure conflicting files are rejected before truncation
+# system regression tests: reject conflicting files before truncation
 
 set -ve
 

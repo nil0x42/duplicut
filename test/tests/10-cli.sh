@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# check user interface
+# black-box system tests for command-line options
 
 # faketty COMMAND
 faketty() {

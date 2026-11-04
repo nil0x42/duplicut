@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# test suite: makefile.sh
+# build verification tests
 #
 # This test ensures that all Makefile rules
 # works as expected.

@@ -6,8 +6,6 @@ _PROGRAM="./duplicut"
 _MAIN_DIR="./test"
 _TESTS_DIR="$_MAIN_DIR/tests"
 
-_DEFAULT_ARCH="x64"
-
 _DEFAULT_TEST=$(find "$_TESTS_DIR" -maxdepth 1 -type f  \
                 -name '*.sh' -exec basename {} ';' | sort)
 
@@ -31,7 +29,6 @@ function die ()
 
     echo "[*] CC=\"$CC\""
     echo "[*] FLAGS=\"$FLAGS\""
-    echo "[*] ARCH=\"$_arch\""
     echo "[*] TEST=\"$_test\""
     echo "[!] $errmsg" > /dev/stderr
     exit 1
@@ -40,25 +37,16 @@ function die ()
 
 function build_program ()
 {
-    local _arch="$1"
-    case "$_arch" in
-        "x64")
-            export FLAGS=""
-            make coverage || die "Could not compile"
+    export FLAGS=""
+    make coverage || die "Could not compile"
 
-            fileinfo="$(file -b "$_PROGRAM" 2>&1)"
-            grep -q "64" <<< "$fileinfo" \
-                || die "Bad filetype: $_PROGRAM: $fileinfo"
-
-            ;;
-        *)
-            die "Bad arch: $_arch"
-            ;;
-    esac
+    fileinfo="$(file -b "$_PROGRAM" 2>&1)"
+    grep -q "64" <<< "$fileinfo" \
+        || die "Expected a 64-bit binary: $_PROGRAM: $fileinfo"
 }
 
 
-tests=0
+scripts=0
 errors=0
 function execute_scripts () {
     if [ -d "$1" ]; then
@@ -77,43 +65,29 @@ function execute_scripts () {
             (( ++errors ))
         fi
         echo -e "\n"
-        (( ++tests ))
+        (( ++scripts ))
     fi
 }
 
-#
-# # example: run_single_test "x64" "build.sh"
-# function run_single_test ()
-# {
-#     local testscript="$_TESTS_DIR/$1"
-#
-#     "$testscript" \
-#         || die "Test script failed: $testscript"
-# }
-
-
-[ -z "$ARCH" ] && ARCH="$_DEFAULT_ARCH"
 [ -z "$TEST" ] && TEST="$_DEFAULT_TEST"
 
 if [[ "$TEST" == "all" ]]; then
     TEST="$(find . -maxdepth 1 -type f -executable)"
 fi
 
-for _arch in $ARCH; do
-    print_info "$BANNER"
-    print_info "BUILDING PROGRAM FOR $_arch ..."
-    print_info "$BANNER"
-    build_program "$_arch"
-    for _test in $TEST; do
-        _test="$_TESTS_DIR/$_test"
-        execute_scripts "$_test"
-    done
+print_info "$BANNER"
+print_info "BUILDING PROGRAM FOR HOST ..."
+print_info "$BANNER"
+build_program
+for _test in $TEST; do
+    _test="$_TESTS_DIR/$_test"
+    execute_scripts "$_test"
 done
 
 if [[ $errors -eq 0 ]]; then
-    print_good "$tests/$tests succeed"
+    print_good "$scripts/$scripts test scripts succeeded"
     exit 0
 else
-    print_bad "$errors/$tests tests failed"
+    print_bad "$errors/$scripts test scripts failed"
     exit 1
 fi

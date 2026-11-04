@@ -53,7 +53,7 @@ jobs:
           compiler: ${{ matrix.compiler }}
           gcovr: "8.8"
 
-      - name: Run unit tests
+      - name: Run test suite
         # stdbuf has a bug on mac-latest (stdbuf is arm64, github wm arm64e)
         # using 'unbuffer' command (made availavble by 'expect' package);
         # run: |
