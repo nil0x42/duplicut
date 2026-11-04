@@ -16,7 +16,7 @@
 
 /** For each chunk following `parent`, add a cleanout_chunk() worker.
  */
-static void     tag_subchunks(threadpool thpool, const t_chunk *parent)
+static void     tag_subchunks(threadpool *thpool, const t_chunk *parent)
 {
     t_chunk     chunk;
     t_chunk     *heap_chunk;
@@ -24,12 +24,18 @@ static void     tag_subchunks(threadpool thpool, const t_chunk *parent)
     memcpy(&chunk, parent, sizeof(t_chunk));
     while (get_next_chunk(&chunk, g_file))
     {
+        if (*thpool == NULL)
+        {
+            /* thpool already prints error unless DISABLE_PRINT is defined */
+            if ((*thpool = thpool_init(g_conf.threads)) == NULL)
+                exit(1);
+        }
         heap_chunk = malloc(sizeof(t_chunk));
         if (heap_chunk == NULL)
             die("cannot malloc() heap_chunk");
         memcpy(heap_chunk, &chunk, sizeof(t_chunk));
         /* thpool already prints error unless DISABLE_PRINT is defined */
-        if (thpool_add_work(thpool, cleanout_chunk, heap_chunk) != 0)
+        if (thpool_add_work(*thpool, cleanout_chunk, heap_chunk) != 0)
             exit(1);
     }
     update_status(CHUNK_DONE);
@@ -40,31 +46,28 @@ static void     tag_subchunks(threadpool thpool, const t_chunk *parent)
  */
 void            tag_duplicates(void)
 {
-    threadpool  thpool;
+    threadpool  thpool = NULL;
     t_chunk     main_chunk = {
         .ptr = NULL,
         .endptr = NULL
     };
 
-    /* thpool already prints error unless DISABLE_PRINT is defined */
-    if ((thpool = thpool_init(g_conf.threads)) == NULL)
-        exit(1);
-
     while (get_next_chunk(&main_chunk, g_file))
     {
         populate_hmap(&main_chunk);
         update_status(CTASK_DONE);
-        tag_subchunks(thpool, &main_chunk);
-        thpool_wait(thpool);
+        tag_subchunks(&thpool, &main_chunk);
+        if (thpool != NULL)
+            thpool_wait(thpool);
     }
 
     thpool_destroy(thpool);
 }
 
 
-#else /* MULTITHREADING not defined */
+#else /* MULTITHREADING != 1 */
 
-/** Cleanout each chunk following the parent
+/** For each chunk following `parent`, call cleanout_chunk().
  */
 static void     tag_subchunks(const t_chunk *parent)
 {
@@ -78,7 +81,6 @@ static void     tag_subchunks(const t_chunk *parent)
         if (heap_chunk == NULL)
             die("cannot malloc() heap_chunk");
         memcpy(heap_chunk, &chunk, sizeof(t_chunk));
-
         cleanout_chunk(heap_chunk);
     }
     update_status(CHUNK_DONE);
@@ -98,7 +100,6 @@ void            tag_duplicates(void)
     {
         populate_hmap(&main_chunk);
         update_status(CTASK_DONE);
-
         tag_subchunks(&main_chunk);
     }
 }
