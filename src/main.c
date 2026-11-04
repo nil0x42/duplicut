@@ -6,6 +6,7 @@
 #include "config.h"
 #include "file.h"
 #include "hmap.h"
+#include "partition.h"
 #include "dedupe.h"
 #include "progressbar.h"
 #include "status.h"
@@ -79,10 +80,13 @@ int             main(int argc, char **argv)
     config(); /* configure g_conf options */
     set_status(CHUNK_SIZE, g_conf.chunk_size);
 
-    init_hmap(g_conf.hmap_size);
     update_status(TAGDUP_START);
-    tag_duplicates();
-    destroy_hmap();
+    if (!tag_partitions())
+    {
+        init_hmap(g_conf.hmap_size);
+        tag_duplicates();
+        destroy_hmap();
+    }
 
     update_status(FCLEAN_START);
     remove_duplicates();
