@@ -5,7 +5,7 @@ enum    e_status_update
 {
     FCOPY_START,        /* file copy starts [1/3] */
     TAGDUP_START,       /* start processing duplicate removal [2/3] */
-    CHUNK_START,        /* initialize legacy chunk tasks */
+    CHUNK_START,        /* initialize mmap-chunks tasks */
     CHUNK_DONE,         /* a chunk is terminated */
     CTASK_DONE,         /* a ctask is terminated */
     FCLEAN_START,       /* start processing fclean (outfile cleanup) [3/3] */

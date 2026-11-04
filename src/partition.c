@@ -187,6 +187,10 @@ static void     clean_partition(struct partition_work *work,
         if (!filled)
             error("partition memory budget is too small");
         write_partition(work->fd, &output);
+        DLOG2("partition at %zu: %zu input bytes, %zu deferred bytes",
+                part->start, end - part->start, output.cursor - part->start);
+        DLOG3("partition storage: %zu/%zu entries, %zu/%zu content bytes",
+                filled, slots / 2, used, capacity);
         end = output.cursor;
     }
 }
@@ -214,6 +218,8 @@ static void     partition_worker(void *arg)
         pthread_mutex_unlock(&work->mutex);
         if (index >= work->count)
             break;
+        DLOG2("partition %zu: %zu bytes", index,
+                work->parts[index].end - work->parts[index].start);
         clean_partition(work, &work->parts[index], table, slots, area, capacity);
         set_status(TAGDUP_BYTES, work->parts[index].end - work->parts[index].start);
     }
@@ -232,7 +238,7 @@ void            config_partitions(void)
 
     if (budget < 4 * WORKER_OVERHEAD || !g_conf.chunk_size)
     {
-        DLOG1("partitions disabled: insufficient working memory");
+        DLOG1("disk-partitions disabled: insufficient working memory");
         return;
     }
     chunks = (size_t)ceil(g_file->orig_size / (budget * HMAP_LOAD_FACTOR));
@@ -251,37 +257,20 @@ void            config_partitions(void)
 }
 
 
-/** Partition complete contents so comparisons never reread distant source lines. */
-bool            tag_partitions(void)
+/** Count exact record ranges before creating the partition file. */
+static size_t   count_partitions(struct partition_work *work, size_t *filtered)
 {
-    struct partition_work work = {0};
     t_chunk     chunk;
-    size_t      budget = g_conf.dedupe_memory;
-    size_t      count = g_conf.partition_count;
-    size_t      workers = g_conf.partition_workers;
-    size_t      memory;
+    size_t      count = work->count;
     size_t      junk = 0;
     size_t      bytes = 0;
-    size_t      bitmap;
     size_t      index;
-    size_t      position;
-    size_t      duplicates = 0;
-    size_t      filtered;
     uint64_t    lines = 0;
-    uint64_t    id = 0;
-    uint16_t    length;
-    int         size;
-    int         fd;
     char        *line;
     char        *base;
-    threadpool  pool;
+    int         size;
 
-    if (!count)
-        return (false);
     partition_status(0, g_file->orig_size);
-    work.parts = calloc(count, sizeof(struct partition));
-    if (work.parts == NULL)
-        die("cannot calloc() partitions");
     chunk.ptr = g_file->addr;
     chunk.endptr = g_file->addr + g_file->orig_size;
     base = chunk.ptr;
@@ -290,7 +279,7 @@ bool            tag_partitions(void)
         index = HASH(line, size) & (count - 1);
         if ((size_t)size + RECORD_HEADER_SIZE > (size_t)LLONG_MAX - bytes)
             error("partition file is too large");
-        work.parts[index].end += RECORD_HEADER_SIZE + size;
+        work->parts[index].end += RECORD_HEADER_SIZE + size;
         bytes += RECORD_HEADER_SIZE + size;
         ++lines;
         if (lines % 500000 == 0)
@@ -299,66 +288,53 @@ bool            tag_partitions(void)
             base = chunk.ptr;
         }
     }
-    filtered = junk;
-    work.lines = lines;
-    bitmap = lines / 8 + (lines % 8 != 0);
-    memory = budget - count * sizeof(struct partition);
-    if (bitmap > budget / 2 || bitmap > memory
-            || memory - bitmap < 4 * WORKER_OVERHEAD || !bytes)
-    {
-        DLOG1("partitions unavailable: %zu bitmap bytes, %zu memory bytes, %zu payload bytes",
-                bitmap, memory, bytes);
-        free(work.parts);
-        partition_status(-1, 0);
-        return (false);
-    }
-    memory -= bitmap;
-    if (workers > memory / WORKER_MEMORY)
-        workers = memory / WORKER_MEMORY;
-    if (!workers)
-        workers = 1;
+    set_status(TAGDUP_BYTES, g_file->orig_size - (base - g_file->addr));
+    *filtered = junk;
+    work->lines = lines;
+    return (bytes);
+}
+
+
+/** Scatter records into fixed ranges with bounded buffers. */
+static void     write_partitions(struct partition_work *work)
+{
+    t_chunk     chunk;
+    size_t      count = work->count;
+    size_t      index;
+    size_t      position;
+    size_t      junk = 0;
+    uint64_t    id = 0;
+    uint16_t    length;
+    int         size;
+    int         fd = work->fd;
+    char        *line;
+    char        *base;
+
     position = 0;
     for (index = 0; index < count; ++index)
     {
-        work.parts[index].start = position;
-        position += work.parts[index].end;
-        work.parts[index].end = position;
-        work.parts[index].cursor = work.parts[index].start;
+        work->parts[index].start = position;
+        position += work->parts[index].end;
+        work->parts[index].end = position;
+        work->parts[index].cursor = work->parts[index].start;
     }
-    fd = open_tmpfile(bytes);
-    if (fd < 0)
-    {
-        DLOG1("partitions unavailable: temporary file: %s", ERRNO);
-        free(work.parts);
-        partition_status(-1, 0);
-        return (false);
-    }
-    if (ftruncate(fd, bytes) < 0)
-        error("cannot prepare partition file: %s", ERRNO);
-    DLOG1("dedupe engine: partitions");
-    DLOG1("partitions: %zu ranges, %zu workers, %zu bytes, %zu bitmap bytes",
-            count, workers, bytes, bitmap);
-    DLOG1("partition memory: %zu budget bytes, %zu metadata bytes, %zu bytes per worker",
-            budget, count * sizeof(struct partition), memory / workers);
-    work.fd = fd;
     partition_status(1, g_file->orig_size);
     for (index = 0; index < count; ++index)
     {
-        work.parts[index].buffer = malloc(BUF_SIZE);
-        if (work.parts[index].buffer == NULL)
+        work->parts[index].buffer = malloc(BUF_SIZE);
+        if (work->parts[index].buffer == NULL)
             die("cannot malloc() partition buffer");
     }
     chunk.ptr = g_file->addr;
     chunk.endptr = g_file->addr + g_file->orig_size;
     base = chunk.ptr;
-    junk = 0;
     while (get_next_line(&line, &size, &chunk, &junk))
     {
         index = HASH(line, size) & (count - 1);
         length = size;
-        append_partition(fd, &work.parts[index], &id, sizeof(id));
-        append_partition(fd, &work.parts[index], &length, sizeof(length));
-        append_partition(fd, &work.parts[index], line, size);
+        append_partition(fd, &work->parts[index], &id, sizeof(id));
+        append_partition(fd, &work->parts[index], &length, sizeof(length));
+        append_partition(fd, &work->parts[index], line, size);
         ++id;
         if (id % 500000 == 0)
         {
@@ -366,41 +342,58 @@ bool            tag_partitions(void)
             base = chunk.ptr;
         }
     }
+    set_status(TAGDUP_BYTES, g_file->orig_size - (base - g_file->addr));
     for (index = 0; index < count; ++index)
     {
-        write_partition(fd, &work.parts[index]);
-        free(work.parts[index].buffer);
-        work.parts[index].buffer = NULL;
+        write_partition(fd, &work->parts[index]);
+        free(work->parts[index].buffer);
+        work->parts[index].buffer = NULL;
     }
-    work.duplicates = calloc(bitmap, 1);
-    if (work.duplicates == NULL)
-        die("cannot calloc() duplicate bitmap");
-    partition_status(2, bytes);
-    work.count = count;
-    work.memory = memory / workers;
-    pthread_mutex_init(&work.mutex, NULL);
+}
+
+
+/** Process independent ranges with the confirmed worker budget. */
+static void     dedupe_partitions(struct partition_work *work, size_t workers)
+{
+    threadpool  pool;
+    size_t      index;
+
+    pthread_mutex_init(&work->mutex, NULL);
     if (workers == 1)
-        partition_worker(&work);
+        partition_worker(work);
     else
     {
         if ((pool = thpool_init(workers)) == NULL)
             exit(1);
         for (index = 0; index < workers; ++index)
-            if (thpool_add_work(pool, partition_worker, &work) != 0)
+            if (thpool_add_work(pool, partition_worker, work) != 0)
                 exit(1);
         thpool_wait(pool);
         thpool_destroy(pool);
     }
-    pthread_mutex_destroy(&work.mutex);
+    pthread_mutex_destroy(&work->mutex);
+}
+
+
+/** Apply the bitmap in source order, counting each occurrence once. */
+static void     mark_partitions(const struct partition_work *work, size_t filtered)
+{
+    t_chunk     chunk;
+    size_t      junk = 0;
+    size_t      duplicates = 0;
+    uint64_t    id;
+    int         size;
+    char        *line;
+    char        *base;
+
     partition_status(3, g_file->orig_size);
     chunk.ptr = g_file->addr;
     chunk.endptr = g_file->addr + g_file->orig_size;
     base = chunk.ptr;
-    junk = 0;
     id = 0;
     while (get_next_line(&line, &size, &chunk, &junk))
     {
-        if (work.duplicates[id / 8] & (1U << (id % 8)))
+        if (work->duplicates[id / 8] & (1U << (id % 8)))
         {
             if (g_conf.dupfile_name != NULL)
                 log_duplicate(line, size);
@@ -417,7 +410,66 @@ bool            tag_partitions(void)
     set_status(TAGDUP_DUPLICATES, duplicates);
     set_status(TAGDUP_JUNK_LINES, filtered);
     set_status(TAGDUP_BYTES, g_file->orig_size - (base - g_file->addr));
-    if (close(fd) < 0)
+}
+
+
+/** Confirm the initial plan before partition I/O or source modification. */
+bool            tag_partitions(void)
+{
+    struct partition_work work = {.count = g_conf.partition_count};
+    size_t      budget = g_conf.dedupe_memory;
+    size_t      workers = g_conf.partition_workers;
+    size_t      memory;
+    size_t      bytes;
+    size_t      bitmap;
+    size_t      filtered;
+
+    if (!work.count)
+        return (false);
+    work.parts = calloc(work.count, sizeof(struct partition));
+    if (work.parts == NULL)
+        die("cannot calloc() partitions");
+    bytes = count_partitions(&work, &filtered);
+    bitmap = work.lines / 8 + (work.lines % 8 != 0);
+    memory = budget - work.count * sizeof(struct partition);
+    if (bitmap > budget / 2 || bitmap > memory
+            || memory - bitmap < 4 * WORKER_OVERHEAD || !bytes)
+    {
+        DLOG1("disk-partitions unavailable: %zu bitmap bytes, %zu memory bytes, %zu payload bytes",
+                bitmap, memory, bytes);
+        free(work.parts);
+        partition_status(-1, 0);
+        return (false);
+    }
+    memory -= bitmap;
+    if (workers > memory / WORKER_MEMORY)
+        workers = memory / WORKER_MEMORY;
+    if (!workers)
+        workers = 1;
+    work.memory = memory / workers;
+    work.fd = open_tmpfile(bytes);
+    if (work.fd < 0)
+    {
+        DLOG1("disk-partitions unavailable: temporary file: %s", ERRNO);
+        free(work.parts);
+        partition_status(-1, 0);
+        return (false);
+    }
+    if (ftruncate(work.fd, bytes) < 0)
+        error("cannot prepare partition file: %s", ERRNO);
+    DLOG1("dedupe engine: disk-partitions");
+    DLOG1("partitions: %zu ranges, %zu workers, %zu bytes, %zu bitmap bytes",
+            work.count, workers, bytes, bitmap);
+    DLOG1("partition memory: %zu budget bytes, %zu metadata bytes, %zu bytes per worker",
+            budget, work.count * sizeof(struct partition), work.memory);
+    write_partitions(&work);
+    work.duplicates = calloc(bitmap, 1);
+    if (work.duplicates == NULL)
+        die("cannot calloc() duplicate bitmap");
+    partition_status(2, bytes);
+    dedupe_partitions(&work, workers);
+    mark_partitions(&work, filtered);
+    if (close(work.fd) < 0)
         error("cannot close partitions: %s", ERRNO);
     free(work.duplicates);
     free(work.parts);

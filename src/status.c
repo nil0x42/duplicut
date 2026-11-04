@@ -20,6 +20,11 @@
 
 #define BUF_SIZE            (128)
 
+static const char       *g_partition_phases[] = {
+    "counting partitions", "writing partitions",
+    "deduping partitions", "marking duplicates"
+};
+
 struct                  status
 {
     time_t              fcopy_date;
@@ -165,6 +170,14 @@ void            update_status(enum e_status_update action)
 /** Each partition phase reports its own byte count. */
 void            partition_status(int stage, size_t total)
 {
+    if (stage >= 0)
+    {
+        DLOG1("disk-partitions phase: %s, %zu bytes", g_partition_phases[stage], total);
+    }
+    else
+    {
+        DLOG1("disk-partitions plan declined");
+    }
     pthread_mutex_lock(&g_mutex);
     g_status.partition_stage = stage + 1;
     g_status.partition_total = total;
@@ -246,10 +259,8 @@ static void     repr_current_task(char *buffer)
                 BUF_SIZE - 1);
     }
     else if (!TAGDUP_TERMINATED() && g_status.partition_stage) {
-        const char *phases[] = {"counting partitions", "writing partitions",
-            "deduping partitions", "marking duplicates"};
-        snprintf(buffer, BUF_SIZE - 1, "\e[36m[2/3] \e[1m%s\e[0;36m ...",
-                phases[g_status.partition_stage - 1]);
+        snprintf(buffer, BUF_SIZE - 1, "\e[36m[2/3] \e[1mdisk-partitions: %s\e[0;36m ...",
+                g_partition_phases[g_status.partition_stage - 1]);
     }
     else if (!TAGDUP_TERMINATED()) {
         int cur_chunk = g_status.done_chunks
@@ -258,7 +269,7 @@ static void     repr_current_task(char *buffer)
             + (g_status.done_ctasks < g_status.total_ctasks);
         snprintf(buffer, BUF_SIZE - 1,
                 "\e[36m[2/3] "
-                "\e[1mdedupe chunk %d/%d "
+                "\e[1mmmap-chunks: chunk %d/%d "
                 "\e[0;2;36m(task %d/%d)"
                 "\e[0;36m ...",
                 cur_chunk, g_status.total_chunks,
@@ -307,7 +318,10 @@ void    display_status(int finished)
     if (!g_status.fcopy_bytes || t_elapsed < 1)
         return; // only display after 1st second
     /* ---------- [3/3] FCLEAN : 94 % → 100 % --------------------------- */
-    if (g_status.fclean_bytes) {
+    if (finished) {
+        progress = 1;
+    }
+    else if (TAGDUP_TERMINATED()) {
         double step_ratio = (double) g_status.fclean_bytes / g_status.file_size;
         progress = 0.94 + (step_ratio * 0.06);
         if (progress > 0.999 && !FCLEAN_TERMINATED())

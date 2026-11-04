@@ -87,7 +87,7 @@ int             main(int argc, char **argv)
     update_status(TAGDUP_START);
     if (!g_conf.partition_count || !tag_partitions())
     {
-        DLOG1("dedupe engine: legacy");
+        DLOG1("dedupe engine: mmap-chunks");
         update_status(CHUNK_START);
         init_hmap(g_conf.hmap_size);
         tag_duplicates();
