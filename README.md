@@ -135,10 +135,9 @@ using a [tagged pointer][tagged-pointer]: 12 bits for the byte length and
 
 #### :small_orange_diamond: 2- Massive file handling:
 
-The working file is memory-mapped. For smaller inputs, it is split into
-![][latex-n] chunks.
-The target chunk size is estimated from the hash table capacity; chunk
-boundaries are extended to the next newline.
+The working file is memory-mapped. The `mmap-chunks` engine splits it into
+![][latex-n] chunks. A bounded sample estimates table capacity and chunk size;
+chunk boundaries are extended to the next newline.
 
 Each chunk is indexed in the hashmap and deduped. Subsequent chunks are
 then checked against that table.
@@ -149,8 +148,8 @@ This task count is not an execution-time bound:
 
 ![][img-3-chunked-processing]
 
-Large inputs may instead be split into disk-backed hash partitions, processed
-with private hash tables. A duplicate bitmap preserves the original output order.
+The `disk-partitions` engine uses disk-backed hash partitions, processed with
+private hash tables. A duplicate bitmap preserves the original output order.
 Temporary files prefer the input directory, then the output directory, then the
 current directory, using a writable disk volume with enough available space.
 

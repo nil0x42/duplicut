@@ -40,6 +40,12 @@ remaining lines in a saturated chunk, filters and final lines. They compare
 stable output and duplicate counts with the Python reference, using one or
 several threads and a five-second subprocess timeout.
 
+Configuration tests check bounded shared samples, minimum window density,
+allocation budgets, chunk sizing and repeated saturation after a misleading
+sample. Debug builds exercise both engine plans, confirmed allocations and
+disk preflight fallback. Linux tests also verify that configuration reads
+available memory once. Their subprocess timeout is thirty seconds.
+
 
 The partition tests build a small-input variant to exercise bounded memory,
 collisions, filters, output order and concurrent bitmap updates. Linux tests

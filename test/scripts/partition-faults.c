@@ -185,12 +185,22 @@ FILE            *fopen(const char *name, const char *mode)
 {
     const char *fault = getenv("DUPLICUT_TEST_FAULT");
     const char *available = getenv("DUPLICUT_TEST_AVAILABLE");
+    const char *log = getenv("DUPLICUT_TEST_MEM_LOG");
+    FILE       *stream;
     static char memory[128];
     static char cached[] = "MemAvailable: 1073741824 kB\n";
     static char uncached[] = "MemAvailable: 65536 kB\n";
 
     if (!strcmp(name, "/proc/meminfo"))
     {
+        if (log)
+        {
+            stream = g_fopen(log, "a");
+            if (!stream)
+                _exit(99);
+            fputs("MemAvailable\n", stream);
+            fclose(stream);
+        }
         if (available)
         {
             snprintf(memory, sizeof(memory), "MemAvailable: %s kB\n", available);
