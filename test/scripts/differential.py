@@ -15,6 +15,15 @@ from threading import Event
 dedupe = runpy.run_path(str(Path(__file__).with_name('reference-dedupe.py')))['dedupe']
 
 
+def default_jobs():
+    try:
+        cpus = len(os.sched_getaffinity(0)) or 1
+    except (AttributeError, OSError):
+        cpus = os.cpu_count() or 1
+    # Each duplicut process also has its own threads.
+    return (cpus + 1) // 2
+
+
 def test_case(wordlist, content, size, flags, stop):
     if stop.is_set():
         return None
@@ -88,18 +97,20 @@ def main():
     per_wordlist = len(sizes) * len(options)
     total = len(wordlists) * per_wordlist
     try:
-        jobs = int(os.environ.get('TEST_JOBS', min(4, os.cpu_count() or 1, total)))
+        jobs = int(os.environ.get('TEST_JOBS', default_jobs()))
         if jobs < 1:
             raise ValueError
     except ValueError:
         print('[!] TEST_JOBS must be a positive integer', file=sys.stderr)
         return 1
 
+    jobs = min(jobs, total)
+    print('[*] Running %d differential cases with %d jobs' % (total, jobs), flush=True)
     contents = [(wordlist, wordlist.read_bytes()) for wordlist in wordlists]
     stop = Event()
     done = Counter()
     cases = 0
-    with ThreadPoolExecutor(max_workers=min(jobs, total)) as pool:
+    with ThreadPoolExecutor(max_workers=jobs) as pool:
         futures = {pool.submit(test_case, wordlist, content, size, flags, stop): wordlist
                    for wordlist, content in contents for size in sizes for flags in options}
         try:

@@ -13,10 +13,13 @@ with a Python reference implementation across wordlists and options.
 Each duplicut run in the differential tests has a five-second timeout to
 catch hangs; this is not a benchmark. The suite builds with coverage enabled.
 
-The differential tests use one Python process to run up to four cases at once
-(or fewer on machines with fewer CPUs). Set `TEST_JOBS=1` to run sequentially,
-or use any positive integer to choose the number of concurrent cases. Each
-case uses its own temporary directory and keeps duplicut's default threads.
+The differential tests use one Python process to run cases concurrently.
+The default is half the available logical CPUs, rounded up (including Linux
+affinity limits). Each duplicut process also has its own threads.
+The selected job count is printed at startup. Set `TEST_JOBS=1` to run
+sequentially, or use any positive integer to choose the number of concurrent
+cases. Each case uses its own temporary directory and keeps duplicut's default
+threads.
 Unique lines are compared byte for byte; duplicate lines are compared without
 ordering, keeping their occurrence counts. Nonzero exits, missing output files
 and timeouts fail the test. On failure, `differential-*.out` files in the
