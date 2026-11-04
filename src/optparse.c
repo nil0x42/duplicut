@@ -56,7 +56,7 @@ static void setopt_infile(const char *value)
 }
 
 
-/** Set output file (-o option) [MANDATORY]
+/** Set output file (-o option) [OPTIONAL]
  * --> The destination file
  */
 static void setopt_outfile(const char *value)
@@ -153,11 +153,11 @@ static void setopt_uppercase(const char *value)
 static void setopt_help(const char *value)
 {
     (void)value;
-    printf("Usage: %s [OPTION]... [INFILE] -o [OUTFILE]\n"
+    printf("Usage: %s [OPTION]... [INFILE]\n"
            "Remove duplicate lines from INFILE without changing order.\n"
            "\n"
            "Options:\n"
-           "-o, --outfile <FILE>       Write result to <FILE>\n"
+           "-o, --outfile <FILE>       Write result to <FILE> (default stdout)\n"
            "-t, --threads <NUM>        Worker threads (default online CPUs)\n"
            "-m, --memlimit <VALUE>     Memory budget for sizing (default available)\n"
            "-l, --line-max-size <NUM>  Max line size in bytes (default %d, max 4095)\n"
@@ -168,7 +168,7 @@ static void setopt_help(const char *value)
            "-h, --help                 Display this help and exit\n"
            "-v, --version              Output version information and exit\n"
            "\n"
-           "Example: %s wordlist.txt -o new-wordlist.txt\n"
+           "Example: %s wordlist.txt > new-wordlist.txt\n"
            "\n", PROGNAME, DEFAULT_LINE_MAX_SIZE, PROGNAME);
     exit(EXIT_SUCCESS);
 }
@@ -257,7 +257,4 @@ void        optparse(int argc, char **argv)
 
     if (g_conf.lowercase_wordlist && g_conf.uppercase_wordlist)
         error("cannot use '--lowercase' and '--uppercase' together");
-
-    if (g_conf.outfile_name == NULL)
-        error("mandatory argument: --outfile");
 }

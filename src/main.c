@@ -14,7 +14,7 @@
 
 struct conf g_conf = {
     .infile_name = NULL,
-    .outfile_name = NULL,
+    .outfile_name = "/dev/stdout",
     .dupfile_name = NULL,
     .threads = 0,
     .line_max_size = DEFAULT_LINE_MAX_SIZE,

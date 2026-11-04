@@ -14,7 +14,9 @@ faketty() {
 
 set -ve
 
-< /dev/null ./duplicut 2>&1 | grep -q '^error: mandatory argument: --outfile$'
+# -o is optional, including with empty stdin
+< /dev/null ./duplicut > /tmp/x
+test ! -s /tmp/x
 
 faketty ./duplicut > /dev/null
 ./duplicut --help > /dev/null
