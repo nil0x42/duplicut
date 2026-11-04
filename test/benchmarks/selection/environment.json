@@ -1,0 +1,11 @@
+{
+  "date": "2026-11-04",
+  "baseline_commit": "63cfc02",
+  "final_commit": "6107d5f",
+  "compiler": "gcc 16.2.1",
+  "flags": "-std=gnu99 -Wall -Wextra -Werror -Iinclude -O2 -DNDEBUG -mtune=native -ffast-math src/*.c -lm -pthread",
+  "baseline_sha256": "7bf512002b11762f9ef7ab7973ae78b87aaa61285684184578e095ece16edb4b",
+  "timed_cached_long_chunks": 64,
+  "final_cached_long_chunks": 128,
+  "notes": "All timed long-line cases have 128 estimated chunks; the final margin selects the same engine and allocations. Memory-injection tests are not physical-host performance tests."
+}

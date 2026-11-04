@@ -20,7 +20,11 @@ partition file is closed during the process; no descriptor is retained solely
 to force its contents to stable storage.
 No global cache eviction is used.
 
-## Automatic selection
+## Selection used for these measurements
+
+The [selection audit](selection.md) describes the revised rules, including the
+removal of the absolute input-size gate and fixed partition-count ceiling.
+The rules below describe the version measured in this initial campaign.
 
 Selection uses byte counts and the existing platform memory estimate, without
 CPU-specific timing calibration. The same logic is built for Linux and macOS;
