@@ -184,11 +184,20 @@ ssize_t         read(int fd, void *buffer, size_t size)
 FILE            *fopen(const char *name, const char *mode)
 {
     const char *fault = getenv("DUPLICUT_TEST_FAULT");
+    const char *available = getenv("DUPLICUT_TEST_AVAILABLE");
+    static char memory[128];
     static char cached[] = "MemAvailable: 1073741824 kB\n";
     static char uncached[] = "MemAvailable: 65536 kB\n";
 
-    if (fault && !strcmp(name, "/proc/meminfo"))
+    if (!strcmp(name, "/proc/meminfo"))
     {
+        if (available)
+        {
+            snprintf(memory, sizeof(memory), "MemAvailable: %s kB\n", available);
+            return (fmemopen(memory, strlen(memory), "r"));
+        }
+        if (fault == NULL)
+            return (g_fopen(name, mode));
         if (!strcmp(fault, "cached"))
             return (fmemopen(cached, sizeof(cached) - 1, "r"));
         if (!strcmp(fault, "uncached"))

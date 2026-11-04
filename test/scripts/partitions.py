@@ -175,19 +175,20 @@ def test_faults(program, directory, root, content, expected):
     assert output.read_bytes() == word
     with source.open('r+b') as stream:
         stream.truncate(128 * 1024 * 1024)
-    run(production, env={**environment, 'DUPLICUT_TEST_FAULT': 'zero'})
-    assert output.read_bytes() == word
-    print('[+] production dispatch at 128 and 256 MiB')
+    result = run(production, success=False,
+                 env={**environment, 'DUPLICUT_TEST_FAULT': 'zero'})
+    assert b'cannot write partitions' in result.stderr, result.stderr
+    print('[+] production dispatch below the former size threshold')
     with source.open('wb') as stream:
         block = (b'x' * 4095 + b'\n') * 256
         for unused in range(256):
             stream.write(block)
     log.unlink(missing_ok=True)
-    run(production, env={**environment, 'DUPLICUT_TEST_FAULT': 'cached',
+    run([*production, '-m', '32M'], env={**environment, 'DUPLICUT_TEST_FAULT': 'cached',
                          'DUPLICUT_TEST_LOG': str(log)})
     assert output.read_bytes() == b'x' * 4095 + b'\n'
     assert not log.exists()
-    run(production, env={**environment, 'DUPLICUT_TEST_FAULT': 'uncached',
+    run([*production, '-m', '32M'], env={**environment, 'DUPLICUT_TEST_FAULT': 'uncached',
                          'DUPLICUT_TEST_LOG': str(log)})
     assert output.read_bytes() == b'x' * 4095 + b'\n'
     assert log.read_text().splitlines()
@@ -195,11 +196,42 @@ def test_faults(program, directory, root, content, expected):
     with source.open('r+b') as stream:
         stream.write(word * (65536 // len(word)))
     log.unlink()
-    run(production, env={**environment, 'DUPLICUT_TEST_FAULT': 'cached',
+    run([*production, '-m', '32M'], env={**environment, 'DUPLICUT_TEST_FAULT': 'cached',
                          'DUPLICUT_TEST_LOG': str(log)})
     assert output.read_bytes() == word + b'x' * 4095 + b'\n'
     assert not log.exists()
     print('[+] distributed samples with an unrepresentative short prefix')
+    source.write_bytes((word + b'\0' * (4096 - len(word) - 1) + b'\n') * 2048)
+    for memory, partitioned in (('8M', False), ('1M', True), ('512K', True), ('256K', False)):
+        result = run([*production, '-m', memory], success=not partitioned,
+                     env={**environment, 'DUPLICUT_TEST_FAULT': 'zero'})
+        if partitioned:
+            assert b'cannot write partitions' in result.stderr, (memory, result.stderr)
+        else:
+            assert output.read_bytes() == word
+    run([*production, '-m', '512K'])
+    assert output.read_bytes() == word
+    print('[+] relative chunk selection and bounded workers below 1 MiB')
+    source.write_bytes((b'x' * 4095 + b'\n') * 2048)
+    for available, partitioned in ((4096, True), (8448, True), (9216, False),
+                                    (4 * 1024 * 1024, False), (128 * 1024 * 1024, False)):
+        env = {**environment, 'DUPLICUT_TEST_FAULT': 'zero',
+               'DUPLICUT_TEST_AVAILABLE': str(available)}
+        result = run([*production, '-m', '1M'], success=not partitioned, env=env)
+        if partitioned:
+            assert b'cannot write partitions' in result.stderr, (available, result.stderr)
+        else:
+            assert output.read_bytes() == b'x' * 4095 + b'\n'
+    print('[+] low and high available memory, including hash table headroom')
+    env = {**environment, 'DUPLICUT_TEST_FAULT': 'zero',
+           'DUPLICUT_TEST_AVAILABLE': str(128 * 1024 * 1024)}
+    run([*production, '-m', '512K'], env=env)
+    assert output.read_bytes() == b'x' * 4095 + b'\n'
+    with source.open('ab') as stream:
+        stream.write((b'x' * 4095 + b'\n') * 2048)
+    result = run([*production, '-m', '512K'], success=False, env=env)
+    assert b'cannot write partitions' in result.stderr, result.stderr
+    print('[+] cached long lines with many estimated passes')
 
 
 
@@ -211,7 +243,7 @@ def test_collisions(directory, root):
     program = str(directory / 'collisions')
     compiler = shlex.split(os.environ.get('CC', 'cc'))
     subprocess.run([*compiler, '-std=gnu99', '-O2', '-DNDEBUG',
-                    '-DPARTITION_MIN_BYTES=0', '-I' + str(include),
+                    '-DPARTITION_MIN_CHUNKS=0', '-I' + str(include),
                     '-I' + str(root / 'include'),
                     *map(str, sorted((root / 'src').glob('*.c'))),
                     '-lm', '-pthread', '-o', program], check=True)
@@ -230,7 +262,7 @@ def test_collisions(directory, root):
                                   '#define XXH_INLINE_ALL\n#include "xxhash.h"\n'
                                   '#define HASH(line, size) (XXH3_64bits(line, size) & ~UINT64_C(4095))\n')
     subprocess.run([*compiler, '-std=gnu99', '-O2', '-DNDEBUG',
-                    '-DPARTITION_MIN_BYTES=0', '-I' + str(include),
+                    '-DPARTITION_MIN_CHUNKS=0', '-I' + str(include),
                     '-I' + str(root / 'include'),
                     *map(str, sorted((root / 'src').glob('*.c'))),
                     '-lm', '-pthread', '-o', program], check=True)
@@ -247,7 +279,7 @@ def main():
             program = str(directory / 'duplicut')
             compiler = shlex.split(os.environ.get('CC', 'cc'))
             subprocess.run([*compiler, '-std=gnu99', '-O2', '-DNDEBUG', '-Wall', '-Wextra',
-                            '-DPARTITION_MIN_BYTES=0', '-I' + str(root / 'include'),
+                            '-DPARTITION_MIN_CHUNKS=0', '-I' + str(root / 'include'),
                             *map(str, sorted((root / 'src').glob('*.c'))),
                             '-lm', '-pthread', '-o', program], check=True)
         test_outputs(program, directory)

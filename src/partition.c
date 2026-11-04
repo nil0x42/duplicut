@@ -22,13 +22,10 @@
 #ifndef PARTITION_MIN_CHUNKS
 # define PARTITION_MIN_CHUNKS 16
 #endif
-#ifndef PARTITION_MIN_BYTES
-# define PARTITION_MIN_BYTES 0x10000000
-#endif
 #define RECORD_HEADER_SIZE (10)
-#define MAX_PARTITIONS 4096
 #define BUF_SIZE (0x4000)
-#define WORKER_MEMORY (0x100000)
+#define WORKER_OVERHEAD (2 * BUF_SIZE + MAX_MAX_LINE_SIZE)
+#define WORKER_MEMORY (64 * BUF_SIZE)
 
 struct partition
 {
@@ -207,8 +204,8 @@ static void     partition_worker(void *arg)
     t_line      *table;
     char        *area;
 
-    slots = (work->memory - 2 * BUF_SIZE - MAX_MAX_LINE_SIZE) / (2 * sizeof(t_line));
-    capacity = work->memory - 2 * BUF_SIZE - MAX_MAX_LINE_SIZE - slots * sizeof(t_line);
+    slots = (work->memory - WORKER_OVERHEAD) / (2 * sizeof(t_line));
+    capacity = work->memory - WORKER_OVERHEAD - slots * sizeof(t_line);
     table = malloc(slots * sizeof(t_line));
     area = malloc(capacity);
     if (table == NULL || area == NULL)
@@ -228,7 +225,7 @@ static void     partition_worker(void *arg)
 }
 
 
-#if PARTITION_MIN_BYTES > 0
+#if PARTITION_MIN_CHUNKS > 0
 /** Cached long lines usually do not repay the extra partition I/O. */
 static bool     short_lines(void)
 {
@@ -262,7 +259,7 @@ static bool     short_lines(void)
             ++count;
         }
     }
-    return (count && bytes <= count * 16);
+    return (count && bytes <= count * 2 * sizeof(t_line));
 }
 #endif
 
@@ -276,6 +273,7 @@ bool            tag_partitions(void)
     size_t      count = 1;
     size_t      chunks;
     size_t      workers;
+    size_t      memory;
     size_t      junk = 0;
     size_t      bytes = 0;
     size_t      bitmap;
@@ -291,23 +289,21 @@ bool            tag_partitions(void)
     char        *line;
     char        *base;
     threadpool  pool;
-#if PARTITION_MIN_BYTES > 0
+#if PARTITION_MIN_CHUNKS > 0
     long long   available;
 #endif
 
-#if PARTITION_MIN_BYTES > 0
-    if (g_file->orig_size < PARTITION_MIN_BYTES)
-        return (false);
-#endif
-    if (budget < WORKER_MEMORY || !g_conf.chunk_size)
+    if (budget < 4 * WORKER_OVERHEAD || !g_conf.chunk_size)
         return (false);
     chunks = g_file->orig_size / g_conf.chunk_size
         + (g_file->orig_size % g_conf.chunk_size != 0);
+#if PARTITION_MIN_CHUNKS > 0
     if (chunks < PARTITION_MIN_CHUNKS)
         return (false);
-#if PARTITION_MIN_BYTES > 0
     available = meminfo(MEMAVAILABLE);
-    if (available > 0 && g_file->orig_size <= (size_t)available && !short_lines())
+    if (chunks < 8 * PARTITION_MIN_CHUNKS
+            && available > 0 && (size_t)available > budget
+            && g_file->orig_size <= (size_t)available - budget && !short_lines())
         return (false);
 #endif
     workers = g_conf.threads;
@@ -316,7 +312,9 @@ bool            tag_partitions(void)
 #endif
     if (workers > budget / WORKER_MEMORY)
         workers = budget / WORKER_MEMORY;
-    while (count < MAX_PARTITIONS && count / workers < chunks
+    if (!workers)
+        workers = 1;
+    while (count / workers < chunks
             && count < budget / (4 * (BUF_SIZE + sizeof(struct partition))))
         count *= 2;
     partition_status(0, g_file->orig_size);
@@ -343,12 +341,19 @@ bool            tag_partitions(void)
     filtered = junk;
     work.lines = lines;
     bitmap = lines / 8 + (lines % 8 != 0);
-    if (bitmap > budget / 2 || !bytes)
+    memory = budget - count * sizeof(struct partition);
+    if (bitmap > budget / 2 || bitmap > memory
+            || memory - bitmap < 4 * WORKER_OVERHEAD || !bytes)
     {
         free(work.parts);
         partition_status(-1, 0);
         return (false);
     }
+    memory -= bitmap;
+    if (workers > memory / WORKER_MEMORY)
+        workers = memory / WORKER_MEMORY;
+    if (!workers)
+        workers = 1;
     position = 0;
     for (index = 0; index < count; ++index)
     {
@@ -360,7 +365,6 @@ bool            tag_partitions(void)
     fd = open_tmpfile(bytes);
     if (fd < 0)
     {
-        free(work.duplicates);
         free(work.parts);
         partition_status(-1, 0);
         return (false);
@@ -406,7 +410,7 @@ bool            tag_partitions(void)
         die("cannot calloc() duplicate bitmap");
     partition_status(2, bytes);
     work.count = count;
-    work.memory = (budget - bitmap - count * sizeof(struct partition)) / workers;
+    work.memory = memory / workers;
     pthread_mutex_init(&work.mutex, NULL);
     if (workers == 1)
         partition_worker(&work);
