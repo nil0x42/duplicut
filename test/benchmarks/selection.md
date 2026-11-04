@@ -1,5 +1,9 @@
 # Partition selection
 
+This audit describes `6107d5f`. The later
+[configuration integration](integration.md) shares sampling with adaptive table
+and chunk sizing, while retaining the selection thresholds described here.
+
 The selection audit replaces the absolute 256 MiB gate introduced with the
 [initial partition measurements](partitions.md). A fixed input size does not
 describe the cost of deduplication on machines with different memory budgets.
@@ -25,7 +29,7 @@ The 16-chunk threshold compares repeated source traversal with partitioning's
 fixed number of full scans and extra I/O. The eightfold cached-long margin is
 conservative: cached scans are cheap, while partitioning still copies and
 hashes complete contents. It also leaves room for the low end of the target
-range: at 10 percent unique lines, many legacy tables can become empty early.
+range: at 10 percent unique lines, many `mmap-chunks` tables can become empty early.
 Neither value predicts time in seconds on a given CPU.
 
 The length boundary is twice `sizeof(t_line)`, currently 16 bytes. With half
@@ -39,7 +43,7 @@ storage tradeoff; it is not a proof of a universal timing crossover.
 | Choice | Decision | Reason |
 |---|---|---|
 | 256 MiB minimum | Removed | A smaller file can require many passes with little memory. |
-| Input versus available memory | Reserve the table too | The legacy table can otherwise evict pages assumed to fit. |
+| Input versus available memory | Reserve the table too | The `mmap-chunks` table can otherwise evict pages assumed to fit. |
 | Always reject cached long lines | Removed | Many passes can outweigh copying even without disk pressure. |
 | 16 estimated chunks | Retained | A ratio to effective memory, independent of absolute RAM size. |
 | Four 16 KiB sample windows | Retained | Bounded estimation work, without a preliminary full scan. |
@@ -64,8 +68,8 @@ does not cap mapped pages or total RSS.
 ## Validation
 
 The normal production binary is tested on an 8 MiB input with several `-m`
-budgets: a few chunks keep the legacy engine, many chunks enable partitioning,
-and insufficient scratch space keeps the legacy engine. A complete partition
+budgets: a few chunks keep the `mmap-chunks` engine, many chunks enable partitioning,
+and insufficient scratch space keeps the `mmap-chunks` engine. A complete partition
 run below the former 1 MiB admission limit verifies output correctness.
 
 Linux tests inject available-memory values from 4 MiB to 128 GiB. They check

@@ -1,7 +1,10 @@
 # Hash table saturation
 
+These measurements describe `991b765`, before the
+[sampled sizing and engine integration](integration.md).
+
 The regression input contains 4096 distinct three-byte hexadecimal words,
-repeated twice. With `-m 64K`, the original legacy engine hangs while searching
+repeated twice. With `-m 64K`, the original `mmap-chunks` engine hangs while searching
 a full hash table. The same failure was reproduced in `a4a5d80` and `ab958d2`.
 
 The former insertion loop limited probes, not occupancy. Exhausting its
@@ -34,17 +37,18 @@ counts against the Python reference with one and several threads. They cover
 two- and three-byte words, 10/50/90 percent uniques, filters, case conversion,
 CRLF, valid and filtered final lines without LF, and piped input/output.
 
-A temporary stress build uses a constant hash and an oversized line-size
-estimate. It requires several passes within one nominal chunk, independently
-of the sizing estimate, and checks collision handling beyond the old probe
-limit. This does not change production sizing.
+A temporary stress build used a constant hash and an oversized line-size
+estimate. The current test lowers its insertion limit instead, since sampled
+sizing supersedes that estimate. Both require several passes within one
+nominal chunk and check collision handling beyond the old probe limit.
+This does not change production limits.
 
 ## Performance
 
 Release builds use the same GCC 16.2.1 flags:
 `-std=gnu99 -O2 -DNDEBUG -mtune=native -ffast-math`, pthreads, and identical
 source ordering. The reference is `ab958d2`. Hardware and timing conventions
-match the [partition campaign](partitions.md). All cases use the legacy engine
+match the [partition campaign](partitions.md). All cases use the `mmap-chunks` engine
 and `-t 4`, without duplicate-file output.
 
 Inputs contain cyclic identifiers padded to the requested length, with LF.

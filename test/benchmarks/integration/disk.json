@@ -1,0 +1,30 @@
+[
+  {
+    "variant": "baseline",
+    "seconds": 157.55595165000705,
+    "sync_seconds": 0.030094834000919946,
+    "peaks": {
+      "partition_allocated_bytes": 22973161472,
+      "partition_logical_bytes": 22973080800,
+      "output_allocated_bytes": 21474840576
+    },
+    "usage": "44.11 49.27 12648992 222108624 128887480 12501 6020040",
+    "sha256": "e8bd5036418d80492046912173d9182fd12ef071466d76a1b42bd674f9c3d8f1",
+    "source_bytes": 21474836400,
+    "output_bytes": 10737418200
+  },
+  {
+    "variant": "candidate",
+    "seconds": 144.51536546900752,
+    "sync_seconds": 0.03516968399344478,
+    "peaks": {
+      "partition_allocated_bytes": 22973173760,
+      "partition_logical_bytes": 22973080800,
+      "output_allocated_bytes": 21474840576
+    },
+    "usage": "42.48 46.97 12543588 246208464 128827456 7555 6091405",
+    "sha256": "e8bd5036418d80492046912173d9182fd12ef071466d76a1b42bd674f9c3d8f1",
+    "source_bytes": 21474836400,
+    "output_bytes": 10737418200
+  }
+]
