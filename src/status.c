@@ -135,17 +135,20 @@ void            update_status(enum e_status_update action)
         case TAGDUP_START:
             DLOG1("CALL update_status(TAGDUP_START)");
             g_status.ctasks_date = time(NULL);
+            break ;
+        case CHUNK_START:
+            DLOG1("CALL update_status(CHUNK_START)");
             g_status.total_chunks = count_chunks();
             g_status.total_ctasks = TRIANGULAR(g_status.total_chunks);
             break ;
         case CHUNK_DONE:
-            DLOG1("CALL update_status(CHUNK_DONE)");
+            DLOG2("CALL update_status(CHUNK_DONE)");
             pthread_mutex_lock(&g_mutex);
             ++g_status.done_chunks;
             pthread_mutex_unlock(&g_mutex);
             break ;
         case CTASK_DONE:
-            DLOG1("CALL update_status(CTASK_DONE)");
+            DLOG2("CALL update_status(CTASK_DONE)");
             pthread_mutex_lock(&g_mutex);
             ++g_status.done_ctasks;
             g_status.last_ctask_date = time(NULL);

@@ -9,6 +9,7 @@
 #  include <stdio.h>
 #  include <stdarg.h>
 #  include <time.h>
+#  include <string.h>
 #  include "cprintferr.h"
 
 #  pragma GCC diagnostic push
@@ -16,11 +17,13 @@
 static void _dlog(int level, const char *file, int line, const char *fmt, ...)
 {
     time_t      now;
-    struct tm*  tm_info;
+    struct tm   tm_info;
     char        time_str[12];
+    const char  *name = strrchr(file, '/');
+
     time(&now);
-    tm_info = localtime(&now);
-    strftime(time_str, 12, "%d %H:%M:%S", tm_info);
+    localtime_r(&now, &tm_info);
+    strftime(time_str, 12, "%d %H:%M:%S", &tm_info);
 
     va_list     ap;
     char        msg[256];
@@ -34,7 +37,7 @@ static void _dlog(int level, const char *file, int line, const char *fmt, ...)
             "\e[33;1mDLOG%d \e[0;35m%s \e[1;35m%13s:%-3d"
             "\e[34;1m]"
             ":\e[0m %s\n",
-            level, time_str, file+4, line, msg
+            level, time_str, name ? name + 1 : file, line, msg
             );
 }
 #  pragma GCC diagnostic pop

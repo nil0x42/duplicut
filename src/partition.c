@@ -5,6 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <limits.h>
+#include <math.h>
 #include "partition.h"
 #include "chunk.h"
 #include "line.h"
@@ -17,11 +18,7 @@
 #include "thpool.h"
 #include "error.h"
 #include "debug.h"
-#include "meminfo.h"
 
-#ifndef PARTITION_MIN_CHUNKS
-# define PARTITION_MIN_CHUNKS 16
-#endif
 #define RECORD_HEADER_SIZE (10)
 #define BUF_SIZE (0x4000)
 #define WORKER_OVERHEAD (2 * BUF_SIZE + MAX_MAX_LINE_SIZE)
@@ -225,43 +222,33 @@ static void     partition_worker(void *arg)
 }
 
 
-#if PARTITION_MIN_CHUNKS > 0
-/** Cached long lines usually do not repay the extra partition I/O. */
-static bool     short_lines(void)
+/** Prepare bounded partition buffers and a maximum worker count. */
+void            config_partitions(void)
 {
-    t_chunk chunk;
-    char    *line;
-    int     length;
-    size_t  size = g_file->orig_size;
-    size_t  count = 0;
-    size_t  bytes = 0;
-    size_t  junk = 0;
-    int     i;
+    size_t  budget = g_conf.dedupe_memory;
+    size_t  chunks;
+    size_t  count = 1;
+    size_t  workers = g_conf.threads;
 
-    if (size > 0x4000)
-        size = 0x4000;
-    for (i = 0; i < 4; ++i)
+    if (budget < 4 * WORKER_OVERHEAD || !g_conf.chunk_size)
     {
-        chunk.ptr = g_file->addr + (g_file->orig_size - size) / 3 * i;
-        chunk.endptr = chunk.ptr + size;
-        if (i)
-        {
-            line = memchr(chunk.ptr, '\n', size);
-            if (line == NULL)
-                continue;
-            chunk.ptr = line + 1;
-        }
-        while (chunk.endptr > chunk.ptr && chunk.endptr[-1] != '\n')
-            --chunk.endptr;
-        while (get_next_line(&line, &length, &chunk, &junk))
-        {
-            bytes += length;
-            ++count;
-        }
+        DLOG1("partitions disabled: insufficient working memory");
+        return;
     }
-    return (count && bytes <= count * 2 * sizeof(t_line));
-}
+    chunks = (size_t)ceil(g_file->orig_size / (budget * HMAP_LOAD_FACTOR));
+#if MULTITHREADING != 1
+    workers = 1;
 #endif
+    if (workers > budget / WORKER_MEMORY)
+        workers = budget / WORKER_MEMORY;
+    if (!workers)
+        workers = 1;
+    while (count / workers < chunks
+            && count < budget / (4 * (BUF_SIZE + sizeof(struct partition))))
+        count *= 2;
+    g_conf.partition_count = count;
+    g_conf.partition_workers = workers;
+}
 
 
 /** Partition complete contents so comparisons never reread distant source lines. */
@@ -269,10 +256,9 @@ bool            tag_partitions(void)
 {
     struct partition_work work = {0};
     t_chunk     chunk;
-    size_t      budget = g_conf.hmap_size * sizeof(t_line);
-    size_t      count = 1;
-    size_t      chunks;
-    size_t      workers;
+    size_t      budget = g_conf.dedupe_memory;
+    size_t      count = g_conf.partition_count;
+    size_t      workers = g_conf.partition_workers;
     size_t      memory;
     size_t      junk = 0;
     size_t      bytes = 0;
@@ -289,34 +275,9 @@ bool            tag_partitions(void)
     char        *line;
     char        *base;
     threadpool  pool;
-#if PARTITION_MIN_CHUNKS > 0
-    long long   available;
-#endif
 
-    if (budget < 4 * WORKER_OVERHEAD || !g_conf.chunk_size)
+    if (!count)
         return (false);
-    chunks = g_file->orig_size / g_conf.chunk_size
-        + (g_file->orig_size % g_conf.chunk_size != 0);
-#if PARTITION_MIN_CHUNKS > 0
-    if (chunks < PARTITION_MIN_CHUNKS)
-        return (false);
-    available = meminfo(MEMAVAILABLE);
-    if (chunks < 8 * PARTITION_MIN_CHUNKS
-            && available > 0 && (size_t)available > budget
-            && g_file->orig_size <= (size_t)available - budget && !short_lines())
-        return (false);
-#endif
-    workers = g_conf.threads;
-#if MULTITHREADING != 1
-    workers = 1;
-#endif
-    if (workers > budget / WORKER_MEMORY)
-        workers = budget / WORKER_MEMORY;
-    if (!workers)
-        workers = 1;
-    while (count / workers < chunks
-            && count < budget / (4 * (BUF_SIZE + sizeof(struct partition))))
-        count *= 2;
     partition_status(0, g_file->orig_size);
     work.parts = calloc(count, sizeof(struct partition));
     if (work.parts == NULL)
@@ -345,6 +306,8 @@ bool            tag_partitions(void)
     if (bitmap > budget / 2 || bitmap > memory
             || memory - bitmap < 4 * WORKER_OVERHEAD || !bytes)
     {
+        DLOG1("partitions unavailable: %zu bitmap bytes, %zu memory bytes, %zu payload bytes",
+                bitmap, memory, bytes);
         free(work.parts);
         partition_status(-1, 0);
         return (false);
@@ -365,14 +328,18 @@ bool            tag_partitions(void)
     fd = open_tmpfile(bytes);
     if (fd < 0)
     {
+        DLOG1("partitions unavailable: temporary file: %s", ERRNO);
         free(work.parts);
         partition_status(-1, 0);
         return (false);
     }
     if (ftruncate(fd, bytes) < 0)
         error("cannot prepare partition file: %s", ERRNO);
+    DLOG1("dedupe engine: partitions");
     DLOG1("partitions: %zu ranges, %zu workers, %zu bytes, %zu bitmap bytes",
             count, workers, bytes, bitmap);
+    DLOG1("partition memory: %zu budget bytes, %zu metadata bytes, %zu bytes per worker",
+            budget, count * sizeof(struct partition), memory / workers);
     work.fd = fd;
     partition_status(1, g_file->orig_size);
     for (index = 0; index < count; ++index)

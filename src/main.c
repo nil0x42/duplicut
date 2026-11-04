@@ -11,6 +11,7 @@
 #include "progressbar.h"
 #include "status.h"
 #include "error.h"
+#include "debug.h"
 
 
 struct conf g_conf = {
@@ -23,6 +24,9 @@ struct conf g_conf = {
     .chunk_size = 0,
     .filter_printable = 0,
     .memlimit = LONG_MAX,
+    .dedupe_memory = 0,
+    .partition_count = 0,
+    .partition_workers = 0,
 };
 
 struct file *g_file;
@@ -81,8 +85,10 @@ int             main(int argc, char **argv)
     set_status(CHUNK_SIZE, g_conf.chunk_size);
 
     update_status(TAGDUP_START);
-    if (!tag_partitions())
+    if (!g_conf.partition_count || !tag_partitions())
     {
+        DLOG1("dedupe engine: legacy");
+        update_status(CHUNK_START);
         init_hmap(g_conf.hmap_size);
         tag_duplicates();
         destroy_hmap();

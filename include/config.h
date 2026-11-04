@@ -15,6 +15,9 @@ struct              conf
     int             lowercase_wordlist;
     int             uppercase_wordlist;
     long            memlimit;
+    size_t          dedupe_memory;
+    size_t          partition_count;
+    size_t          partition_workers;
 };
 
 /** Global configuration vars.
