@@ -29,8 +29,8 @@ STRIP_BIN="$(command -v llvm-strip || command -v strip)"
 declare -A TARGET_FLAGS=(
     [duplicut-linux-x64]="-static -target x86_64-linux-musl"
     [duplicut-linux-arm64]="-static -target aarch64-linux-musl"
-    [duplicut-macos-x64]="-target x86_64-macos   -mmacosx-version-min=10.13"
-    [duplicut-macos-arm64]="-target aarch64-macos -mmacosx-version-min=11.0"
+    [duplicut-macos-x64]="-target x86_64-macos.10.13"
+    [duplicut-macos-arm64]="-target aarch64-macos.11.0"
 )
 
 # Minimal, size‑oriented CFLAGS shared by all builds
