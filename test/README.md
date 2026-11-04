@@ -34,3 +34,27 @@ repository root contain the expected and actual outputs for inspection.
 
 On failure, pending cases are cancelled and running processes are allowed to
 finish. Only the first failure received is reported; it may vary between runs.
+
+
+The partition tests build a small-input variant to exercise bounded memory,
+collisions, filters, output order and concurrent bitmap updates. Linux tests
+also inject partial I/O, interruptions, EOF and disk-full errors, and check
+volume selection, immediate unlink and the production activation boundary.
+These tests use temporary directories under the repository so they can run
+on a disk-backed filesystem. Their subprocess timeout is thirty seconds.
+
+To compare two release binaries on Linux:
+
+```sh
+python3 test/scripts/benchmark-partitions.py /path/to/baseline /path/to/candidate \
+    --size-mib 1024 --memory 100M --results /tmp/partitions.jsonl
+```
+
+The benchmark generates deterministic inputs with 10, 50 and 90 percent unique
+lines, checks output hashes and records raw timings and resource use. It runs
+one warm-up and seven measured repetitions per variant. Output synchronization
+runs outside process timing, before the next trial. Run benchmarks separately
+from tests and builds; use a disk-backed `--directory` with space for inputs,
+outputs and partitions. `--lengths`, `--threads` and `--repetitions` narrow a run.
+Recorded measurements and selection rules are in the
+[partition benchmarks](benchmarks/partitions.md).

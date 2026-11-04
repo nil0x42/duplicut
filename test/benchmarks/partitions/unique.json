@@ -1,0 +1,45 @@
+{
+  "timeout": 30,
+  "command": [
+    "/usr/bin/time",
+    "-f",
+    "%U %S %M %I %O %F %R",
+    "-o",
+    "/home/user/dev/duplicut/partition-external-ejwc43jn/usage",
+    "/usr/sbin/unique",
+    "-inp=/home/user/dev/duplicut/partition-external-ejwc43jn/input",
+    "-buf=1",
+    "/home/user/dev/duplicut/partition-external-ejwc43jn/output"
+  ],
+  "completed": [
+    {
+      "seconds": 0.09079380700131878,
+      "sync_seconds": 0.007294709001143929,
+      "sha256": "6beef9b3d52769248caf0ed52169cad7a6ba2503a3e16f2d4905ac0d7199e102",
+      "user": 0.05,
+      "system": 0.03,
+      "rss_kib": 198804,
+      "input_blocks": 0,
+      "output_blocks": 131072,
+      "major_faults": 0,
+      "minor_faults": 17088,
+      "command": [
+        "/usr/bin/time",
+        "-f",
+        "%U %S %M %I %O %F %R",
+        "-o",
+        "/home/user/dev/duplicut/partition-external-ejwc43jn/usage",
+        "/tmp/duplicut-perf-study/partition-final-cache",
+        "/home/user/dev/duplicut/partition-external-ejwc43jn/input",
+        "-o",
+        "/home/user/dev/duplicut/partition-external-ejwc43jn/output",
+        "-m",
+        "1G",
+        "-t",
+        "4"
+      ],
+      "repeat": -1,
+      "variant": "duplicut"
+    }
+  ]
+}

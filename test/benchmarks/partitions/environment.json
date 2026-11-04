@@ -1,0 +1,20 @@
+{
+  "date": "2026-11-04",
+  "baseline_commit": "a4a5d80",
+  "candidate_commit": "2d3f09e",
+  "compiler": "gcc (GCC) 16.2.1 20260810",
+  "flags": "-std=gnu99 -Wall -Wextra -Iinclude -O2 -DNDEBUG -mtune=native -ffast-math src/*.c -lm -pthread",
+  "cpu": "Intel Core i5-12450H",
+  "logical_cpus": 12,
+  "ram_kib": 16084760,
+  "filesystem": "ext4 over LUKS",
+  "storage": "WD PC SN740 SDDPMQD-1T00-1101 NVMe",
+  "governor": "powersave",
+  "energy_performance_preference": "balance_performance",
+  "binaries": {
+    "baseline": "38118dc0c78279ef8b498c84c04c0d0bb1af2bb7e028b0471ab1cf7f9263d040",
+    "candidate": "d275f2020bf64989384a9b8ca2b1043cd7ffd4c63fe72fb06b4fce8d75401102"
+  },
+  "final_code_commit": "adee397",
+  "selection_refinement": "Four distributed windows and arithmetic chunk estimate; timing workloads select the same engines and partition counts."
+}
