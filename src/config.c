@@ -10,6 +10,11 @@
 #include "error.h"
 #include "debug.h"
 #include "bytesize.h"
+#include "partition.h"
+
+#ifndef PARTITION_MIN_CHUNKS
+# define PARTITION_MIN_CHUNKS 16
+#endif
 
 
 /** Configuration --> g_conf.threads
@@ -71,7 +76,7 @@ static void     config_hmap_size(struct file *file, struct memstate *memstate)
     if (hmap_size < 10000.0)
         hmap_size = 10000.0;
 
-    max_size = memstate->mem_available * HMAP_MAX_SIZE;
+    max_size = memstate->mem_budget * HMAP_MAX_SIZE;
     max_size /= sizeof(t_line);
     if (hmap_size > max_size)
         hmap_size = max_size;
@@ -104,6 +109,75 @@ static void     config_chunk_size(struct file *file)
 }
 
 
+#if PARTITION_MIN_CHUNKS > 0
+/** Cached long lines usually do not repay the extra partition I/O. */
+static bool     short_lines(void)
+{
+    t_chunk chunk;
+    char    *line;
+    int     length;
+    size_t  size = g_file->orig_size;
+    size_t  count = 0;
+    size_t  bytes = 0;
+    size_t  junk = 0;
+    int     i;
+
+    if (size > 0x4000)
+        size = 0x4000;
+    for (i = 0; i < 4; ++i)
+    {
+        chunk.ptr = g_file->addr + (g_file->orig_size - size) / 3 * i;
+        chunk.endptr = chunk.ptr + size;
+        if (i)
+        {
+            line = memchr(chunk.ptr, '\n', size);
+            if (line == NULL)
+                continue;
+            chunk.ptr = line + 1;
+        }
+        while (chunk.endptr > chunk.ptr && chunk.endptr[-1] != '\n')
+            --chunk.endptr;
+        while (get_next_line(&line, &length, &chunk, &junk))
+        {
+            bytes += length;
+            ++count;
+        }
+    }
+    return (count && bytes <= count * 2 * sizeof(t_line));
+}
+#endif
+
+
+/** Select an initial engine before checking its exact runtime requirements. */
+static void     config_dedupe(const struct memstate *memstate)
+{
+#if PARTITION_MIN_CHUNKS > 0
+    size_t  chunks;
+
+    if (!g_conf.chunk_size)
+        return;
+    chunks = g_file->orig_size / g_conf.chunk_size
+        + (g_file->orig_size % g_conf.chunk_size != 0);
+    if (chunks < PARTITION_MIN_CHUNKS)
+    {
+        DLOG1("partitions disabled: %zu estimated chunks", chunks);
+        return;
+    }
+    if (chunks < 8 * PARTITION_MIN_CHUNKS
+            && memstate->mem_available > (long long)g_conf.dedupe_memory
+            && g_file->orig_size <= (size_t)memstate->mem_available - g_conf.dedupe_memory
+            && !short_lines())
+    {
+        DLOG1("partitions disabled: cached long lines");
+        return;
+    }
+#else
+    (void)memstate;
+#endif
+    config_partitions();
+}
+
+
 /** Initialize `g_conf` variables after parsing arguments.
  */
 void            config(void)
@@ -116,10 +190,14 @@ void            config(void)
     config_threads();
     config_hmap_size(g_file, &memstate);
     config_chunk_size(g_file);
+    g_conf.dedupe_memory = g_conf.hmap_size * sizeof(t_line);
+    config_dedupe(&memstate);
 
     DLOG1("");
     DLOG1("--------- memstate -----------");
     DLOG1("memstate.page_size:      %d", memstate.page_size);
+    DLOG1("memstate.mem_budget:     %s (%lld)",
+            sizerepr(memstate.mem_budget), memstate.mem_budget);
     DLOG1("memstate.mem_available:  %s (%lld)",
             sizerepr(memstate.mem_available), memstate.mem_available);
     DLOG1("------------------------------");
@@ -140,6 +218,11 @@ void            config(void)
             g_conf.hmap_size, sizeof(t_line) * 8);
     DLOG1("g_conf.chunk_size:        %s (%ld)",
             sizerepr(g_conf.chunk_size), g_conf.chunk_size);
+    DLOG1("g_conf.dedupe_memory:     %zu bytes", g_conf.dedupe_memory);
+    DLOG1("g_conf.partition_count:   %zu (candidate)", g_conf.partition_count);
+    DLOG1("g_conf.partition_workers: %zu (maximum)", g_conf.partition_workers);
+    DLOG1("legacy hash load:        %.0f%% target, %.0f%% maximum",
+            HMAP_LOAD_FACTOR * 100, HMAP_MAX_LOAD * 100);
     DLOG1("g_conf.filter_printable:  %d", g_conf.filter_printable);
     DLOG1("g_conf.memlimit:          %ld", g_conf.memlimit);
     DLOG1("------------------------------");
