@@ -58,7 +58,7 @@ void            tag_duplicates(void)
         .endptr = NULL
     };
 
-    bool populated;
+    bool        populated;
 
     while (get_next_chunk(&main_chunk, g_file))
     {
@@ -109,7 +109,7 @@ void            tag_duplicates(void)
         .endptr = NULL
     };
 
-    bool populated;
+    bool        populated;
 
     while (get_next_chunk(&main_chunk, g_file))
     {

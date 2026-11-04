@@ -37,6 +37,8 @@ struct                  status
     size_t              tagdup_duplicates;
     size_t              tagdup_junk_lines;
     size_t              fclean_bytes;
+    int                 partition_stage;
+    size_t              partition_total;
 };
 
 static struct status    g_status = {
@@ -157,6 +159,17 @@ void            update_status(enum e_status_update action)
 }
 
 
+/** Each partition phase reports its own byte count. */
+void            partition_status(int stage, size_t total)
+{
+    pthread_mutex_lock(&g_mutex);
+    g_status.partition_stage = stage + 1;
+    g_status.partition_total = total;
+    g_status.tagdup_bytes = 0;
+    pthread_mutex_unlock(&g_mutex);
+}
+
+
 void            set_status(enum e_status_set var, size_t val)
 {
     switch (var) {
@@ -224,6 +237,12 @@ static void     repr_current_task(char *buffer)
                 "\e[0;36m ...",
                 BUF_SIZE - 1);
     }
+    else if (!TAGDUP_TERMINATED() && g_status.partition_stage) {
+        const char *phases[] = {"counting partitions", "writing partitions",
+            "deduping partitions", "marking duplicates"};
+        snprintf(buffer, BUF_SIZE - 1, "\e[36m[2/3] \e[1m%s\e[0;36m ...",
+                phases[g_status.partition_stage - 1]);
+    }
     else if (!TAGDUP_TERMINATED()) {
         int cur_chunk = g_status.done_chunks
             + (g_status.done_chunks < g_status.total_chunks);
@@ -290,6 +309,13 @@ void    display_status(int finished)
             t_remaining = step_elapsed / step_ratio - step_elapsed;
     }
     /* ---------- [2/3] TAGDUP : 4 % → 94 % ----------------------------- */
+    else if (g_status.partition_stage && !TAGDUP_TERMINATED()) {
+        double ratio = g_status.partition_total
+            ? (double)g_status.tagdup_bytes / g_status.partition_total : 0;
+        if (ratio > 1)
+            ratio = 1;
+        progress = 0.04 + 0.90 * (g_status.partition_stage - 1 + ratio) / 4;
+    }
     else if (g_status.tagdup_bytes) {
         long total_bytes = g_status.total_ctasks * g_status.chunk_size;
         double step_ratio = (double)g_status.tagdup_bytes / total_bytes;
@@ -303,7 +329,8 @@ void    display_status(int finished)
     }
     /* ---------- [1/3] FCOPY : 0 % → 4 % ------------------------------ */
     else if (g_status.fcopy_bytes) {
-        double step_ratio = (double)g_status.fcopy_bytes / g_status.file_size;
+        double step_ratio = g_status.file_size
+            ? (double)g_status.fcopy_bytes / g_status.file_size : 1;
         progress = 0.0 + (step_ratio * 0.04);
     }
     /* ---------- fallback ETA if still unknown ------------------------- */

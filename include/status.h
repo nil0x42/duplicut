@@ -27,3 +27,5 @@ void                display_report(void);
 void                display_status(int finished);
 void                update_status(enum e_status_update action);
 void                set_status(enum e_status_set var, size_t val);
+
+void                partition_status(int stage, size_t total);
