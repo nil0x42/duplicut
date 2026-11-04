@@ -192,6 +192,14 @@ def test_faults(program, directory, root, content, expected):
     assert output.read_bytes() == b'x' * 4095 + b'\n'
     assert log.read_text().splitlines()
     print('[+] cached and uncached long-line selection')
+    with source.open('r+b') as stream:
+        stream.write(word * (65536 // len(word)))
+    log.unlink()
+    run(production, env={**environment, 'DUPLICUT_TEST_FAULT': 'cached',
+                         'DUPLICUT_TEST_LOG': str(log)})
+    assert output.read_bytes() == word + b'x' * 4095 + b'\n'
+    assert not log.exists()
+    print('[+] distributed samples with an unrepresentative short prefix')
 
 
 
