@@ -37,9 +37,17 @@ function die ()
 
 function build_program ()
 {
-    export FLAGS=""
+    print_info "$BANNER"
+    print_info "BUILDING PROGRAM FOR HOST ..."
+    print_info "$BANNER"
     make coverage || die "Could not compile"
 
+    check_program
+}
+
+
+function check_program ()
+{
     fileinfo="$(file -b "$_PROGRAM" 2>&1)"
     grep -q "64" <<< "$fileinfo" \
         || die "Expected a 64-bit binary: $_PROGRAM: $fileinfo"
@@ -54,6 +62,9 @@ function execute_scripts () {
             execute_scripts "$i"
         done
     elif [ -f "$1" ] && [ -x "$1" ]; then
+        if [[ $scripts -eq 0 && ! "$1" -ef "$_TESTS_DIR/00-build.sh" ]]; then
+            build_program
+        fi
         print_info "$BANNER"
         print_info "RUNNING $1 ..."
         print_info "$BANNER"
@@ -63,6 +74,9 @@ function execute_scripts () {
             print_bad "$1 failed !"
             exit 1
             (( ++errors ))
+        fi
+        if [[ $scripts -eq 0 && "$1" -ef "$_TESTS_DIR/00-build.sh" ]]; then
+            check_program
         fi
         echo -e "\n"
         (( ++scripts ))
@@ -75,10 +89,7 @@ if [[ "$TEST" == "all" ]]; then
     TEST="$(find . -maxdepth 1 -type f -executable)"
 fi
 
-print_info "$BANNER"
-print_info "BUILDING PROGRAM FOR HOST ..."
-print_info "$BANNER"
-build_program
+export FLAGS=""
 for _test in $TEST; do
     _test="$_TESTS_DIR/$_test"
     execute_scripts "$_test"
