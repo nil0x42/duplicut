@@ -1,0 +1,18 @@
+{
+  "date": "2026-11-04",
+  "baseline_commit": "ab958d2",
+  "candidate_commit": "991b765",
+  "flags": "gcc -std=gnu99 -Wall -Wextra -Werror -Iinclude -O2 -DNDEBUG -mtune=native -ffast-math src/*.c -lm -pthread",
+  "cpu": "Intel Core i5-12450H",
+  "initial_affinity": null,
+  "controlled_affinity": [
+    0,
+    2,
+    4,
+    6
+  ],
+  "binaries": {
+    "baseline": "04f8455816bce9a5aeac9239ccb1f6205a700ca78d346b8028b060f327a94eda",
+    "candidate": "12ebb493a6a940525f77a8d5c23da2347f35845506d15dc1d409bbdcfe416138"
+  }
+}
