@@ -6,16 +6,16 @@
 #include "chunk.h"
 
 #if __SIZEOF_POINTER__ >= 8
-/** On 64 bit architectures, t_line type is a tagged pointer,
- * assuming that mapped regions use addresses whose 12 MSB bits
+/** On 64-bit platforms, t_line packs a line address and byte length,
+ * assuming that mapped regions use addresses whose upper 12 bits
  * are set to zero.
  * https://en.wikipedia.org/wiki/Tagged_pointer
  *
- * This way, a 64bits size_t is used to store line like this:
+ * This way, a 64-bit size_t stores a line like this:
  *
  *  LSB                               <                                MSB
  *  ----------------------------------------------------------------------
- * |   size - 12bit   |                addr - 56bit                       |
+ * |   size - 12 bits  |                addr - 52 bits                      |
  *  ----------------------------------------------------------------------
  *
  * TODO: May need refactoring due to Intel's 5-Level Paging (may 2017)
@@ -28,7 +28,7 @@ typedef size_t  t_line;
 # define MAKE_LINE(ptr, sz)     ((((uintptr_t)ptr) << 12) + (sz & 0xFFF))
 
 #else
-# error "not x64 arch (__SIZEOF_POINTER__ != 8)"
+# error "64-bit pointers required"
 #endif
 
 /* source file: line.c */

@@ -125,7 +125,7 @@ void        cleanout_chunk(void *arg)
                 ++duplicates;
                 break;
             }
-            /* archaic open addressing collision resolver */
+            /* open addressing with linear probing */
             slot = (slot + 1) % g_hmap.size;
         }
         i++;

@@ -16,7 +16,7 @@ void        init_hmap(size_t size)
     t_line  *area;
 
     if (g_hmap.ptr != NULL)
-        error("init_hmap(): singleton called twice !");
+        error("init_hmap(): already initialized");
 
     area = (t_line*) malloc(size * sizeof(t_line));
     if (area == NULL)
@@ -106,7 +106,7 @@ void        populate_hmap(t_chunk *chunk)
                 ++duplicates;
                 break;
             }
-            /* archaic open addressing collision resolver */
+            /* open addressing with linear probing */
 #if DEBUG >= 2
             ++collisions;
 #endif

@@ -8,13 +8,13 @@
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 
-/* portion of available memory to allow to hashmap */
+/* portion of the memory budget allocated to the hash table */
 #define HMAP_MAX_SIZE           (0.5)
 
-/* ideal portion of hashmap to be filled */
+/* target hash table load factor for sizing */
 #define HMAP_LOAD_FACTOR        (0.5)
 
-/* average line size for determining hashmap min size */
+/* estimated average line size in bytes for hash table and chunk sizing */
 #define AVG_LINE_BYTES          (8)
 
 /* char used to mark duplicate lines for removal */

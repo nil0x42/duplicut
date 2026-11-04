@@ -11,14 +11,14 @@ set -ve
 ! make foobar
 
 #### make debug:
-#### make with debug infos
+#### make with debug symbols
 make debug
 test -d objects/
 # ctags file must be present (if ctags is installed)
 which ctags 2>/dev/null && test -f tags
 test -f duplicut -a -x duplicut
 ./duplicut --help &> /dev/null
-# check there is debug symbols AND NO profiling info (linux only)
+# check there are debug symbols AND NO profiling data (linux only)
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     nm --debug-syms duplicut | grep -Eq '\s+t\s+_dlog$'
     ! test -e gmon.out
@@ -44,7 +44,7 @@ make distclean
 
 
 #### make profile:
-#### profiling infos for gprof, linux only
+#### profiling data for gprof, linux only
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     make distclean
     make profile
@@ -56,7 +56,7 @@ fi
 
 
 #### make (make release):
-#### create an optimized binary file, without debug infos
+#### create an optimized binary file, without debug symbols
 make
 ./duplicut --help &> /dev/null
 # ensure there is no profile info nor debug symbol
@@ -72,7 +72,7 @@ fi
 
 #### make coverage
 make coverage
-# ensure there are gcov symbols
+# ensure there are coverage instrumentation symbols
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     ! test -e gmon.out
     nm --debug-syms duplicut | grep -Eq '_gcov_'

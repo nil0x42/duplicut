@@ -33,8 +33,7 @@ static void     config_threads(void)
 
 
 /** Get biggest prime number `p` as `p` <= `n`.
- * Used to settle `hmap` size with a prime number value,
- * ensuring an optimal hash repartition among the table.
+ * Used to choose a prime number of hash table slots.
  */
 static long     get_prev_prime(long n)
 {
@@ -60,7 +59,7 @@ static long     get_prev_prime(long n)
 
 
 /** Configuration --> g_conf.hmap_size
- * Use `file` size and `memstate` to determine optimal size for `hmap`.
+ * Estimate `hmap` capacity from file size and the memory budget.
  */
 static void     config_hmap_size(struct file *file, struct memstate *memstate)
 {
@@ -82,7 +81,8 @@ static void     config_hmap_size(struct file *file, struct memstate *memstate)
 
 
 /** Configuration --> g_conf.chunk_size
- * Determine the size of a chunk, which must be a divisor of `file->size`.
+ * Estimate a target chunk size from the hash table capacity.
+ * get_next_chunk() extends chunk boundaries to the next newline.
  */
 static void     config_chunk_size(struct file *file)
 {

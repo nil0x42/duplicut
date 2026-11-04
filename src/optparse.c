@@ -64,7 +64,7 @@ static void setopt_outfile(const char *value)
     g_conf.outfile_name = value;
 }
 
-/** Set dup file (-D option) [OPTIONAL]
+/** Set duplicates file (-D option) [OPTIONAL]
  * --> The destination file
  */
 static void setopt_dupfile(const char *value)
@@ -112,15 +112,15 @@ static void setopt_line_max_size(const char *value)
     line_max_size = (int) strtol(value, &endptr, 10);
     if (*endptr != '\0')
     {
-        bad_argument("line_max_size", value, "not a number");
+        bad_argument("line-max-size", value, "not a number");
     }
     else if (line_max_size < 1)
     {
-        bad_argument("line_max_size", value, "not a positive number");
+        bad_argument("line-max-size", value, "not a positive number");
     }
     else if (line_max_size > MAX_MAX_LINE_SIZE)
     {
-        bad_argument("line_max_size", value, "max value is " STR(MAX_MAX_LINE_SIZE));
+        bad_argument("line-max-size", value, "max value is " STR(MAX_MAX_LINE_SIZE));
     }
     g_conf.line_max_size = (unsigned int) line_max_size;
 }
@@ -158,10 +158,10 @@ static void setopt_help(const char *value)
            "\n"
            "Options:\n"
            "-o, --outfile <FILE>       Write result to <FILE>\n"
-           "-t, --threads <NUM>        Max threads to use (default max)\n"
-           "-m, --memlimit <VALUE>     Limit max used memory (default max)\n"
-           "-l, --line-max-size <NUM>  Max line size (default %d, max 4095)\n"
-           "-p, --printable            Filter ascii printable lines\n"
+           "-t, --threads <NUM>        Worker threads (default online CPUs)\n"
+           "-m, --memlimit <VALUE>     Memory budget for sizing (default available)\n"
+           "-l, --line-max-size <NUM>  Max line size in bytes (default %d, max 4095)\n"
+           "-p, --printable            Keep only printable ASCII lines\n"
            "-c, --lowercase            Convert wordlist to lowercase\n"
            "-C, --uppercase            Convert wordlist to uppercase\n"
            "-D, --dupfile <FILE>       Write dupes to <FILE> (slows down duplicut)\n"
@@ -190,7 +190,7 @@ static void setopt_version(const char *value)
 
 
 /** Setter for option arguments.
- * It handler all parameters which are retrieved by getopt_long().
+ * It handles all parameters which are retrieved by getopt_long().
  */
 static void setopt(int opt, const char *value)
 {
@@ -229,10 +229,10 @@ static void setopt(int opt, const char *value)
 }
 
 
-/** Set options by filling out g_conf globale.
+/** Set options by filling out g_conf.
  * It first uses setopt() in order to set option arguments,
  * then handles main argument (input file) separately,
- * through setopt_input().
+ * through setopt_infile().
  */
 void        optparse(int argc, char **argv)
 {
@@ -241,7 +241,7 @@ void        optparse(int argc, char **argv)
     while ((opt = getopt_long(argc, argv, OPTSTRING, g_options, NULL)) >= 0)
         setopt(opt, optarg);
 
-    /* STDIN can be used as infile (priority to --infile arg if exists) */
+    /* Use the positional input file, or non-terminal STDIN if omitted. */
     if (optind == argc - 1)
     {
         DLOG1("using %s as input file", argv[argc - 1]);

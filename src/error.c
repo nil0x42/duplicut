@@ -18,9 +18,8 @@ static inline void     err_write(const char *buf, size_t len)
 }
 
 /** Print a formatted warning message without leaving the program.
- * The use of printf() inside this function causes it
- * to potentially allocate memory.
- * Unlike error() and die(), this function do not leave the program,
+ * Formatting uses snprintf() and vsnprintf().
+ * Unlike error() and die(), this function does not exit,
  * making it safe for use in atexit() callbacks.
  */
 void            warning(const char *fmt, ...)
@@ -42,9 +41,8 @@ void            warning(const char *fmt, ...)
 
 
 /** Print a formatted error message and leave the program.
- * The use of printf() inside this function causes it
- * to potentially allocate memory.
- * Memory allocation errors shall then use die() instead.
+ * Formatting uses snprintf() and vsnprintf().
+ * Memory allocation errors use die() instead.
  */
 void            error(const char *fmt, ...)
 {
@@ -66,8 +64,7 @@ void            error(const char *fmt, ...)
 
 
 /** Suddenly exit the program with fatal error.
- * Unlike error(), this function does not allocates
- * any additional memory before exiting program.
+ * Write a fixed prefix and use perror() to report errno.
  */
 void            die(const char *msg)
 {

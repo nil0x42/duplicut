@@ -62,19 +62,19 @@ pthread_mutex_t         g_mutex = PTHREAD_MUTEX_INITIALIZER;
 /*  smooth_eta ‒ Present a human-friendly, steadily changing ETA
  *
  *  Applies an exponentially weighted moving average (τ = 1 s) directly to the
- *  raw time-remaining estimate, then adds hysteresis and jump logic so the
- *  number a user sees is stable yet responsive:
+ *  raw time-remaining estimate, then suppresses small changes and accepts
+ *  large jumps:
  *
  *    • Minor changes (< 0.8 s or 1 %) are suppressed.
  *    • Large deviations (> 10 s and 30 %) are accepted immediately.
- *    • Between updates the displayed value is forced to drop by ≈ 1 s per
- *      real-time second so the countdown never stalls or counts up.
+ *    • Between updates it attempts a countdown of ≈ 1 s per second,
+ *      bounded below by the raw estimate; the displayed ETA may increase.
  *
  *  All state is kept in two static variables:
  *    displayed ― last ETA shown (seconds, double for sub-second precision)
  *    last_t    ― wall-clock time of the previous call
  *
- *  Returns a monotone-decreasing, smoothed ETA in whole seconds; returns 0 if
+ *  Returns a smoothed ETA in whole seconds; returns 0 if
  *  the raw ETA is non-positive.
  */
 static time_t smooth_eta(time_t eta_raw)
@@ -179,13 +179,13 @@ void            set_status(enum e_status_set var, size_t val)
             pthread_mutex_unlock(&g_mutex);
             break ;
         case TAGDUP_DUPLICATES:
-            DLOG2("CALL set_status(TAGDUP_DULICATES, %lu)", val);
+            DLOG2("CALL set_status(TAGDUP_DUPLICATES, %lu)", val);
             pthread_mutex_lock(&g_mutex);
             g_status.tagdup_duplicates += val;
             pthread_mutex_unlock(&g_mutex);
             break ;
         case TAGDUP_JUNK_LINES:
-            DLOG2("CALL set_status(TAGDUP_DULICATES, %lu)", val);
+            DLOG2("CALL set_status(TAGDUP_JUNK_LINES, %lu)", val);
             pthread_mutex_lock(&g_mutex);
             g_status.tagdup_junk_lines += val;
             pthread_mutex_unlock(&g_mutex);

@@ -100,10 +100,10 @@ catch hangs; this is not a benchmark. The suite builds with coverage enabled.
 
 ```
 -o, --outfile <FILE>       Write result to <FILE>
--t, --threads <NUM>        Max threads to use (default max)
--m, --memlimit <VALUE>     Limit max used memory (default max)
--l, --line-max-size <NUM>  Max line size (default 1024, max 4095)
--p, --printable            Filter ascii printable lines
+-t, --threads <NUM>        Worker threads (default online CPUs)
+-m, --memlimit <VALUE>     Memory budget for sizing (default available)
+-l, --line-max-size <NUM>  Max line size in bytes (default 1024, max 4095)
+-p, --printable            Keep only printable ASCII lines
 -c, --lowercase            Convert wordlist to lowercase
 -C, --uppercase            Convert wordlist to uppercase
 -D, --dupfile <FILE>       Write dupes to <FILE> (slows down duplicut)
@@ -113,7 +113,7 @@ catch hangs; this is not a benchmark. The suite builds with coverage enabled.
 
 *   **Features**:
     *   Handle massive wordlists, even those whose size exceeds available RAM
-    *   Filter lines by max length (`--line-max-size` option)
+    *   Filter lines by max byte length (`--line-max-size` option)
     *   Filter-out lines with non-printable ASCII chars (`--printable` option)
     *   Save found duplicates to another file (`--dupfile` option)
     *   Ignore case with `--lowercase` or `--uppercase` options
@@ -131,24 +131,27 @@ catch hangs; this is not a benchmark. The suite builds with coverage enabled.
 
 #### :small_orange_diamond: 1- Memory optimized:
 
-An `uint64` is enough to index lines in hashmap, by packing
-`size` info within pointer's [extra bits][tagged-pointer]:
+Each hashmap entry packs a line address and its length into a 64-bit word
+using a [tagged pointer][tagged-pointer]: 12 bits for the byte length and
+52 bits for the address. This assumes the upper 12 address bits are zero.
 
 ![][img-2-line-struct]
 
 #### :small_orange_diamond: 2- Massive file handling:
 
-If whole file can't fit in memory, it is split into ![][latex-n]
-virtual chunks, in such way that each chunk uses as much RAM as possible.
+The working file is memory-mapped and split into ![][latex-n] chunks.
+The target chunk size is estimated from the hash table capacity; chunk
+boundaries are extended to the next newline.
 
-Each chunk is then loaded into hashmap, deduped, and tested against
-subsequent chunks.
+Each chunk is indexed in the hashmap and deduped. Subsequent chunks are
+then checked against that table.
 
-That way, execution time decreases to at most ![][latex-n]th *triangle number*:
+For `n` chunks, this schedules `n(n+1)/2` chunk-processing tasks.
+This task count is not an execution-time bound:
 
 ![][img-3-chunked-processing]
 
-## :bulb: Throubleshotting
+## :bulb: Troubleshooting
 
 If you find a bug, or something doesn't work as expected,
 please compile duplicut in debug mode and post an [issue] with

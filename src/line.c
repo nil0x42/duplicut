@@ -34,7 +34,6 @@ static bool filter_line(char *str, size_t size)
 
 /** Set `*p_lnptr & *p_lnsz` to next valid line in `chunk`
  * The function returns false when end-of-chunk is reached.
- * You are not expected to understand this
  */
 bool        get_next_line(char **p_lnptr, int *p_lnsz, t_chunk *chunk, size_t *junk_lines)
 {

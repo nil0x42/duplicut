@@ -1,4 +1,4 @@
 #pragma once
 
-/* source file: tag_duplicates.c */
+/* source file: dedupe.c */
 void     tag_duplicates(void);

@@ -20,10 +20,10 @@ static volatile sig_atomic_t    g_pbarthread_running = 1;
 
 
 /** thread worker
- * print progression status with print_status() on keypress
+ * refresh progress periodically with display_status()
  */
-#define SLEEPTIME_MS 250 // pbar refresh frequency
-#define ITER 25 // 25 loop iterations per loop refresh
+#define SLEEPTIME_MS 250 // pbar refresh interval
+#define ITER 25 // 25 sleep intervals per refresh
 static void *progressbar_worker(void *arg)
 {
     (void)arg;
@@ -85,7 +85,7 @@ void        start_progressbar(void)
                 &g_pbarthread_id, NULL,
                 &progressbar_worker, NULL
                 ) < 0) {
-        error("cannot create watch_user_input_worker() thread: %s", ERRNO);
+        error("cannot create progressbar_worker() thread: %s", ERRNO);
     }
 }
 
@@ -94,7 +94,7 @@ void        stop_progressbar(void)
     if (g_pbarthread_id == 0)
         return;
     g_pbarthread_running = 0;
-    pthread_join(g_pbarthread_id, NULL); // wait thread (ignored if already detached)
+    pthread_join(g_pbarthread_id, NULL); // wait for the progress thread
     restore_termios();
     g_pbarthread_id = 0;
 }

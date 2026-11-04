@@ -12,7 +12,7 @@
 #  include <mach/mach_init.h>
 #  include <mach/mach_host.h>
 
-/** Apple Mac OS X specific wrapper for meminfo_memavailable()
+/** macOS free-memory estimate for sizing
  *
  * Specific code needed because Mac OS X doesn't have "/proc" vfs.
  */
@@ -37,7 +37,7 @@ static long long    meminfo_memavailable(void)
     return ((long long)vm_stats.free_count * (long long)page_size);
 }
 
-# else /* Unix default case (through /proc/meminfo) */
+# else /* Linux case (through /proc/meminfo) */
 #  define PROC_MEMINFO_FILE   ("/proc/meminfo")
 #  define BUF_SIZE            (1024)
 

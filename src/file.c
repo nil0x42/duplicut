@@ -16,7 +16,7 @@
 #include "config.h"
 
 #define FILE_ISSET(_f) ((_f)->fd >= 0)
-#define BUF_SIZE       (0x20000) /* 128kb */
+#define BUF_SIZE       (0x20000) /* 128 KiB */
 
 
 static struct file  g_infile;
@@ -28,7 +28,7 @@ static struct file  g_dupfile;
 /** Ensure that two open files don't point to the same
  * file on filesystem, by comparing device & inode.
  */
-static void check_files_difer(
+static void check_files_differ(
         const struct file *infile,
         const struct file *outfile)
 {
@@ -52,7 +52,7 @@ static void close_file(struct file *file)
 
 
 /** Destructor callback for potentially open files
- * Close infile, outfile and tmpfile (if exists)
+ * Close input and output files, including duplicates and any temporary file.
  */
 static void close_all(void)
 {
@@ -93,7 +93,7 @@ static void truncate_file(struct file *file)
 
 
 /** Specific opener for g_tmpfile, which also uses mkstemp.
- * This function is a singleton (should be called once).
+ * This function should be called once.
  */
 static void create_tmpfile(void)
 {
@@ -175,11 +175,10 @@ static void copy_file(int dst_fd, int src_fd, bool send_status)
 }
 
 
-/** file constructor.
- * - Handle src/dst files, and return a struct file* for use by duplicut.
- * - Can deal with non-regular files
- * - Registers cleanup functions with atexit()
- * - returned file has `addr` attribute mapped in memory
+/** Initialize input/output files and set g_file to the working file.
+ * - Use a temporary file when output is not a regular file.
+ * - Register cleanup with atexit().
+ * - Memory-map the working file for duplicate removal.
  */
 void        init_files(void)
 {
@@ -198,10 +197,10 @@ void        init_files(void)
         open_file(&g_dupfile, g_conf.dupfile_name, O_CREAT | O_RDWR);
     }
 
-    check_files_difer(&g_infile, &g_outfile);
+    check_files_differ(&g_infile, &g_outfile);
     if (FILE_ISSET(&g_dupfile)) {
-        check_files_difer(&g_infile, &g_dupfile);
-        check_files_difer(&g_outfile, &g_dupfile);
+        check_files_differ(&g_infile, &g_dupfile);
+        check_files_differ(&g_outfile, &g_dupfile);
     }
 
     truncate_file(&g_outfile);
@@ -245,9 +244,9 @@ void        init_files(void)
 
 
 /** file destructor
- * - If tmpfile, copy it info outfile
+ * - If tmpfile, copy it into outfile
  * - truncate file with new size.
- * - Call close_all() for cleanout.
+ * - Call close_all() for cleanup.
  */
 void        cleanup_files(void)
 {
@@ -272,7 +271,7 @@ void        cleanup_files(void)
     close_all();
 }
 
-/** Write a duplicate to dupfile_name (must be atomic)
+/** Write a newline-terminated duplicate line to the duplicates file.
  */
 void        log_duplicate(char *line_ptr, int line_sz)
 {
