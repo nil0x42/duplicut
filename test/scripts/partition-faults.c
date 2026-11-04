@@ -17,6 +17,7 @@ static ssize_t (*g_read)(int, void*, size_t);
 static int (*g_statfs)(const char*, struct statfs*);
 static int (*g_statvfs)(int, struct statvfs*);
 static int (*g_mkstemp)(char*);
+static FILE *(*g_fopen)(const char*, const char*);
 static unsigned g_calls;
 static unsigned g_reads;
 static unsigned g_streams;
@@ -33,6 +34,7 @@ static void     init_faults(void)
     g_statfs = dlsym(RTLD_NEXT, "statfs");
     g_statvfs = dlsym(RTLD_NEXT, "fstatvfs");
     g_mkstemp = dlsym(RTLD_NEXT, "mkstemp");
+    g_fopen = dlsym(RTLD_NEXT, "fopen");
 }
 
 
@@ -176,4 +178,21 @@ ssize_t         read(int fd, void *buffer, size_t size)
             size /= 2;
     }
     return (g_read(fd, buffer, size));
+}
+
+
+FILE            *fopen(const char *name, const char *mode)
+{
+    const char *fault = getenv("DUPLICUT_TEST_FAULT");
+    static char cached[] = "MemAvailable: 1073741824 kB\n";
+    static char uncached[] = "MemAvailable: 65536 kB\n";
+
+    if (fault && !strcmp(name, "/proc/meminfo"))
+    {
+        if (!strcmp(fault, "cached"))
+            return (fmemopen(cached, sizeof(cached) - 1, "r"));
+        if (!strcmp(fault, "uncached"))
+            return (fmemopen(uncached, sizeof(uncached) - 1, "r"));
+    }
+    return (g_fopen(name, mode));
 }

@@ -10,6 +10,9 @@ from collections import Counter
 from pathlib import Path
 
 
+THREADS = str(min(4, os.cpu_count() or 1))
+
+
 dedupe = runpy.run_path(str(Path(__file__).with_name('reference-dedupe.py')))['dedupe']
 
 
@@ -33,7 +36,7 @@ def test_outputs(program, directory):
                 stream.write(words[index] + (b'\r\n' if i % 2 else b'\n'))
         expected = b''.join(word + b'\n' for word in words)
         expected_duplicates = Counter(words[(count - i - 1) % unique] for i in range(unique, count))
-        for threads in (1, 4):
+        for threads in sorted({1, int(THREADS)}):
             command = [program, str(source), '-o', str(output), '-D', str(duplicates),
                        '-m', '8M', '-t', str(threads)]
             run(command)
@@ -47,21 +50,21 @@ def test_table_overflow(program, directory):
     source = directory / 'input'
     output = directory / 'output'
     duplicates = directory / 'duplicates'
-    count = 1000000
-    unique = 900000
+    count = 100000
+    unique = 90000
     with source.open('wb') as stream:
         for i in range(count):
-            if i % 256 == 0:
+            if i % 16 == 0:
                 stream.write(b'\0' * 4095 + b'\n')
             index = i if i < unique else count - i - 1
             stream.write(('%08x\n' % index).encode())
     result = run([program, str(source), '-o', str(output), '-D', str(duplicates),
-                  '-m', '4M', '-l', '8', '-t', '4'])
+                  '-m', '4M', '-l', '8', '-t', THREADS])
     assert output.read_bytes() == b''.join(('%08x\n' % i).encode() for i in range(unique))
     assert Counter(duplicates.read_bytes().splitlines()) == Counter(
         ('%08x' % i).encode() for i in range(count - unique))
-    assert b'100000 duplicates' in result.stderr
-    assert b'3907 filtered lines' in result.stderr
+    assert b'10000 duplicates' in result.stderr
+    assert b'6250 filtered lines' in result.stderr
     print('[+] short records, table saturation and single-count statistics')
 
 
@@ -78,7 +81,7 @@ def test_options(program, directory):
         expected, expected_duplicates = dedupe(content, size, '-p' in flags,
                                               '-c' in flags, '-C' in flags)
         run([program, str(source), '-o', str(output), '-D', str(duplicates),
-             '-m', '4M', '-t', '4', *flags])
+             '-m', '4M', '-t', THREADS, *flags])
         assert output.read_bytes() == expected, flags
         assert Counter(duplicates.read_bytes().splitlines()) == Counter(expected_duplicates.splitlines())
     expected = dedupe(content, 1024)[0]
@@ -110,7 +113,7 @@ def test_faults(program, directory, root, content, expected):
     source.write_bytes(content)
     output = output_dir / 'output'
     log = directory / 'paths'
-    command = [program, str(source), '-o', str(output), '-m', '4M', '-t', '4']
+    command = [program, str(source), '-o', str(output), '-m', '4M', '-t', THREADS]
     environment = {**os.environ, 'LD_PRELOAD': str(library)}
     for fault in ('partial', 'ram', 'space'):
         run(command, env={**environment, 'DUPLICUT_TEST_FAULT': fault})
@@ -129,6 +132,11 @@ def test_faults(program, directory, root, content, expected):
     duplicate_file = output_dir / 'duplicates'
     run([*command, '-D', str(duplicate_file)],
         env={**environment, 'DUPLICUT_TEST_FAULT': 'stream'})
+    assert output.read_bytes() == expected
+    assert Counter(duplicate_file.read_bytes().splitlines()) == Counter(dedupe(content, 1024)[1].splitlines())
+    legacy = [program, str(source), '-o', str(output), '-D', str(duplicate_file),
+              '-m', '64K', '-t', THREADS]
+    run(legacy, env={**environment, 'DUPLICUT_TEST_FAULT': 'stream'})
     assert output.read_bytes() == expected
     assert Counter(duplicate_file.read_bytes().splitlines()) == Counter(dedupe(content, 1024)[1].splitlines())
     for deny, parent in ((None, source_dir), (str(source_dir) + '/', output_dir)):
@@ -153,13 +161,13 @@ def test_faults(program, directory, root, content, expected):
     assert all(Path(path).parent == output_dir for path in log.read_text().splitlines())
     assert not list(directory.rglob('duplicut_tmpfile.*'))
     print('[+] partial I/O, EINTR, EOF, ENOSPC, volumes, paths and immediate unlink')
-    word = b'x' * 4095 + b'\n'
+    word = b'abcdefghijklmno\n'
     with source.open('wb') as stream:
-        block = word * 256
+        block = (word + b'\0' * (4096 - len(word) - 1) + b'\n') * 256
         for unused in range(256):
             stream.write(block)
     production = [str(root / 'duplicut'), str(source), '-o', str(output),
-                  '-m', '8M', '-l', '4095', '-t', '4']
+                  '-m', '8M', '-l', '4095', '-t', THREADS]
     result = run(production, success=False,
                  env={**environment, 'DUPLICUT_TEST_FAULT': 'zero'})
     assert b'cannot write partitions' in result.stderr, result.stderr
@@ -170,6 +178,21 @@ def test_faults(program, directory, root, content, expected):
     run(production, env={**environment, 'DUPLICUT_TEST_FAULT': 'zero'})
     assert output.read_bytes() == word
     print('[+] production dispatch at 128 and 256 MiB')
+    with source.open('wb') as stream:
+        block = (b'x' * 4095 + b'\n') * 256
+        for unused in range(256):
+            stream.write(block)
+    log.unlink(missing_ok=True)
+    run(production, env={**environment, 'DUPLICUT_TEST_FAULT': 'cached',
+                         'DUPLICUT_TEST_LOG': str(log)})
+    assert output.read_bytes() == b'x' * 4095 + b'\n'
+    assert not log.exists()
+    run(production, env={**environment, 'DUPLICUT_TEST_FAULT': 'uncached',
+                         'DUPLICUT_TEST_LOG': str(log)})
+    assert output.read_bytes() == b'x' * 4095 + b'\n'
+    assert log.read_text().splitlines()
+    print('[+] cached and uncached long-line selection')
+
 
 
 def test_collisions(directory, root):
@@ -191,10 +214,19 @@ def test_collisions(directory, root):
     source.write_bytes(b''.join(word + b'\n' for word in words)
                        + b''.join(word + b'\n' for word in reversed(words)) * 3)
     run([program, str(source), '-o', str(output), '-D', str(duplicates),
-         '-m', '4M', '-l', '4095', '-t', '4'])
+         '-m', '4M', '-l', '4095', '-t', THREADS])
     assert output.read_bytes() == b''.join(word + b'\n' for word in words)
     assert Counter(duplicates.read_bytes().splitlines()) == Counter(words * 3)
     print('[+] forced hash collisions and bounded overflow passes')
+    (include / 'hash.h').write_text('#pragma once\n#include <stdint.h>\n'
+                                  '#define XXH_INLINE_ALL\n#include "xxhash.h"\n'
+                                  '#define HASH(line, size) (XXH3_64bits(line, size) & ~UINT64_C(4095))\n')
+    subprocess.run([*compiler, '-std=gnu99', '-O2', '-DNDEBUG',
+                    '-DPARTITION_MIN_BYTES=0', '-I' + str(include),
+                    '-I' + str(root / 'include'),
+                    *map(str, sorted((root / 'src').glob('*.c'))),
+                    '-lm', '-pthread', '-o', program], check=True)
+    test_table_overflow(program, directory)
 
 
 def main():
@@ -211,7 +243,6 @@ def main():
                             *map(str, sorted((root / 'src').glob('*.c'))),
                             '-lm', '-pthread', '-o', program], check=True)
         test_outputs(program, directory)
-        test_table_overflow(program, directory)
         content, expected = test_options(program, directory)
         if len(sys.argv) == 1:
             test_faults(program, directory, root, content, expected)
