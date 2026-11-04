@@ -131,7 +131,6 @@ bool        populate_hmap(t_chunk *chunk)
     }
     set_status(TAGDUP_BYTES, (size_t)(chunk->ptr - base_ptr));
     set_status(TAGDUP_DUPLICATES, (size_t)duplicates);
-    set_status(TAGDUP_JUNK_LINES, junk_lines);
 #if DEBUG >= 2
     DLOG2("populate_hmap(): used %ld/%ld slots (%.2f%%) [%ld collisions]",
             filled, g_hmap.size,

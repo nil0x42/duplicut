@@ -40,7 +40,7 @@ struct                  status
     size_t              chunk_size;
     size_t              tagdup_bytes;
     size_t              tagdup_duplicates;
-    size_t              tagdup_junk_lines;
+    size_t              filtered_lines;
     size_t              fclean_bytes;
     int                 partition_stage;
     size_t              partition_total;
@@ -60,7 +60,7 @@ static struct status    g_status = {
     .chunk_size = 0,
     .tagdup_bytes = 0,
     .tagdup_duplicates = 0,
-    .tagdup_junk_lines = 0,
+    .filtered_lines = 0,
     .fclean_bytes = 0,
 };
 
@@ -218,10 +218,10 @@ void            set_status(enum e_status_set var, size_t val)
             g_status.tagdup_duplicates += val;
             pthread_mutex_unlock(&g_mutex);
             break ;
-        case TAGDUP_JUNK_LINES:
-            DLOG2("CALL set_status(TAGDUP_JUNK_LINES, %lu)", val);
+        case FCLEAN_SKIPPED:
+            DLOG2("CALL set_status(FCLEAN_SKIPPED, %lu)", val);
             pthread_mutex_lock(&g_mutex);
-            g_status.tagdup_junk_lines += val;
+            g_status.filtered_lines = val - g_status.tagdup_duplicates;
             pthread_mutex_unlock(&g_mutex);
             break ;
         case FCLEAN_BYTES:
@@ -297,7 +297,7 @@ void            display_report(void)
             "and \e[1m%ld\e[0m filtered lines "
             "in \e[1m%s\e[0m\n",
             g_status.tagdup_duplicates,
-            g_status.tagdup_junk_lines,
+            g_status.filtered_lines,
             elapsed
             );
 }

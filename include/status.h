@@ -20,7 +20,7 @@ enum    e_status_set
     CTASK_EXTRA,        /* extra tasks for a saturated chunk */
     TAGDUP_BYTES,       /* bytes currently processed by TAGDUP */
     TAGDUP_DUPLICATES,  /* total duplicates found */
-    TAGDUP_JUNK_LINES,  /* total junk-lines (filtered) found */
+    FCLEAN_SKIPPED,     /* total duplicate and filtered lines skipped */
     FCLEAN_BYTES,       /* bytes currently processed by FCLEAN */
 };
 

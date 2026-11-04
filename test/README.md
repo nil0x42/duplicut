@@ -40,6 +40,10 @@ remaining lines in a saturated chunk, filters and final lines. They compare
 stable output and duplicate counts with the Python reference, using one or
 several threads and a five-second subprocess timeout.
 
+Differential, saturation and partition option tests also check the reported
+duplicate and filtered counts against the reference outputs. Filtered lines
+are counted once during final cleanup, independently of the dedupe engine.
+
 Configuration tests check bounded shared samples, minimum window density,
 allocation budgets, chunk sizing and repeated saturation after a misleading
 sample. Debug builds exercise both engine plans, confirmed allocations and

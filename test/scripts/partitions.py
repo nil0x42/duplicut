@@ -13,7 +13,9 @@ from pathlib import Path
 THREADS = str(min(4, os.cpu_count() or 1))
 
 
-dedupe = runpy.run_path(str(Path(__file__).with_name('reference-dedupe.py')))['dedupe']
+reference = runpy.run_path(str(Path(__file__).with_name('reference-dedupe.py')))
+dedupe = reference['dedupe']
+line_count = reference['line_count']
 
 
 def run(command, success=True, **kwargs):
@@ -80,10 +82,14 @@ def test_options(program, directory):
         size = int(flags[-1]) if '-l' in flags else 1024
         expected, expected_duplicates = dedupe(content, size, '-p' in flags,
                                               '-c' in flags, '-C' in flags)
-        run([program, str(source), '-o', str(output), '-D', str(duplicates),
+        result = run([program, str(source), '-o', str(output), '-D', str(duplicates),
              '-m', '4M', '-t', THREADS, *flags])
         assert output.read_bytes() == expected, flags
         assert Counter(duplicates.read_bytes().splitlines()) == Counter(expected_duplicates.splitlines())
+        counts = b'%d duplicates and %d filtered lines' % (
+            line_count(expected_duplicates),
+            line_count(content) - line_count(expected) - line_count(expected_duplicates))
+        assert counts in result.stderr, (flags, result.stderr)
     expected = dedupe(content, 1024)[0]
     result = run([program, str(source), '-m', '4M'], stdout=subprocess.PIPE)
     assert result.stdout == expected
