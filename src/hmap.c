@@ -45,7 +45,7 @@ void        destroy_hmap(void)
  *   by tagging them with 'DISABLED_LINE'.
  * - Unique lines are normally written into `hmap`.
  */
-void        populate_hmap(t_chunk *chunk)
+bool        populate_hmap(t_chunk *chunk)
 {
     DLOG2("CALL populate_hmap()");
     char    *line_ptr;
@@ -55,9 +55,11 @@ void        populate_hmap(t_chunk *chunk)
     char    *base_ptr;
     int     i;
     long    duplicates;
+    bool    populated;
     const int has_dupfile = (g_conf.dupfile_name != NULL);
 
     duplicates = 0;
+    populated = false;
     i = 0;
     base_ptr = chunk->ptr;
 
@@ -83,6 +85,7 @@ void        populate_hmap(t_chunk *chunk)
             {
                 /* use first free slot */
                 g_hmap.ptr[slot] = MAKE_LINE(line_ptr, line_sz);
+                populated = true;
                 /* DLOG4("ADD HMAP ENTRY, slot=%ld, line_addr=%p, line_size=%d, line=%.*s", slot, LINE_ADDR(line), LINE_SIZE(line), LINE_SIZE(line), LINE_ADDR(line)); */
 #if DEBUG >= 2
                 filled++;
@@ -130,4 +133,5 @@ void        populate_hmap(t_chunk *chunk)
             (double)filled / (double)g_hmap.size * 100.0,
             collisions);
 #endif
+    return (populated);
 }

@@ -16,7 +16,8 @@
 
 /** For each chunk following `parent`, add a cleanout_chunk() worker.
  */
-static void     tag_subchunks(threadpool *thpool, const t_chunk *parent)
+static void     tag_subchunks(threadpool *thpool, const t_chunk *parent,
+                    bool populated)
 {
     t_chunk     chunk;
     t_chunk     *heap_chunk;
@@ -24,6 +25,11 @@ static void     tag_subchunks(threadpool *thpool, const t_chunk *parent)
     memcpy(&chunk, parent, sizeof(t_chunk));
     while (get_next_chunk(&chunk, g_file))
     {
+        if (!populated)
+        {
+            update_status(CTASK_DONE);
+            continue;
+        }
         if (*thpool == NULL)
         {
             /* thpool already prints error unless DISABLE_PRINT is defined */
@@ -52,11 +58,13 @@ void            tag_duplicates(void)
         .endptr = NULL
     };
 
+    bool populated;
+
     while (get_next_chunk(&main_chunk, g_file))
     {
-        populate_hmap(&main_chunk);
+        populated = populate_hmap(&main_chunk);
         update_status(CTASK_DONE);
-        tag_subchunks(&thpool, &main_chunk);
+        tag_subchunks(&thpool, &main_chunk, populated);
         if (thpool != NULL)
             thpool_wait(thpool);
     }
@@ -69,7 +77,7 @@ void            tag_duplicates(void)
 
 /** For each chunk following `parent`, call cleanout_chunk().
  */
-static void     tag_subchunks(const t_chunk *parent)
+static void     tag_subchunks(const t_chunk *parent, bool populated)
 {
     t_chunk     chunk;
     t_chunk     *heap_chunk;
@@ -77,6 +85,11 @@ static void     tag_subchunks(const t_chunk *parent)
     memcpy(&chunk, parent, sizeof(t_chunk));
     while (get_next_chunk(&chunk, g_file))
     {
+        if (!populated)
+        {
+            update_status(CTASK_DONE);
+            continue;
+        }
         heap_chunk = malloc(sizeof(t_chunk));
         if (heap_chunk == NULL)
             die("cannot malloc() heap_chunk");
@@ -96,11 +109,13 @@ void            tag_duplicates(void)
         .endptr = NULL
     };
 
+    bool populated;
+
     while (get_next_chunk(&main_chunk, g_file))
     {
-        populate_hmap(&main_chunk);
+        populated = populate_hmap(&main_chunk);
         update_status(CTASK_DONE);
-        tag_subchunks(&main_chunk);
+        tag_subchunks(&main_chunk, populated);
     }
 }
 
