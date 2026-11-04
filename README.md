@@ -80,13 +80,13 @@ Unfortunately, **wordlist creation requires both**
 ```sh
 git clone https://github.com/nil0x42/duplicut  # download ...
 cd duplicut/ && make                           # compile ...
-./duplicut wordlist.txt -o clean-wordlist.txt  # dedupe !!!
+./duplicut wordlist.txt > clean-wordlist.txt   # dedupe !!!
 ```
 
 ### :wrench: Options
 
 ```
--o, --outfile <FILE>       Write result to <FILE>
+-o, --outfile <FILE>       Write result to <FILE> (default stdout)
 -t, --threads <NUM>        Worker threads (default online CPUs)
 -m, --memlimit <VALUE>     Memory budget for sizing (default available)
 -l, --line-max-size <NUM>  Max line size in bytes (default 1024, max 4095)
@@ -96,6 +96,15 @@ cd duplicut/ && make                           # compile ...
 -D, --dupfile <FILE>       Write dupes to <FILE> (slows down duplicut)
 -h, --help                 Display this help and exit
 -v, --version              Output version information and exit
+```
+
+Without `-o`, duplicut writes to stdout. You can redirect the result, append it
+to an existing file, or pipe it to another command:
+
+```sh
+./duplicut wordlist.txt > clean-wordlist.txt
+./duplicut wordlist.txt >> combined-wordlist.txt
+cat wordlist.txt | ./duplicut | another-command
 ```
 
 *   **Features**:
