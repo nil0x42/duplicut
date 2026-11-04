@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <pthread.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdbool.h>
@@ -31,6 +32,8 @@ static struct file  g_infile;
 static struct file  g_outfile;
 static struct file  g_tmpfile;
 static struct file  g_dupfile;
+
+static pthread_mutex_t g_dupfile_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 /** Ensure that two open files don't point to the same
@@ -432,6 +435,7 @@ void        log_duplicate(char *line_ptr, int line_sz)
 
     memcpy(buf, line_ptr, line_sz);
     buf[line_sz] = '\n';
+    pthread_mutex_lock(&g_dupfile_mutex);
     while (written < size)
     {
         n = write(g_dupfile.fd, buf + written, size - written);
@@ -441,4 +445,5 @@ void        log_duplicate(char *line_ptr, int line_sz)
             error("log_duplicate() -> write(): %s", n < 0 ? ERRNO : "short write");
         written += n;
     }
+    pthread_mutex_unlock(&g_dupfile_mutex);
 }
