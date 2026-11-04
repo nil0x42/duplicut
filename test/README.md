@@ -58,3 +58,5 @@ from tests and builds; use a disk-backed `--directory` with space for inputs,
 outputs and partitions. `--lengths`, `--threads` and `--repetitions` narrow a run.
 Recorded measurements and selection rules are in the
 [partition benchmarks](benchmarks/partitions.md).
+The [selection audit](benchmarks/selection.md) explains the resource-based rules
+and their validation across available-memory estimates.
