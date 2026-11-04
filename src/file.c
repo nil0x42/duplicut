@@ -59,13 +59,7 @@ static void close_all(void)
     close_file(&g_infile);
     close_file(&g_outfile);
     close_file(&g_dupfile);
-
-    if (FILE_ISSET(&g_tmpfile))
-    {
-        close_file(&g_tmpfile);
-        if (unlink(g_tmpfile.name) < 0)
-            warning("cannot unlink %s: %s", g_tmpfile.name, ERRNO);
-    }
+    close_file(&g_tmpfile);
 }
 
 
@@ -80,6 +74,51 @@ static void open_file(struct file *file, const char *pathname, int flags)
         error("couldn't stat %s: %s", pathname, ERRNO);
 
     file->name = pathname;
+}
+
+
+/** Preserve stdout flags and position, using direct output when possible.
+ * Return true if stdout can also serve as the working file.
+ */
+static bool open_stdout(void)
+{
+    struct file *file = &g_outfile;
+    struct stat info;
+    int         flags;
+    int         fd;
+
+    file->name = "/dev/stdout";
+    if ((file->fd = dup(STDOUT_FILENO)) < 0)
+        error("couldn't dup stdout: %s", ERRNO);
+    if (fstat(file->fd, &(file->info)) < 0)
+        error("couldn't stat stdout: %s", ERRNO);
+    if ((flags = fcntl(file->fd, F_GETFL)) < 0)
+        error("cannot get stdout flags: %s", ERRNO);
+    if ((flags & O_ACCMODE) == O_RDONLY)
+        error("stdout is not open for writing");
+
+    if (!S_ISREG(file->info.st_mode) || file->info.st_size != 0
+            || (flags & O_APPEND) || lseek(file->fd, 0, SEEK_CUR) != 0)
+        return false;
+    if ((flags & O_ACCMODE) == O_RDWR)
+        return true;
+
+    /* Reopening /dev/stdout may still yield a write-only fd on macos. */
+    if ((fd = open(file->name, O_RDWR)) < 0)
+        return false;
+    flags = fcntl(fd, F_GETFL);
+    if (flags < 0 || (flags & O_ACCMODE) != O_RDWR || (flags & O_APPEND)
+            || fstat(fd, &info) < 0
+            || info.st_dev != file->info.st_dev
+            || info.st_ino != file->info.st_ino
+            || lseek(fd, 0, SEEK_CUR) != 0)
+    {
+        close(fd);
+        return false;
+    }
+    close_file(file);
+    file->fd = fd;
+    return true;
 }
 
 
@@ -102,6 +141,9 @@ static void create_tmpfile(void)
 
     if ((file->fd = mkstemp(template)) < 0)
         error("couldn't create tmpfile '%s': %s", template, ERRNO);
+
+    if (unlink(template) < 0)
+        error("cannot unlink %s: %s", template, ERRNO);
 
     if (fstat(file->fd, &(file->info)) < 0)
         error("couldn't stat tmpfile '%s': %s", template, ERRNO);
@@ -176,13 +218,15 @@ static void copy_file(int dst_fd, int src_fd, bool send_status)
 
 
 /** Initialize input/output files and set g_file to the working file.
- * - Use a temporary file when output is not a regular file.
+ * - Use a temporary file when output cannot serve as the working file.
  * - Register cleanup with atexit().
  * - Memory-map the working file for duplicate removal.
  */
 void        init_files(void)
 {
     struct file  *file;
+    bool         use_stdout;
+    bool         direct_output;
 
     memset(&g_infile, -1, sizeof(g_infile));
     memset(&g_outfile, -1, sizeof(g_outfile));
@@ -190,8 +234,15 @@ void        init_files(void)
     memset(&g_dupfile, -1, sizeof(g_dupfile));
 
     atexit(close_all);
+    use_stdout = strcmp(g_conf.outfile_name, "/dev/stdout") == 0;
+    if (use_stdout)
+        direct_output = open_stdout();
     open_file(&g_infile, g_conf.infile_name, O_RDONLY);
-    open_file(&g_outfile, g_conf.outfile_name, O_CREAT | O_RDWR);
+    if (!use_stdout)
+    {
+        open_file(&g_outfile, g_conf.outfile_name, O_CREAT | O_RDWR);
+        direct_output = S_ISREG(g_outfile.info.st_mode);
+    }
 
     if (g_conf.dupfile_name != NULL) {
         open_file(&g_dupfile, g_conf.dupfile_name, O_CREAT | O_RDWR);
@@ -203,11 +254,12 @@ void        init_files(void)
         check_files_differ(&g_outfile, &g_dupfile);
     }
 
-    truncate_file(&g_outfile);
+    if (!use_stdout)
+        truncate_file(&g_outfile);
     if (FILE_ISSET(&g_dupfile))
         truncate_file(&g_dupfile);
 
-    if (S_ISREG(g_outfile.info.st_mode))
+    if (direct_output)
         file = &g_outfile;
     else
     {
@@ -266,6 +318,11 @@ void        cleanup_files(void)
     {
         lseek(g_tmpfile.fd, 0, SEEK_SET);
         copy_file(g_outfile.fd, g_tmpfile.fd, 0);
+    }
+    else if (strcmp(g_conf.outfile_name, "/dev/stdout") == 0)
+    {
+        if (lseek(STDOUT_FILENO, file->info.st_size, SEEK_SET) < 0)
+            error("cannot seek stdout: %s", ERRNO);
     }
 
     close_all();
