@@ -27,6 +27,8 @@ struct conf g_conf = {
     .dedupe_memory = 0,
     .partition_count = 0,
     .partition_workers = 0,
+    .mmap_window = 0,
+    .page_size = 0,
 };
 
 struct file *g_file;
@@ -39,6 +41,9 @@ struct hmap g_hmap;
 static void     remove_duplicates(void)
 {
     t_chunk     file_chunk;
+    t_chunk     range;
+    t_chunk     mapped;
+    char        *output_start;
     char        *line_ptr;
     int         line_sz;
     char        *dst;
@@ -53,18 +58,28 @@ static void     remove_duplicates(void)
 
     dst = file_chunk.ptr;
     size_t junk_lines = 0;
-    while (get_next_line(&line_ptr, &line_sz, &file_chunk, &junk_lines))
+    range = file_chunk;
+    while (range.ptr < range.endptr)
     {
-        memmove(dst, line_ptr, line_sz);
-        dst += line_sz;
-        if (dst != file_chunk.endptr)
-            *dst++ = '\n';
-        i++;
-        if (i == 500000) {
-            set_status(FCLEAN_BYTES, (size_t)(file_chunk.ptr - base_ptr));
-            base_ptr = file_chunk.ptr;
-            i = 0;
+        file_chunk = get_chunk_window(&range);
+        mapped = file_chunk;
+        output_start = dst;
+        while (get_next_line(&line_ptr, &line_sz, &file_chunk, &junk_lines))
+        {
+            memmove(dst, line_ptr, line_sz);
+            dst += line_sz;
+            if (dst != range.endptr)
+                *dst++ = '\n';
+            i++;
+            if (i == 500000) {
+                set_status(FCLEAN_BYTES, (size_t)(file_chunk.ptr - base_ptr));
+                base_ptr = file_chunk.ptr;
+                i = 0;
+            }
         }
+        release_chunk(&mapped);
+        release_chunk(&(t_chunk){output_start, dst});
+        range.ptr = mapped.endptr;
     }
 
     /* Count filtered lines once, excluding the duplicates already reported. */
@@ -72,7 +87,7 @@ static void     remove_duplicates(void)
 
     /* update file size */
     g_file->info.st_size = dst - g_file->addr;
-    set_status(FCLEAN_BYTES, (size_t)(file_chunk.ptr - base_ptr));
+    set_status(FCLEAN_BYTES, (size_t)(range.endptr - base_ptr));
 }
 
 

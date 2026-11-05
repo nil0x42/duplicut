@@ -259,7 +259,8 @@ static void     repr_current_task(char *buffer)
                 BUF_SIZE - 1);
     }
     else if (!TAGDUP_TERMINATED() && g_status.partition_stage) {
-        snprintf(buffer, BUF_SIZE - 1, "\e[36m[2/3] \e[1mdisk-partitions: %s\e[0;36m ...",
+        snprintf(buffer, BUF_SIZE - 1, "\e[36m[2/3] \e[1m%s: %s\e[0;36m ...",
+                g_status.partition_stage == 1 ? "checking disk-partitions" : "disk-partitions",
                 g_partition_phases[g_status.partition_stage - 1]);
     }
     else if (!TAGDUP_TERMINATED()) {

@@ -232,7 +232,7 @@ static void     partition_worker(void *arg)
 void            config_partitions(void)
 {
     size_t  budget = g_conf.dedupe_memory;
-    size_t  chunks;
+    size_t  batches;
     size_t  count = 1;
     size_t  workers = g_conf.threads;
 
@@ -241,7 +241,7 @@ void            config_partitions(void)
         DLOG1("disk-partitions disabled: insufficient working memory");
         return;
     }
-    chunks = (size_t)ceil(g_file->orig_size / (budget * HMAP_LOAD_FACTOR));
+    batches = (size_t)ceil(g_file->orig_size / (budget * HMAP_LOAD_FACTOR));
 #if MULTITHREADING != 1
     workers = 1;
 #endif
@@ -249,9 +249,14 @@ void            config_partitions(void)
         workers = budget / WORKER_MEMORY;
     if (!workers)
         workers = 1;
-    while (count / workers < chunks
-            && count < budget / (4 * (BUF_SIZE + sizeof(struct partition))))
+    if (batches < 4 * workers)
+        batches = 4 * workers;
+    while (count / workers < batches
+            && count < budget / (4 * (BUF_SIZE + sizeof(struct partition)))
+            && count < g_file->orig_size / BUF_SIZE)
         count *= 2;
+    if (workers > count)
+        workers = count;
     g_conf.partition_count = count;
     g_conf.partition_workers = workers;
 }
@@ -261,6 +266,8 @@ void            config_partitions(void)
 static size_t   count_partitions(struct partition_work *work)
 {
     t_chunk     chunk;
+    t_chunk     range;
+    t_chunk     mapped;
     size_t      count = work->count;
     size_t      junk = 0;
     size_t      bytes = 0;
@@ -274,19 +281,27 @@ static size_t   count_partitions(struct partition_work *work)
     chunk.ptr = g_file->addr;
     chunk.endptr = g_file->addr + g_file->orig_size;
     base = chunk.ptr;
-    while (get_next_line(&line, &size, &chunk, &junk))
+    range = chunk;
+    while (range.ptr < range.endptr)
     {
-        index = HASH(line, size) & (count - 1);
-        if ((size_t)size + RECORD_HEADER_SIZE > (size_t)LLONG_MAX - bytes)
-            error("partition file is too large");
-        work->parts[index].end += RECORD_HEADER_SIZE + size;
-        bytes += RECORD_HEADER_SIZE + size;
-        ++lines;
-        if (lines % 500000 == 0)
+        chunk = get_chunk_window(&range);
+        mapped = chunk;
+        while (get_next_line(&line, &size, &chunk, &junk))
         {
-            set_status(TAGDUP_BYTES, chunk.ptr - base);
-            base = chunk.ptr;
+            index = HASH(line, size) & (count - 1);
+            if ((size_t)size + RECORD_HEADER_SIZE > (size_t)LLONG_MAX - bytes)
+                error("partition file is too large");
+            work->parts[index].end += RECORD_HEADER_SIZE + size;
+            bytes += RECORD_HEADER_SIZE + size;
+            ++lines;
+            if (lines % 500000 == 0)
+            {
+                set_status(TAGDUP_BYTES, chunk.ptr - base);
+                base = chunk.ptr;
+            }
         }
+        release_chunk(&mapped);
+        range.ptr = mapped.endptr;
     }
     set_status(TAGDUP_BYTES, g_file->orig_size - (base - g_file->addr));
     work->lines = lines;
@@ -298,6 +313,8 @@ static size_t   count_partitions(struct partition_work *work)
 static void     write_partitions(struct partition_work *work)
 {
     t_chunk     chunk;
+    t_chunk     range;
+    t_chunk     mapped;
     size_t      count = work->count;
     size_t      index;
     size_t      position;
@@ -327,19 +344,27 @@ static void     write_partitions(struct partition_work *work)
     chunk.ptr = g_file->addr;
     chunk.endptr = g_file->addr + g_file->orig_size;
     base = chunk.ptr;
-    while (get_next_line(&line, &size, &chunk, &junk))
+    range = chunk;
+    while (range.ptr < range.endptr)
     {
-        index = HASH(line, size) & (count - 1);
-        length = size;
-        append_partition(fd, &work->parts[index], &id, sizeof(id));
-        append_partition(fd, &work->parts[index], &length, sizeof(length));
-        append_partition(fd, &work->parts[index], line, size);
-        ++id;
-        if (id % 500000 == 0)
+        chunk = get_chunk_window(&range);
+        mapped = chunk;
+        while (get_next_line(&line, &size, &chunk, &junk))
         {
-            set_status(TAGDUP_BYTES, chunk.ptr - base);
-            base = chunk.ptr;
+            index = HASH(line, size) & (count - 1);
+            length = size;
+            append_partition(fd, &work->parts[index], &id, sizeof(id));
+            append_partition(fd, &work->parts[index], &length, sizeof(length));
+            append_partition(fd, &work->parts[index], line, size);
+            ++id;
+            if (id % 500000 == 0)
+            {
+                set_status(TAGDUP_BYTES, chunk.ptr - base);
+                base = chunk.ptr;
+            }
         }
+        release_chunk(&mapped);
+        range.ptr = mapped.endptr;
     }
     set_status(TAGDUP_BYTES, g_file->orig_size - (base - g_file->addr));
     for (index = 0; index < count; ++index)
@@ -378,6 +403,8 @@ static void     dedupe_partitions(struct partition_work *work, size_t workers)
 static void     mark_partitions(const struct partition_work *work)
 {
     t_chunk     chunk;
+    t_chunk     range;
+    t_chunk     mapped;
     size_t      junk = 0;
     size_t      duplicates = 0;
     uint64_t    id;
@@ -390,24 +417,73 @@ static void     mark_partitions(const struct partition_work *work)
     chunk.endptr = g_file->addr + g_file->orig_size;
     base = chunk.ptr;
     id = 0;
-    while (get_next_line(&line, &size, &chunk, &junk))
+    range = chunk;
+    while (range.ptr < range.endptr)
     {
-        if (work->duplicates[id / 8] & (1U << (id % 8)))
+        chunk = get_chunk_window(&range);
+        mapped = chunk;
+        while (get_next_line(&line, &size, &chunk, &junk))
         {
-            if (g_conf.dupfile_name != NULL)
-                log_duplicate(line, size);
-            *line = DISABLED_LINE;
-            ++duplicates;
+            if (work->duplicates[id / 8] & (1U << (id % 8)))
+            {
+                if (g_conf.dupfile_name != NULL)
+                    log_duplicate(line, size);
+                *line = DISABLED_LINE;
+                ++duplicates;
+            }
+            ++id;
+            if (id % 500000 == 0)
+            {
+                set_status(TAGDUP_BYTES, chunk.ptr - base);
+                base = chunk.ptr;
+            }
         }
-        ++id;
-        if (id % 500000 == 0)
-        {
-            set_status(TAGDUP_BYTES, chunk.ptr - base);
-            base = chunk.ptr;
-        }
+        release_chunk(&mapped);
+        range.ptr = mapped.endptr;
     }
     set_status(TAGDUP_DUPLICATES, duplicates);
     set_status(TAGDUP_BYTES, g_file->orig_size - (base - g_file->addr));
+}
+
+
+/** Do not reserve storage for more records than the largest range can hold. */
+static void     limit_partition_memory(struct partition_work *work)
+{
+    size_t  records = 0;
+    size_t  index;
+    size_t  count;
+
+    for (index = 0; index < work->count; ++index)
+    {
+        count = work->parts[index].end / (RECORD_HEADER_SIZE + 1);
+        if (count > records)
+            records = count;
+    }
+    if (records < (work->memory - WORKER_OVERHEAD) / (4 * sizeof(t_line)))
+        work->memory = WORKER_OVERHEAD + records * 4 * sizeof(t_line);
+}
+
+
+/** Large bitmaps must leave enough private storage to beat repeated scans. */
+static bool     partition_worthwhile(const struct partition_work *work, size_t bytes)
+{
+    double  needed = (double)work->lines * 4 * sizeof(t_line);
+    double  contents = (double)(bytes - work->lines * RECORD_HEADER_SIZE) * 2;
+    double  capacity = (double)work->count * (work->memory - WORKER_OVERHEAD);
+    double  passes;
+    double  chunks;
+    double  partition_bytes;
+    double  chunk_bytes;
+
+    if (contents > needed)
+        needed = contents;
+    passes = ceil(needed / capacity);
+    chunks = ceil((double)g_file->orig_size / g_conf.chunk_size);
+    partition_bytes = 3.0 * g_file->orig_size + (passes + 1) * bytes;
+    chunk_bytes = (double)g_file->orig_size * (chunks + 1) / 2;
+    DLOG1("large bitmap estimate: %.0f private passes, %.0f partition bytes, %.0f mmap-chunks bytes",
+            passes, partition_bytes, chunk_bytes);
+    return (partition_bytes < chunk_bytes);
 }
 
 
@@ -429,7 +505,7 @@ bool            tag_partitions(void)
     bytes = count_partitions(&work);
     bitmap = work.lines / 8 + (work.lines % 8 != 0);
     memory = budget - work.count * sizeof(struct partition);
-    if (bitmap > budget / 2 || bitmap > memory
+    if (bitmap > memory
             || memory - bitmap < 4 * WORKER_OVERHEAD || !bytes)
     {
         DLOG1("disk-partitions unavailable: %zu bitmap bytes, %zu memory bytes, %zu payload bytes",
@@ -444,6 +520,14 @@ bool            tag_partitions(void)
     if (!workers)
         workers = 1;
     work.memory = memory / workers;
+    limit_partition_memory(&work);
+    if (bitmap > budget / 2 && !partition_worthwhile(&work, bytes))
+    {
+        DLOG1("disk-partitions disabled: insufficient private storage for a large bitmap");
+        free(work.parts);
+        partition_status(-1, 0);
+        return (false);
+    }
     work.fd = open_tmpfile(bytes);
     if (work.fd < 0)
     {

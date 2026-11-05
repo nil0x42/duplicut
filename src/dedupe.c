@@ -73,18 +73,22 @@ void            tag_duplicates(void)
     };
 
     bool        populated;
+    t_chunk     indexed;
 
     while (get_next_chunk(&main_chunk, g_file))
     {
         do
         {
+            indexed = main_chunk;
             populated = populate_hmap(&main_chunk);
+            indexed.endptr = main_chunk.ptr;
             if (main_chunk.ptr < main_chunk.endptr)
                 add_split_tasks(&main_chunk);
             update_status(CTASK_DONE);
             tag_subchunks(&thpool, &main_chunk, populated);
             if (thpool != NULL)
                 thpool_wait(thpool);
+            release_chunk(&indexed);
         } while (main_chunk.ptr < main_chunk.endptr);
         update_status(CHUNK_DONE);
     }
@@ -131,16 +135,20 @@ void            tag_duplicates(void)
     };
 
     bool        populated;
+    t_chunk     indexed;
 
     while (get_next_chunk(&main_chunk, g_file))
     {
         do
         {
+            indexed = main_chunk;
             populated = populate_hmap(&main_chunk);
+            indexed.endptr = main_chunk.ptr;
             if (main_chunk.ptr < main_chunk.endptr)
                 add_split_tasks(&main_chunk);
             update_status(CTASK_DONE);
             tag_subchunks(&main_chunk, populated);
+            release_chunk(&indexed);
         } while (main_chunk.ptr < main_chunk.endptr);
         update_status(CHUNK_DONE);
     }

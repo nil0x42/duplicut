@@ -202,6 +202,28 @@ static void     config_chunk_size(struct file *file, const struct line_sample *s
 }
 
 
+/** Divide remaining mapped memory between readers and cleanup buffers. */
+static void     config_mmap_window(const struct memstate *memstate)
+{
+    size_t  budget = memstate->mem_budget;
+    size_t  table = g_conf.hmap_size * sizeof(t_line);
+    size_t  allocation = g_conf.partition_count ? g_conf.dedupe_memory : table;
+    size_t  used = table + g_conf.chunk_size;
+    size_t  readers = 3;
+
+#if MULTITHREADING == 1
+    readers = g_conf.threads + 2;
+#endif
+    g_conf.page_size = memstate->page_size;
+    g_conf.mmap_window = 0;
+    if (g_file->orig_size <= budget - allocation)
+        return;
+    g_conf.mmap_window = budget > used ? (budget - used) / readers : 0;
+    if (g_conf.mmap_window < g_conf.page_size)
+        g_conf.mmap_window = g_conf.page_size;
+}
+
+
 /** Select an initial engine before checking its exact runtime requirements. */
 static void     config_dedupe(const struct memstate *memstate,
                     const struct line_sample *sample)
@@ -209,6 +231,7 @@ static void     config_dedupe(const struct memstate *memstate,
 #if PARTITION_MIN_CHUNKS > 0
     size_t  chunks;
     size_t  table_memory = g_conf.hmap_size * sizeof(t_line);
+    bool    parallel_short = false;
 
     if (!g_conf.chunk_size || !sample->lines)
     {
@@ -217,10 +240,21 @@ static void     config_dedupe(const struct memstate *memstate,
     }
     chunks = g_file->orig_size / g_conf.chunk_size
         + (g_file->orig_size % g_conf.chunk_size != 0);
-    if (chunks < PARTITION_MIN_CHUNKS)
+#if MULTITHREADING == 1
+    /* Few short-line chunks leave table insertion serial and workers idle. */
+    parallel_short = chunks <= g_conf.threads && g_conf.threads > 1
+        && g_file->orig_size / sample->bytes >= g_conf.threads
+        && (double)sample->contents / sample->lines <= 2 * sizeof(t_line);
+#endif
+    if (chunks < PARTITION_MIN_CHUNKS && !parallel_short)
     {
         DLOG1("disk-partitions disabled: %zu estimated chunks", chunks);
         return;
+    }
+    if (parallel_short && chunks < PARTITION_MIN_CHUNKS)
+    {
+        DLOG1("disk-partitions candidate: %zu short-line chunks for %u threads",
+                chunks, g_conf.threads);
     }
     if (chunks < 8 * PARTITION_MIN_CHUNKS
             && memstate->mem_available > (long long)table_memory
@@ -268,6 +302,7 @@ static void     display_config(const struct memstate *memstate)
             g_conf.hmap_size, sizeof(t_line) * 8);
     DLOG1("g_conf.chunk_size:        %s (%ld)",
             sizerepr(g_conf.chunk_size), g_conf.chunk_size);
+    DLOG1("g_conf.mmap_window:       %zu bytes", g_conf.mmap_window);
     DLOG1("g_conf.dedupe_memory:     %zu bytes", g_conf.dedupe_memory);
     DLOG1("g_conf.partition_count:   %zu (candidate)", g_conf.partition_count);
     DLOG1("g_conf.partition_workers: %zu (maximum)", g_conf.partition_workers);
@@ -305,5 +340,6 @@ void            config(void)
     g_conf.partition_count = 0;
     g_conf.partition_workers = 0;
     config_dedupe(&memstate, &sample);
+    config_mmap_window(&memstate);
     display_config(&memstate);
 }
