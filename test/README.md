@@ -50,6 +50,10 @@ sample. Debug builds exercise both engine plans, confirmed allocations and
 disk preflight fallback. Linux tests also verify that configuration reads
 available memory once. Their subprocess timeout is thirty seconds.
 
+Working memory tests exercise mapped scan windows, large bitmap admission and
+fallback, parallel selection for short lines, and RAM-backed stdout. Linux runs
+also check observed RSS on inputs much larger than the requested budget.
+
 
 The partition tests build a small-input variant to exercise bounded memory,
 collisions, filters, output order and concurrent bitmap updates. Linux tests

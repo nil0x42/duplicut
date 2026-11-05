@@ -159,7 +159,7 @@ static void setopt_help(const char *value)
            "Options:\n"
            "-o, --outfile <FILE>       Write result to <FILE> (default stdout)\n"
            "-t, --threads <NUM>        Worker threads (default online CPUs)\n"
-           "-m, --memlimit <VALUE>     Memory budget for sizing (default available)\n"
+           "-m, --memlimit <VALUE>     Working memory budget (default available)\n"
            "-l, --line-max-size <NUM>  Max line size in bytes (default %d, max 4095)\n"
            "-p, --printable            Keep only printable ASCII lines\n"
            "-c, --lowercase            Convert wordlist to lowercase\n"

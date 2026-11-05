@@ -18,6 +18,8 @@ struct              conf
     size_t          dedupe_memory;
     size_t          partition_count;
     size_t          partition_workers;
+    size_t          mmap_window;
+    size_t          page_size;
 };
 
 /** Global configuration vars.

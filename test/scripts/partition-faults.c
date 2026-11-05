@@ -71,13 +71,15 @@ ssize_t         pread(int fd, void *buffer, size_t size, off_t offset)
 {
     const char *fault = getenv("DUPLICUT_TEST_FAULT");
     unsigned call = __atomic_fetch_add(&g_reads, 1, __ATOMIC_RELAXED);
+    struct stat info;
 
     if (fault && !strcmp(fault, "partial") && call % 3 == 0)
     {
         errno = EINTR;
         return (-1);
     }
-    if (fault && !strcmp(fault, "read"))
+    if (fault && (!strcmp(fault, "boundary-read")
+            || (!strcmp(fault, "read") && fstat(fd, &info) == 0 && !info.st_nlink)))
         return (0);
     if (fault && !strcmp(fault, "partial") && size > 1)
         size /= 2;

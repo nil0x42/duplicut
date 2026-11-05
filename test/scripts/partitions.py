@@ -132,6 +132,7 @@ def test_faults(program, directory, root, content, expected):
                             ('stream-zero', b'copy_file() -> write()'),
                             ('write', b'cannot write partitions'),
                             ('zero', b'cannot write partitions'),
+                            ('boundary-read', b'cannot read chunk boundary'),
                             ('read', b'cannot read partitions')):
         result = run(command, success=False, env={**environment, 'DUPLICUT_TEST_FAULT': fault})
         assert result.returncode > 0 and message in result.stderr, (fault, result.stderr)
@@ -208,7 +209,7 @@ def test_faults(program, directory, root, content, expected):
     assert not log.exists()
     print('[+] distributed samples with an unrepresentative short prefix')
     source.write_bytes((word + b'\0' * (4096 - len(word) - 1) + b'\n') * 2048)
-    for memory, partitioned in (('8M', False), ('1M', False), ('768K', True), ('512K', True), ('256K', False)):
+    for memory, partitioned in (('8M', True), ('1M', False), ('768K', True), ('512K', True), ('256K', False)):
         result = run([*production, '-m', memory], success=not partitioned,
                      env={**environment, 'DUPLICUT_TEST_FAULT': 'zero'})
         if partitioned:

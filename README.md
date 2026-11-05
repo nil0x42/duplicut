@@ -88,7 +88,7 @@ cd duplicut/ && make                           # compile ...
 ```
 -o, --outfile <FILE>       Write result to <FILE> (default stdout)
 -t, --threads <NUM>        Worker threads (default online CPUs)
--m, --memlimit <VALUE>     Memory budget for sizing (default available)
+-m, --memlimit <VALUE>     Working memory budget (default available)
 -l, --line-max-size <NUM>  Max line size in bytes (default 1024, max 4095)
 -p, --printable            Keep only printable ASCII lines
 -c, --lowercase            Convert wordlist to lowercase
@@ -152,6 +152,9 @@ The `disk-partitions` engine uses disk-backed hash partitions, processed with
 private hash tables. A duplicate bitmap preserves the original output order.
 Temporary files prefer the input directory, then the output directory, then the
 current directory, using a writable disk volume with enough available space.
+
+`-m` estimates working memory, including resident mapped pages. Runtime overhead
+and the system file cache prevent it from being a strict RSS limit.
 
 ## :bulb: Troubleshooting
 

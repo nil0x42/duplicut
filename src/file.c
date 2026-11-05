@@ -23,6 +23,7 @@
 #include "debug.h"
 #include "bytesize.h"
 #include "config.h"
+#include "meminfo.h"
 
 #define FILE_ISSET(_f) ((_f)->fd >= 0)
 #define BUF_SIZE       (0x20000) /* 128 KiB */
@@ -88,6 +89,39 @@ static void open_file(struct file *file, const char *pathname, int flags)
 }
 
 
+/** True for filesystems whose file contents occupy memory. */
+static bool is_ramfs(const struct statfs *fs)
+{
+#ifdef __APPLE__
+    return (!strcmp(fs->f_fstypename, "tmpfs") || !strcmp(fs->f_fstypename, "mfs"));
+#else
+    return (fs->f_type == TMPFS_MAGIC || fs->f_type == RAMFS_MAGIC);
+#endif
+}
+
+
+/** Large RAM-backed outputs receive only the final result, not the work file. */
+static bool can_map_output(const struct file *file)
+{
+    struct statfs fs;
+    long long     budget;
+
+    if (fstatfs(file->fd, &fs) < 0)
+        error("cannot stat output filesystem: %s", ERRNO);
+    if (!is_ramfs(&fs))
+        return (true);
+    budget = meminfo(MEMAVAILABLE);
+    if (budget < 0)
+        error("cannot determine available memory for RAM-backed output");
+    if (budget > g_conf.memlimit)
+        budget = g_conf.memlimit;
+    if (S_ISREG(g_infile.info.st_mode) && g_infile.info.st_size <= budget / 2)
+        return (true);
+    DLOG1("RAM-backed output: using a disk-backed working file");
+    return (false);
+}
+
+
 /** Preserve stdout flags and position, using direct output when possible.
  * Return true if stdout can also serve as the working file.
  */
@@ -110,6 +144,8 @@ static bool open_stdout(void)
 
     if (!S_ISREG(file->info.st_mode) || file->info.st_size != 0
             || (flags & O_APPEND) || lseek(file->fd, 0, SEEK_CUR) != 0)
+        return false;
+    if (!can_map_output(file))
         return false;
     if ((flags & O_ACCMODE) == O_RDWR)
         return true;
@@ -172,11 +208,7 @@ static int      try_tmpfile(const char *path, bool directory, size_t size)
         free(resolved);
         return (-1);
     }
-#ifdef __APPLE__
-    if (!strcmp(fs.f_fstypename, "tmpfs") || !strcmp(fs.f_fstypename, "mfs"))
-#else
-    if (fs.f_type == TMPFS_MAGIC || fs.f_type == RAMFS_MAGIC)
-#endif
+    if (is_ramfs(&fs))
     {
         free(resolved);
         errno = ENOSPC;
@@ -329,14 +361,14 @@ void        init_files(void)
     memset(&g_dupfile, -1, sizeof(g_dupfile));
 
     atexit(close_all);
+    open_file(&g_infile, g_conf.infile_name, O_RDONLY);
     use_stdout = strcmp(g_conf.outfile_name, "/dev/stdout") == 0;
     if (use_stdout)
         direct_output = open_stdout();
-    open_file(&g_infile, g_conf.infile_name, O_RDONLY);
     if (!use_stdout)
     {
         open_file(&g_outfile, g_conf.outfile_name, O_CREAT | O_RDWR);
-        direct_output = S_ISREG(g_outfile.info.st_mode);
+        direct_output = S_ISREG(g_outfile.info.st_mode) && can_map_output(&g_outfile);
     }
 
     if (g_conf.dupfile_name != NULL) {
