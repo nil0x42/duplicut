@@ -58,6 +58,14 @@ Engine tests compare automatic and forced selection through `-e` and `--engine`,
 including case conversion, filters, duplicate output and exact counters. A forced
 partition engine reports resource failures explicitly instead of falling back.
 
+Progress tests check completed phase history, engine summaries and output bytes
+in release builds. Pseudo-terminals exercise animation at 20, 80 and 160 columns,
+ANSI colors and terminal restoration. Redirected stderr keeps fixed history
+without ANSI or periodic frames. Cases also cover empty and filtered inputs,
+long paths, fatal errors and engine fallback without backward progress. A
+controlled monotonic clock checks short durations and minute/hour formatting.
+Closed stderr also checks that diagnostics cannot reach reused descriptors.
+
 The partition tests build a small-input variant to exercise bounded memory,
 collisions, filters, output order and concurrent bitmap updates. Linux tests
 also inject partial I/O, interruptions, EOF and disk-full errors, and check
