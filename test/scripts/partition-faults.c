@@ -87,6 +87,15 @@ ssize_t         pread(int fd, void *buffer, size_t size, off_t offset)
 }
 
 
+/** Include fortified stack-buffer reads in the same fault injection. */
+ssize_t         __pread_chk(int fd, void *buffer, size_t size, off_t offset, size_t capacity)
+{
+    if (size > capacity)
+        _exit(97);
+    return (pread(fd, buffer, size, offset));
+}
+
+
 int             statfs(const char *path, struct statfs *info)
 {
     const char *fault = getenv("DUPLICUT_TEST_FAULT");

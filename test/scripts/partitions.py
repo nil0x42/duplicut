@@ -134,7 +134,12 @@ def test_faults(program, directory, root, content, expected):
                             ('zero', b'cannot write partitions'),
                             ('boundary-read', b'cannot read chunk boundary'),
                             ('read', b'cannot read partitions')):
-        result = run(command, success=False, env={**environment, 'DUPLICUT_TEST_FAULT': fault})
+        fault_command = command
+        if fault == 'boundary-read':
+            fault_command = [program, str(source), '-o', str(output),
+                             '-m', '64K', '-t', THREADS, '-e', 'mmap-chunks']
+        result = run(fault_command, success=False,
+                     env={**environment, 'DUPLICUT_TEST_FAULT': fault})
         assert result.returncode > 0 and message in result.stderr, (fault, result.stderr)
     duplicate_file = output_dir / 'duplicates'
     run([*command, '-D', str(duplicate_file)],

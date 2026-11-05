@@ -104,7 +104,6 @@ bool        populate_hmap(t_chunk *chunk)
             /* use first free slot */
             g_hmap.ptr[slot] = MAKE_LINE(line_ptr, line_sz);
             ++filled;
-            /* DLOG4("ADD HMAP ENTRY, slot=%ld, line_addr=%p, line_size=%d, line=%.*s", slot, LINE_ADDR(line), LINE_SIZE(line), LINE_SIZE(line), LINE_ADDR(line)); */
 #if DEBUG >= 3
             tmp = (int)((double)filled / (double)g_hmap.size * 100.0);
             if (tmp > last_percent_filled) {
