@@ -67,7 +67,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix='duplicut-memory-', dir=root) as folder:
         directory = Path(folder)
         program = build(root, directory, 'debug')
-        check(program, directory, 32, 128, '4M', 'mmap-chunks')
+        check(program, directory, 32, 128, '4M', 'disk-partitions')
         text = check(program, directory, 96, 8, '4M', 'disk-partitions')
         assert 'large bitmap estimate:' in text
         text = check(program, directory, 128, 8, '4M', 'mmap-chunks')
@@ -81,7 +81,7 @@ def main():
             mounts = [line.split() for line in Path('/proc/mounts').read_text().splitlines()]
             if any(fields[1] == '/tmp' and fields[2] in ('tmpfs', 'ramfs') for fields in mounts):
                 with tempfile.TemporaryDirectory(prefix='duplicut-memory-output-', dir='/tmp') as tmp:
-                    text = check(program, directory, 32, 128, '4M', 'mmap-chunks',
+                    text = check(program, directory, 32, 128, '4M', 'disk-partitions',
                                  output=Path(tmp) / 'output')
                     assert 'RAM-backed output: using a disk-backed working file' in text
                     assert 'g_file->name:         temporary file' in text

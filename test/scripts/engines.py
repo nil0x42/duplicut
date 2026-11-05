@@ -20,7 +20,7 @@ def main():
     root = Path.cwd().resolve()
     with tempfile.TemporaryDirectory(prefix='duplicut-engines-', dir=root) as folder:
         directory = Path(folder)
-        program = build(root, directory, 'debug')
+        program = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else build(root, directory, 'debug')
         source, output, duplicates = (directory / name for name in ('input', 'output', 'duplicates'))
         content = (b'Alpha\r\nalpha\n\0hidden\nA\xff\nB\0C\nB\0C\nsmall\nSMALL\n'
                    + b'z' * 4095 + b'\n') * 64 + b'last'
@@ -59,6 +59,19 @@ def main():
             assert result.returncode != 0 and b"for '--engine'" in result.stderr
         result = subprocess.run([str(program), '-e'], stderr=subprocess.PIPE)
         assert result.returncode != 0
+        if (os.cpu_count() or 1) > 1:
+            words = b''.join(('%08x\n' % i).encode() for i in range(4096))
+            source.write_bytes(words * 8)
+            command = [str(program), str(source), '-o', str(output), '-m', '640K',
+                       '-t', str(min(4, os.cpu_count() or 1))]
+            result = subprocess.run(command, stderr=subprocess.PIPE, timeout=10)
+            assert result.returncode == 0 and output.read_bytes() == words, result.stderr
+            assert b'dedupe engine: mmap-chunks' in result.stderr, result.stderr
+            result = subprocess.run([*command, '-e', 'disk-partitions'],
+                                    stderr=subprocess.PIPE, timeout=10)
+            assert result.returncode == 0 and output.read_bytes() == words, result.stderr
+            assert b'1 workers' in result.stderr, result.stderr
+            print('[+] parallel admission uses workers supported by the memory budget')
         result = subprocess.run([str(program), str(source), '-o', str(output),
                                  '-e', 'disk-partitions', '-m', '64K'], stderr=subprocess.PIPE)
         assert result.returncode != 0 and b'disk-partitions engine unavailable' in result.stderr
@@ -74,6 +87,16 @@ def main():
             assert result.returncode != 0 and b'disk-partitions engine unavailable' in result.stderr
             result = subprocess.run([*command, '-e', 'mmap-chunks'], env=env, stderr=subprocess.PIPE)
             assert result.returncode == 0, result.stderr
+            for available in (4 * 1024, 4 * 1024 * 1024, 128 * 1024 * 1024):
+                for threads in sorted({1, min(4, os.cpu_count() or 1)}):
+                    env = {**os.environ, 'LD_PRELOAD': str(library),
+                           'DUPLICUT_TEST_AVAILABLE': str(available)}
+                    result = subprocess.run([str(program), str(source), '-o', str(output),
+                                             '-t', str(threads)], env=env,
+                                            stderr=subprocess.PIPE, timeout=10)
+                    assert result.returncode == 0, result.stderr
+                    assert output.read_bytes() == dedupe(source.read_bytes(), 1024)[0]
+            print('[+] automatic selection across available memory and thread counts')
         print('[+] invalid options and explicit forced-engine resource failures')
 
 
