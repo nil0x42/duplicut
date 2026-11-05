@@ -29,6 +29,7 @@ struct conf g_conf = {
     .partition_workers = 0,
     .mmap_window = 0,
     .page_size = 0,
+    .engine = ENGINE_AUTO,
 };
 
 struct file *g_file;

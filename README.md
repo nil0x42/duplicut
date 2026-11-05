@@ -89,6 +89,7 @@ cd duplicut/ && make                           # compile ...
 -o, --outfile <FILE>       Write result to <FILE> (default stdout)
 -t, --threads <NUM>        Worker threads (default online CPUs)
 -m, --memlimit <VALUE>     Working memory budget (default available)
+-e, --engine <ENGINE>      auto, mmap-chunks or disk-partitions (default auto)
 -l, --line-max-size <NUM>  Max line size in bytes (default 1024, max 4095)
 -p, --printable            Keep only printable ASCII lines
 -c, --lowercase            Convert wordlist to lowercase
