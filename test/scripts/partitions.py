@@ -194,7 +194,7 @@ def test_faults(program, directory, root, content, expected):
     run([*production, '-m', '16M'], env={**environment, 'DUPLICUT_TEST_FAULT': 'cached',
                          'DUPLICUT_TEST_LOG': str(log)})
     assert output.read_bytes() == b'x' * 4095 + b'\n'
-    assert not log.exists()
+    assert log.exists() == (int(THREADS) < 4)
     run([*production, '-m', '16M'], env={**environment, 'DUPLICUT_TEST_FAULT': 'uncached',
                          'DUPLICUT_TEST_LOG': str(log)})
     assert output.read_bytes() == b'x' * 4095 + b'\n'
@@ -203,13 +203,14 @@ def test_faults(program, directory, root, content, expected):
     with source.open('r+b') as stream:
         stream.write(word * (65536 // len(word)))
     log.unlink()
-    run([*production, '-m', '16M'], env={**environment, 'DUPLICUT_TEST_FAULT': 'cached',
+    run([*production, '-m', '64M'], env={**environment, 'DUPLICUT_TEST_FAULT': 'cached',
                          'DUPLICUT_TEST_LOG': str(log)})
     assert output.read_bytes() == word + b'x' * 4095 + b'\n'
-    assert not log.exists()
+    assert log.exists() == (int(THREADS) <= 2)
     print('[+] distributed samples with an unrepresentative short prefix')
     source.write_bytes((word + b'\0' * (4096 - len(word) - 1) + b'\n') * 2048)
-    for memory, partitioned in (('8M', True), ('1M', False), ('768K', True), ('512K', True), ('256K', False)):
+    for memory, partitioned in (('8M', int(THREADS) > 1), ('1M', False),
+                                ('768K', True), ('512K', True), ('256K', False)):
         result = run([*production, '-m', memory], success=not partitioned,
                      env={**environment, 'DUPLICUT_TEST_FAULT': 'zero'})
         if partitioned:
@@ -222,6 +223,7 @@ def test_faults(program, directory, root, content, expected):
     source.write_bytes((b'x' * 4095 + b'\n') * 2048)
     for available, partitioned in ((4096, True), (8256, True), (8448, False), (9216, False),
                                     (4 * 1024 * 1024, False), (128 * 1024 * 1024, False)):
+        partitioned = partitioned or int(THREADS) <= 2
         env = {**environment, 'DUPLICUT_TEST_FAULT': 'zero',
                'DUPLICUT_TEST_AVAILABLE': str(available)}
         result = run([*production, '-m', '768K'], success=not partitioned, env=env)
@@ -232,8 +234,11 @@ def test_faults(program, directory, root, content, expected):
     print('[+] low and high available memory, including hash table headroom')
     env = {**environment, 'DUPLICUT_TEST_FAULT': 'zero',
            'DUPLICUT_TEST_AVAILABLE': str(128 * 1024 * 1024)}
-    run([*production, '-m', '512K'], env=env)
-    assert output.read_bytes() == b'x' * 4095 + b'\n'
+    result = run([*production, '-m', '512K'], success=int(THREADS) >= 4, env=env)
+    if int(THREADS) < 4:
+        assert b'cannot write partitions' in result.stderr, result.stderr
+    else:
+        assert output.read_bytes() == b'x' * 4095 + b'\n'
     with source.open('ab') as stream:
         stream.write((b'x' * 4095 + b'\n') * 6144)
     result = run([*production, '-m', '512K'], success=False, env=env)
