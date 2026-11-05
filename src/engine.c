@@ -8,6 +8,7 @@
 #include "partition.h"
 #include "debug.h"
 #include "error.h"
+#include "status.h"
 
 #ifndef PARTITION_MIN_CHUNKS
 # define PARTITION_MIN_CHUNKS 16
@@ -156,6 +157,7 @@ bool            prefer_partitions(const struct partition_estimate *estimate)
     if (partition_work >= chunk_work)
     {
         DLOG1("disk-partitions disabled: insufficient private storage for a large bitmap");
+        status_info("fallback:", "mmap-chunks: insufficient private storage for a large bitmap");
         return (false);
     }
     return (true);
@@ -168,5 +170,6 @@ bool            engine_fallback(const char *reason)
     if (g_conf.engine == ENGINE_DISK_PARTITIONS)
         error("disk-partitions engine unavailable: %s", reason);
     DLOG1("falling back to mmap-chunks: %s", reason);
+    status_info("fallback:", "mmap-chunks: %s", reason);
     return (false);
 }

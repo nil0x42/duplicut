@@ -2,35 +2,59 @@
 #include <time.h>
 #include <pthread.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <string.h>
-#include <math.h>              /* fabs() */
+#include <limits.h>
+#include <sys/ioctl.h>
+#include <math.h>
 #include "status.h"
 #include "chunk.h"
 #include "debug.h"
 #include "cprintferr.h"
 
 #define TRIANGULAR(n)       (n * (n + 1) / 2)
+#define BUF_SIZE            (256)
 
-#define START_TIME()        (g_status.fcopy_date)
-#define FCOPY_TERMINATED()  (g_status.ctasks_date != 0)
-#define FCOPY_DURATION()    (g_status.ctasks_date - g_status.fcopy_date)
-#define TAGDUP_TERMINATED() (g_status.fclean_date != 0)
-#define TAGDUP_DURATION()   (g_status.fclean_date - g_status.ctasks_date)
-#define FCLEAN_TERMINATED() (g_status.fclean_bytes == g_status.file_size)
 
-#define BUF_SIZE            (128)
+enum    e_phase
+{
+    PHASE_NONE,
+    PHASE_COPY,
+    PHASE_CONFIG,
+    PHASE_CHECK,
+    PHASE_WRITE,
+    PHASE_PARTITIONS,
+    PHASE_MARK,
+    PHASE_CHUNKS,
+    PHASE_CLEAN,
+    PHASE_OUTPUT,
+    PHASE_RESTORE
+};
 
-static const char       *g_partition_phases[] = {
-    "counting partitions", "writing partitions",
-    "deduping partitions", "marking duplicates"
+static const struct {
+    const char  *name;
+    int         group;
+} g_phases[] = {
+    {"", 0},
+    {"copying input", 1},
+    {"preparing deduplication", 2},
+    {"checking disk-partitions", 3},
+    {"writing partitions", 3},
+    {"deduping partitions", 3},
+    {"marking duplicates", 3},
+    {"mmap-chunks", 3},
+    {"compacting output", 4},
+    {"finalizing output", 5},
+    {"writing output", 5}
 };
 
 struct                  status
 {
-    time_t              fcopy_date;
-    time_t              ctasks_date;
-    time_t              last_ctask_date;
-    time_t              fclean_date;
+    enum e_phase        phase;
+    double              started;
+    double              phase_started;
+    double              ended;
+    double              mmap_base;
     int                 total_chunks;
     int                 done_chunks;
     int                 total_ctasks;
@@ -42,29 +66,51 @@ struct                  status
     size_t              tagdup_duplicates;
     size_t              filtered_lines;
     size_t              fclean_bytes;
-    int                 partition_stage;
     size_t              partition_total;
+    size_t              output_size;
+    size_t              output_bytes;
 };
 
-static struct status    g_status = {
-    .fcopy_date = 0,
-    .ctasks_date = 0,
-    .last_ctask_date = 0,
-    .fclean_date = 0,
-    .total_chunks = 0,
-    .done_chunks = 0,
-    .total_ctasks = 0,
-    .done_ctasks = 0,
-    .file_size = 0,
-    .fcopy_bytes = 0,
-    .chunk_size = 0,
-    .tagdup_bytes = 0,
-    .tagdup_duplicates = 0,
-    .filtered_lines = 0,
-    .fclean_bytes = 0,
+struct                  status_line
+{
+    char                elapsed[32];
+    char                duration[32];
+    char                eta[32];
+    char                percent[16];
+    char                task[BUF_SIZE];
+    char                prefix[BUF_SIZE];
+    char                suffix[64];
+    size_t              columns;
 };
 
-pthread_mutex_t         g_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static struct status    g_status = {.mmap_base = 0.04};
+static pthread_mutex_t  g_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t  g_display_mutex = PTHREAD_MUTEX_INITIALIZER;
+static bool             g_interactive;
+static bool             g_live_line;
+static double           g_progress;
+
+
+static double   status_time(void)
+{
+    struct timespec now;
+
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    return (now.tv_sec + now.tv_nsec / 1e9);
+}
+
+
+static struct status snapshot_status(void)
+{
+    struct status status;
+
+    pthread_mutex_lock(&g_mutex);
+    status = g_status;
+    pthread_mutex_unlock(&g_mutex);
+    return (status);
+}
+
 
 /*  smooth_eta ‒ Present a human-friendly, steadily changing ETA
  *
@@ -79,12 +125,12 @@ pthread_mutex_t         g_mutex = PTHREAD_MUTEX_INITIALIZER;
  *
  *  All state is kept in two static variables:
  *    displayed ― last ETA shown (seconds, double for sub-second precision)
- *    last_t    ― wall-clock time of the previous call
+ *    last_t    ― monotonic time of the previous call
  *
- *  Returns a smoothed ETA in whole seconds; returns 0 if
- *  the raw ETA is non-positive.
+ *  Returns a smoothed ETA in whole seconds. A negative input resets
+ *  smoothing when the current phase changes.
  */
-static time_t smooth_eta(time_t eta_raw)
+static time_t smooth_eta(time_t eta_raw, double now)
 {
     const double TAU_SEC   = 1.0;
     const double EPS_ABS   = 0.8;
@@ -93,19 +139,24 @@ static time_t smooth_eta(time_t eta_raw)
     const double JUMP_ABS  = 10.0;
 
     static double displayed = -1.0;
-    static time_t last_t    = 0;
+    static double last_t    = 0;
 
-    if (eta_raw <= 0)
+    if (eta_raw < 0)
+    {
+        displayed = -1;
+        last_t = 0;
+        return (0);
+    }
+    if (eta_raw == 0)
         return 0;
 
-    time_t now = time(NULL);
     if (displayed < 0) {
         displayed = eta_raw;
         last_t    = now;
         return eta_raw;
     }
 
-    double dt   = difftime(now, last_t);
+    double dt   = now - last_t;
     if (dt < 1e-3)
         return (time_t)displayed;
 
@@ -129,112 +180,8 @@ static time_t smooth_eta(time_t eta_raw)
     return (time_t)eta;
 }
 
-/** Update program status */
-void            update_status(enum e_status_update action)
-{
-    switch (action) {
-        case FCOPY_START:
-            DLOG1("CALL update_status(FCOPY_START)");
-            g_status.fcopy_date = time(NULL);
-            break ;
-        case TAGDUP_START:
-            DLOG1("CALL update_status(TAGDUP_START)");
-            g_status.ctasks_date = time(NULL);
-            break ;
-        case CHUNK_START:
-            DLOG1("CALL update_status(CHUNK_START)");
-            g_status.total_chunks = count_chunks();
-            g_status.total_ctasks = TRIANGULAR(g_status.total_chunks);
-            break ;
-        case CHUNK_DONE:
-            DLOG2("CALL update_status(CHUNK_DONE)");
-            pthread_mutex_lock(&g_mutex);
-            ++g_status.done_chunks;
-            pthread_mutex_unlock(&g_mutex);
-            break ;
-        case CTASK_DONE:
-            DLOG2("CALL update_status(CTASK_DONE)");
-            pthread_mutex_lock(&g_mutex);
-            ++g_status.done_ctasks;
-            g_status.last_ctask_date = time(NULL);
-            pthread_mutex_unlock(&g_mutex);
-            break ;
-        case FCLEAN_START:
-            DLOG1("CALL update_status(FCLEAN_START)");
-            g_status.fclean_date = time(NULL);
-            break ;
-    }
-}
-
-
-/** Each partition phase reports its own byte count. */
-void            partition_status(int stage, size_t total)
-{
-    if (stage >= 0)
-    {
-        DLOG1("disk-partitions phase: %s, %zu bytes", g_partition_phases[stage], total);
-    }
-    else
-    {
-        DLOG1("disk-partitions plan declined");
-    }
-    pthread_mutex_lock(&g_mutex);
-    g_status.partition_stage = stage + 1;
-    g_status.partition_total = total;
-    g_status.tagdup_bytes = 0;
-    pthread_mutex_unlock(&g_mutex);
-}
-
-
-void            set_status(enum e_status_set var, size_t val)
-{
-    switch (var) {
-        case FILE_SIZE:
-            DLOG1("CALL set_status(FILE_SIZE, %lu)", val);
-            g_status.file_size = val;
-            break ;
-        case FCOPY_BYTES:
-            DLOG2("CALL set_status(FCOPY_BYTES, %lu)", val);
-            g_status.fcopy_bytes += val;
-            break ;
-        case CHUNK_SIZE:
-            DLOG1("CALL set_status(CHUNK_SIZE, %lu)", val);
-            g_status.chunk_size = val;
-            break ;
-        case TAGDUP_BYTES:
-            DLOG2("CALL set_status(TAGDUP_BYTES, %lu)", val);
-            pthread_mutex_lock(&g_mutex);
-            g_status.tagdup_bytes += val;
-            pthread_mutex_unlock(&g_mutex);
-            break ;
-        case CTASK_EXTRA:
-            pthread_mutex_lock(&g_mutex);
-            g_status.total_ctasks += val;
-            pthread_mutex_unlock(&g_mutex);
-            break ;
-        case TAGDUP_DUPLICATES:
-            DLOG2("CALL set_status(TAGDUP_DUPLICATES, %lu)", val);
-            pthread_mutex_lock(&g_mutex);
-            g_status.tagdup_duplicates += val;
-            pthread_mutex_unlock(&g_mutex);
-            break ;
-        case FCLEAN_SKIPPED:
-            DLOG2("CALL set_status(FCLEAN_SKIPPED, %lu)", val);
-            pthread_mutex_lock(&g_mutex);
-            g_status.filtered_lines = val - g_status.tagdup_duplicates;
-            pthread_mutex_unlock(&g_mutex);
-            break ;
-        case FCLEAN_BYTES:
-            DLOG2("CALL set_status(FCLEAN_BYTES, %lu)", val);
-            g_status.fclean_bytes += val;
-            break ;
-    }
-}
-
-
-/* Print a human-readable duration into `buf`.  
-   Caller must ensure the buffer is large enough. */
-static void repr_time(char *buf, time_t sec)
+/* Print a human-readable duration into a sufficiently large buffer. */
+static void     repr_time(char *buf, time_t sec)
 {
     enum { MIN = 60, HR = 60 * MIN, DAY = 24 * HR };
 
@@ -249,124 +196,359 @@ static void repr_time(char *buf, time_t sec)
 }
 
 
-static void     repr_current_task(char *buffer)
+static double   status_ratio(size_t bytes, size_t total)
 {
-    if (!FCOPY_TERMINATED()) {
-        strncpy(buffer,
-                "\e[36m[1/3] "
-                "\e[1mcreating output file"
-                "\e[0;36m ...",
-                BUF_SIZE - 1);
-    }
-    else if (!TAGDUP_TERMINATED() && g_status.partition_stage) {
-        snprintf(buffer, BUF_SIZE - 1, "\e[36m[2/3] \e[1m%s: %s\e[0;36m ...",
-                g_status.partition_stage == 1 ? "checking disk-partitions" : "disk-partitions",
-                g_partition_phases[g_status.partition_stage - 1]);
-    }
-    else if (!TAGDUP_TERMINATED()) {
-        int cur_chunk = g_status.done_chunks
-            + (g_status.done_chunks < g_status.total_chunks);
-        int cur_ctask = g_status.done_ctasks
-            + (g_status.done_ctasks < g_status.total_ctasks);
-        snprintf(buffer, BUF_SIZE - 1,
-                "\e[36m[2/3] "
-                "\e[1mmmap-chunks: chunk %d/%d "
-                "\e[0;2;36m(task %d/%d)"
-                "\e[0;36m ...",
-                cur_chunk, g_status.total_chunks,
-                cur_ctask, g_status.total_ctasks
-                );
-    }
-    else {
-        strncpy(buffer,
-                "\e[36m[3/3] "
-                "\e[1mremoving tagged lines"
-                "\e[0;36m ...",
-                BUF_SIZE - 1);
+    if (!total)
+        return (0);
+    return (fmin(1, (double)bytes / total));
+}
+
+
+/** Each engine owns its part of the shared deduplication interval. */
+static double   phase_progress(const struct status *status, bool complete)
+{
+    double ratio;
+
+    switch (status->phase) {
+        case PHASE_COPY:
+            return (0.04 * (complete ? 1 : status_ratio(status->fcopy_bytes, status->file_size)));
+        case PHASE_CONFIG:
+            return (0.04);
+        case PHASE_CHECK:
+        case PHASE_WRITE:
+        case PHASE_PARTITIONS:
+        case PHASE_MARK:
+            ratio = complete ? 1 : status_ratio(status->tagdup_bytes, status->partition_total);
+            return (0.04 + 0.90 * (status->phase - PHASE_CHECK + ratio) / 4);
+        case PHASE_CHUNKS:
+            ratio = complete ? 1 : status_ratio(status->tagdup_bytes,
+                (size_t)status->total_ctasks * status->chunk_size);
+            return (status->mmap_base + (0.94 - status->mmap_base) * ratio);
+        case PHASE_CLEAN:
+            return (0.94 + 0.05 * (complete ? 1 : status_ratio(status->fclean_bytes, status->file_size)));
+        case PHASE_OUTPUT:
+        case PHASE_RESTORE:
+            return (0.99 + 0.01 * (complete ? 1 : status_ratio(status->output_bytes, status->output_size)));
+        default:
+            return (g_progress);
     }
 }
 
-/** Display final report */
+
+static void     repr_current_task(char *buffer, const struct status *status)
+{
+    if (status->phase != PHASE_CHUNKS)
+        snprintf(buffer, BUF_SIZE, "%s", g_phases[status->phase].name);
+    else if (!status->total_chunks)
+        snprintf(buffer, BUF_SIZE, "mmap-chunks: preparing chunks");
+    else
+        snprintf(buffer, BUF_SIZE, "mmap-chunks: chunk %d/%d (task %d/%d)",
+            status->done_chunks + (status->done_chunks < status->total_chunks),
+            status->total_chunks,
+            status->done_ctasks + (status->done_ctasks < status->total_ctasks),
+            status->total_ctasks);
+}
+
+
+static double   remaining_time(const struct status *status, double now)
+{
+    double progress = phase_progress(status, false);
+    double elapsed = now - status->phase_started;
+    double ratio;
+
+    if (status->phase == PHASE_CONFIG || !progress
+            || (status->phase == PHASE_COPY && !status->file_size))
+        return (-1);
+    if ((status->phase == PHASE_COPY && !status->fcopy_bytes)
+            || (status->phase >= PHASE_CHECK && status->phase <= PHASE_CHUNKS
+                && !status->tagdup_bytes)
+            || (status->phase == PHASE_CLEAN && !status->fclean_bytes))
+        return (-1);
+    if (status->phase == PHASE_RESTORE)
+    {
+        ratio = status_ratio(status->output_bytes, status->output_size);
+        return (ratio > 0 ? elapsed / ratio - elapsed : -1);
+    }
+    if (status->phase == PHASE_OUTPUT)
+        return (-1);
+    return ((now - status->started) * (1 - progress) / progress);
+}
+
+
+/** Only animated descriptions are shortened; completed lines remain intact. */
+static size_t   limit_description(char *task, size_t prefix, size_t suffix)
+{
+    struct winsize size;
+    size_t columns = 80;
+    size_t available;
+
+    if (ioctl(STDERR_FILENO, TIOCGWINSZ, &size) == 0 && size.ws_col)
+        columns = size.ws_col;
+    available = columns > prefix + suffix + 1 ? columns - prefix - suffix - 1 : 0;
+    if (strlen(task) > available)
+    {
+        if (available > 3)
+            memcpy(task + available - 3, "...", 3);
+        task[available] = '\0';
+    }
+    return (columns);
+}
+
+
+static void     repr_duration(char *buffer, double seconds)
+{
+    seconds = round(fmax(0, seconds) * 1000) / 1000;
+    if (seconds < 1)
+        snprintf(buffer, 32, "%.3fs", seconds);
+    else
+        repr_time(buffer, (time_t)seconds);
+}
+
+
+static void     repr_status(struct status_line *line, const struct status *status,
+                    double now, bool complete)
+{
+    double remaining;
+    int group = g_phases[status->phase].group;
+
+    if (status->phase != PHASE_COPY || status->file_size || complete)
+        snprintf(line->percent, sizeof(line->percent), "%4.1f%%", g_progress * 100);
+    repr_time(line->elapsed, (time_t)fmax(0, now - status->started));
+    repr_duration(line->duration, now - status->phase_started);
+    repr_current_task(line->task, status);
+    if (complete)
+    {
+        snprintf(line->prefix, sizeof(line->prefix), "time: %-7s %s [%d/5] ",
+            line->elapsed, line->percent, group);
+        snprintf(line->suffix, sizeof(line->suffix), " ... (done: took %s)", line->duration);
+    }
+    else
+    {
+        remaining = remaining_time(status, now);
+        if (remaining >= 0)
+            repr_time(line->eta, smooth_eta((time_t)remaining, now));
+        snprintf(line->prefix, sizeof(line->prefix), "time: %-7s %s (ETA: %7s) [%d/5] ",
+            line->elapsed, line->percent, line->eta, group);
+        snprintf(line->suffix, sizeof(line->suffix), " ... (%s)", line->duration);
+        line->columns = limit_description(line->task, strlen(line->prefix), strlen(line->suffix));
+    }
+}
+
+
+static void     print_status(const struct status_line *line, int group, bool complete)
+{
+    const char *clear = g_live_line ? "\r\e[2K" : "";
+
+    if (!complete && strlen(line->prefix) + strlen(line->suffix) >= line->columns)
+        cprintferr("%s\e[0m%.*s\e[0m", clear, (int)line->columns - 1, line->prefix);
+    else if (complete)
+        cprintferr("%s\e[0mtime: \e[1m%-7s \e[1;33m%s\e[0m "
+            "\e[36m[%d/5] \e[1m%s\e[0;36m ... \e[0m(\e[32mdone\e[0m: took %s)\n",
+            clear, line->elapsed, line->percent, group, line->task, line->duration);
+    else
+        cprintferr("%s\e[0mtime: \e[1m%-7s \e[1;33m%s\e[0m "
+            "(ETA: \e[1m%7s\e[0m) \e[36m[%d/5] \e[1m%s\e[0;36m ... \e[0m(%s)\e[0m",
+            clear, line->elapsed, line->percent, line->eta, group, line->task, line->duration);
+    g_live_line = !complete;
+}
+
+
+static void     render_status(const struct status *status, double now, bool complete)
+{
+    struct status_line line = {.eta = "--", .percent = "--.-%"};
+
+    g_progress = fmax(g_progress, phase_progress(status, complete));
+    if (!complete)
+        g_progress = fmin(g_progress, 0.999);
+    repr_status(&line, status, now, complete);
+    print_status(&line, g_phases[status->phase].group, complete);
+}
+
+
+/** Freeze the previous phase before exposing the next one to the refresh thread. */
+static void     change_phase(enum e_phase phase, size_t total)
+{
+    double now;
+    struct status status;
+
+    pthread_mutex_lock(&g_display_mutex);
+    now = status_time();
+    status = snapshot_status();
+    if (status.phase != PHASE_NONE)
+        render_status(&status, now, true);
+    smooth_eta(-1, now);
+    pthread_mutex_lock(&g_mutex);
+    if (phase == PHASE_COPY)
+        g_status.started = now;
+    if (phase == PHASE_NONE)
+        g_status.mmap_base = g_progress;
+    g_status.phase = phase;
+    g_status.phase_started = now;
+    if (phase >= PHASE_CHECK && phase <= PHASE_CHUNKS)
+    {
+        g_status.partition_total = total;
+        g_status.tagdup_bytes = 0;
+    }
+    pthread_mutex_unlock(&g_mutex);
+    if (g_interactive && phase != PHASE_NONE)
+    {
+        status = snapshot_status();
+        render_status(&status, now, false);
+    }
+    pthread_mutex_unlock(&g_display_mutex);
+}
+
+
+void            status_interactive(bool enabled)
+{
+    g_interactive = enabled;
+}
+
+
+/** Insert fixed information without completing or corrupting the active line. */
+void            status_info(const char *label, const char *fmt, ...)
+{
+    char buffer[PATH_MAX + 128];
+    struct status status;
+    va_list ap;
+
+    pthread_mutex_lock(&g_display_mutex);
+    if (g_live_line)
+        cprintferr("\r\e[2K");
+    va_start(ap, fmt);
+    vsnprintf(buffer, sizeof(buffer), fmt, ap);
+    va_end(ap);
+    cprintferr("\e[36m%-12s\e[0m%s\n", label, buffer);
+    g_live_line = false;
+    status = snapshot_status();
+    if (g_interactive && status.phase != PHASE_NONE)
+        render_status(&status, status_time(), false);
+    pthread_mutex_unlock(&g_display_mutex);
+}
+
+
+void            update_status(enum e_status_update action)
+{
+    int chunks;
+
+    if (action == FCOPY_START)
+    {
+        DLOG1("CALL update_status(FCOPY_START)");
+        change_phase(PHASE_COPY, 0);
+    }
+    else if (action == CONFIG_START)
+        change_phase(PHASE_CONFIG, 0);
+    else if (action == CHUNK_START)
+    {
+        DLOG1("CALL update_status(CHUNK_START)");
+        change_phase(PHASE_CHUNKS, 0);
+        chunks = count_chunks();
+        pthread_mutex_lock(&g_mutex);
+        g_status.total_chunks = chunks;
+        g_status.total_ctasks = TRIANGULAR(chunks);
+        pthread_mutex_unlock(&g_mutex);
+    }
+    else if (action == FCLEAN_START)
+    {
+        DLOG1("CALL update_status(FCLEAN_START)");
+        change_phase(PHASE_CLEAN, 0);
+    }
+    else if (action == FOUTPUT_START || action == FWRITE_START)
+        change_phase(action == FWRITE_START ? PHASE_RESTORE : PHASE_OUTPUT, 0);
+    else
+    {
+        pthread_mutex_lock(&g_mutex);
+        if (action == CHUNK_DONE)
+            ++g_status.done_chunks;
+        else if (action == CTASK_DONE)
+            ++g_status.done_ctasks;
+        pthread_mutex_unlock(&g_mutex);
+    }
+}
+
+
+void            partition_status(int stage, size_t total)
+{
+    if (stage >= 0)
+    {
+        DLOG1("disk-partitions phase: %s, %zu bytes", stage == 0 ? "counting partitions" : g_phases[PHASE_CHECK + stage].name, total);
+        change_phase(PHASE_CHECK + stage, total);
+    }
+    else
+    {
+        DLOG1("disk-partitions plan declined");
+        change_phase(PHASE_NONE, 0);
+    }
+}
+
+
+void            set_status(enum e_status_set var, size_t val)
+{
+    pthread_mutex_lock(&g_mutex);
+    switch (var) {
+        case FILE_SIZE:
+            g_status.file_size = val;
+            break ;
+        case FCOPY_BYTES:
+            g_status.fcopy_bytes += val;
+            break ;
+        case CHUNK_SIZE:
+            g_status.chunk_size = val;
+            break ;
+        case CTASK_EXTRA:
+            g_status.total_ctasks += val;
+            break ;
+        case TAGDUP_BYTES:
+            g_status.tagdup_bytes += val;
+            break ;
+        case TAGDUP_DUPLICATES:
+            g_status.tagdup_duplicates += val;
+            break ;
+        case FCLEAN_SKIPPED:
+            g_status.filtered_lines = val - g_status.tagdup_duplicates;
+            break ;
+        case FCLEAN_BYTES:
+            g_status.fclean_bytes += val;
+            break ;
+        case FOUTPUT_SIZE:
+            g_status.output_size = val;
+            break ;
+        case FOUTPUT_BYTES:
+            g_status.output_bytes += val;
+            break ;
+    }
+    pthread_mutex_unlock(&g_mutex);
+}
+
+
+void            display_status(int finished)
+{
+    struct status status;
+    double now;
+
+    pthread_mutex_lock(&g_display_mutex);
+    now = status_time();
+    status = snapshot_status();
+    if (status.phase != PHASE_NONE && (g_interactive || finished))
+        render_status(&status, now, finished);
+    if (finished)
+    {
+        pthread_mutex_lock(&g_mutex);
+        g_status.ended = now;
+        g_status.phase = PHASE_NONE;
+        pthread_mutex_unlock(&g_mutex);
+    }
+    pthread_mutex_unlock(&g_display_mutex);
+}
+
+
 void            display_report(void)
 {
-    char elapsed[BUF_SIZE];
+    char elapsed[32];
+    struct status status = snapshot_status();
 
-    repr_time(elapsed, time(NULL) - START_TIME());
-    cprintferr(
-            "duplicut successfully removed "
-            "\e[1m%ld\e[0m duplicates "
-            "and \e[1m%ld\e[0m filtered lines "
-            "in \e[1m%s\e[0m\n",
-            g_status.tagdup_duplicates,
-            g_status.filtered_lines,
-            elapsed
-            );
-}
-
-/* ------------------------------------------------------------------------ */
-/* Display current progression                                              */
-/* ------------------------------------------------------------------------ */
-void    display_status(int finished)
-{
-
-    char            s_t_elapsed[32];
-    char            s_t_remaining[32];
-    char            s_cur_task[BUF_SIZE];
-    const time_t    t_elapsed = time(NULL) - START_TIME();
-    time_t          t_remaining = 0;
-    double          progress = 0;
-
-    if (!g_status.fcopy_bytes || t_elapsed < 1)
-        return; // only display after 1st second
-    /* ---------- [3/3] FCLEAN : 94 % → 100 % --------------------------- */
-    if (finished) {
-        progress = 1;
-    }
-    else if (TAGDUP_TERMINATED()) {
-        double step_ratio = (double) g_status.fclean_bytes / g_status.file_size;
-        progress = 0.94 + (step_ratio * 0.06);
-        if (progress > 0.999 && !FCLEAN_TERMINATED())
-            progress = 0.999; // limit to 99.9% while not fully terminated
-        double step_elapsed = t_elapsed - FCOPY_DURATION() - TAGDUP_DURATION();
-        if (step_elapsed >= 1 && step_ratio > 0)
-            t_remaining = step_elapsed / step_ratio - step_elapsed;
-    }
-    /* ---------- [2/3] TAGDUP : 4 % → 94 % ----------------------------- */
-    else if (g_status.partition_stage && !TAGDUP_TERMINATED()) {
-        double ratio = g_status.partition_total
-            ? (double)g_status.tagdup_bytes / g_status.partition_total : 0;
-        if (ratio > 1)
-            ratio = 1;
-        progress = 0.04 + 0.90 * (g_status.partition_stage - 1 + ratio) / 4;
-    }
-    else if (g_status.tagdup_bytes) {
-        long total_bytes = g_status.total_ctasks * g_status.chunk_size;
-        double step_ratio = (double)g_status.tagdup_bytes / total_bytes;
-        progress = 0.04 + (step_ratio * 0.90);
-        double step_elapsed = t_elapsed - FCOPY_DURATION();
-        if (step_elapsed >= 1 && step_ratio > 0)
-            t_remaining = (
-                    (step_elapsed / step_ratio - step_elapsed) +
-                    // estimate of upcomming FCLEAN duration:
-                    (FCOPY_DURATION() * 1.5));
-    }
-    /* ---------- [1/3] FCOPY : 0 % → 4 % ------------------------------ */
-    else if (g_status.fcopy_bytes) {
-        double step_ratio = g_status.file_size
-            ? (double)g_status.fcopy_bytes / g_status.file_size : 1;
-        progress = 0.0 + (step_ratio * 0.04);
-    }
-    /* ---------- fallback ETA if still unknown ------------------------- */
-    if (progress > 0 && t_remaining == 0)
-        t_remaining = t_elapsed / progress - t_elapsed;
-    /* ---------- render strings & print -------------------------------- */
-    t_remaining = smooth_eta(t_remaining);
-    repr_time(s_t_remaining, t_remaining);
-    repr_time(s_t_elapsed, t_elapsed);
-    repr_current_task(s_cur_task);
-    cprintferr(
-            "\r\e[2K\e[0mtime: \e[1m%-7s \e[1;33m%4.1f%%\e[0m "
-            "(ETA: \e[1m%7s\e[0m) %s\e[0m%s",
-            s_t_elapsed, progress * 100.0, s_t_remaining,
-            s_cur_task, finished ? "\n" : "");
+    repr_time(elapsed, (time_t)(status.ended - status.started));
+    cprintferr("duplicut successfully removed \e[1m%zu\e[0m duplicates "
+        "and \e[1m%zu\e[0m filtered lines in \e[1m%s\e[0m\n",
+        status.tagdup_duplicates, status.filtered_lines, elapsed);
 }

@@ -19,6 +19,7 @@
 #include "thpool.h"
 #include "error.h"
 #include "debug.h"
+#include "bytesize.h"
 
 #define RECORD_HEADER_SIZE (10)
 #define BUF_SIZE (0x4000)
@@ -497,6 +498,24 @@ static bool     prepare_partition_memory(struct partition_work *work,
 }
 
 
+static void     display_partition_config(const struct partition_work *work,
+                    size_t workers, size_t bytes, size_t bitmap)
+{
+    size_t table = ((work->memory - WORKER_OVERHEAD) / (2 * sizeof(t_line))) * sizeof(t_line);
+    char data[32];
+    char entries[32];
+
+    snprintf(data, sizeof(data), "%s", sizerepr(bytes));
+    snprintf(entries, sizeof(entries), "%s", sizerepr(table));
+    status_info("engine:", "\e[1mdisk-partitions\e[0m (%s); workers: \e[1m%zu\e[0m",
+        g_conf.engine == ENGINE_AUTO ? "auto" : "forced", workers);
+    status_info("partitions:", "\e[1m%zu\e[0m; data: %s; bitmap: %s", work->count, data, sizerepr(bitmap));
+    status_info("worker RAM:", "%s per worker (table, contents and scratch)", sizerepr(work->memory));
+    status_info("storage:", "table: %s; contents: %s per worker; load limit: 50%%",
+        entries, sizerepr(work->memory - WORKER_OVERHEAD - table));
+}
+
+
 /** Confirm the initial plan before partition I/O or source modification. */
 bool            tag_partitions(void)
 {
@@ -515,6 +534,8 @@ bool            tag_partitions(void)
     if (!bytes)
     {
         DLOG1("dedupe engine: disk-partitions (no accepted lines)");
+        status_info("engine:", "disk-partitions (%s); no accepted lines",
+            g_conf.engine == ENGINE_AUTO ? "auto" : "forced");
         free(work.parts);
         return (true);
     }
@@ -539,6 +560,7 @@ bool            tag_partitions(void)
             work.count, workers, bytes, bitmap);
     DLOG1("partition memory: %zu budget bytes, %zu metadata bytes, %zu bytes per worker",
             g_conf.dedupe_memory, work.count * sizeof(struct partition), work.memory);
+    display_partition_config(&work, workers, bytes, bitmap);
     write_partitions(&work);
     work.duplicates = calloc(bitmap, 1);
     if (work.duplicates == NULL)

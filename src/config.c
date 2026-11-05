@@ -12,6 +12,7 @@
 #include "debug.h"
 #include "bytesize.h"
 #include "engine.h"
+#include "status.h"
 
 /** Count accepted lines within an aligned sample, including skipped bytes. */
 static void     sample_chunk(t_chunk chunk, struct line_sample *sample)
@@ -269,6 +270,7 @@ void            config(void)
 {
     struct memstate memstate;
     struct line_sample sample = {0};
+    char available[32];
 
     init_memstate(&memstate);
     config_threads();
@@ -279,4 +281,10 @@ void            config(void)
     config_engine(&memstate, &sample);
     config_mmap_window(&memstate);
     display_config(&memstate);
+    snprintf(available, sizeof(available), "%s", sizerepr(memstate.mem_available));
+    status_info("memory:", "\e[1m%s\e[0m available; \e[1m%s\e[0m effective budget",
+        available, sizerepr(memstate.mem_budget));
+    status_info("engine RAM:", "\e[1m%s\e[0m \e[2m(allocation budget)\e[0m", sizerepr(g_conf.dedupe_memory));
+    status_info("selection:", "%s; candidate: \e[1m%s\e[0m", engine_name(g_conf.engine),
+        g_conf.partition_count ? "disk-partitions" : "mmap-chunks");
 }
