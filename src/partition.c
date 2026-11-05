@@ -7,6 +7,7 @@
 #include <limits.h>
 #include <math.h>
 #include "partition.h"
+#include "engine.h"
 #include "chunk.h"
 #include "line.h"
 #include "hash.h"
@@ -464,26 +465,35 @@ static void     limit_partition_memory(struct partition_work *work)
 }
 
 
-/** Large bitmaps must leave enough private storage to beat repeated scans. */
-static bool     partition_worthwhile(const struct partition_work *work, size_t bytes)
+/** Check exact allocations and expose usable capacities to engine selection. */
+static bool     prepare_partition_memory(struct partition_work *work,
+                    size_t bytes, size_t bitmap, size_t *workers)
 {
-    double  needed = (double)work->lines * 4 * sizeof(t_line);
-    double  contents = (double)(bytes - work->lines * RECORD_HEADER_SIZE) * 2;
-    double  capacity = (double)work->count * (work->memory - WORKER_OVERHEAD);
-    double  passes;
-    double  chunks;
-    double  partition_bytes;
-    double  chunk_bytes;
+    size_t  memory = g_conf.dedupe_memory - work->count * sizeof(struct partition);
+    size_t  slots;
+    struct partition_estimate estimate;
 
-    if (contents > needed)
-        needed = contents;
-    passes = ceil(needed / capacity);
-    chunks = ceil((double)g_file->orig_size / g_conf.chunk_size);
-    partition_bytes = 3.0 * g_file->orig_size + (passes + 1) * bytes;
-    chunk_bytes = (double)g_file->orig_size * (chunks + 1) / 2;
-    DLOG1("large bitmap estimate: %.0f private passes, %.0f partition bytes, %.0f mmap-chunks bytes",
-            passes, partition_bytes, chunk_bytes);
-    return (partition_bytes < chunk_bytes);
+    if (bitmap > memory || memory - bitmap < 4 * WORKER_OVERHEAD)
+    {
+        DLOG1("disk-partitions unavailable: %zu bitmap bytes, %zu memory bytes",
+                bitmap, memory);
+        return (engine_fallback("bitmap and worker storage do not fit the memory budget"));
+    }
+    memory -= bitmap;
+    if (*workers > memory / WORKER_MEMORY)
+        *workers = memory / WORKER_MEMORY;
+    if (!*workers)
+        *workers = 1;
+    work->memory = memory / *workers;
+    limit_partition_memory(work);
+    slots = (work->memory - WORKER_OVERHEAD) / (2 * sizeof(t_line));
+    estimate = (struct partition_estimate){
+        .lines = work->lines, .contents = bytes - work->lines * RECORD_HEADER_SIZE,
+        .bytes = bytes, .count = work->count, .workers = *workers,
+        .entries = slots / 2, .capacity = work->memory - WORKER_OVERHEAD - slots * sizeof(t_line),
+        .bitmap = bitmap
+    };
+    return (prefer_partitions(&estimate));
 }
 
 
@@ -491,9 +501,7 @@ static bool     partition_worthwhile(const struct partition_work *work, size_t b
 bool            tag_partitions(void)
 {
     struct partition_work work = {.count = g_conf.partition_count};
-    size_t      budget = g_conf.dedupe_memory;
     size_t      workers = g_conf.partition_workers;
-    size_t      memory;
     size_t      bytes;
     size_t      bitmap;
 
@@ -504,26 +512,14 @@ bool            tag_partitions(void)
         die("cannot calloc() partitions");
     bytes = count_partitions(&work);
     bitmap = work.lines / 8 + (work.lines % 8 != 0);
-    memory = budget - work.count * sizeof(struct partition);
-    if (bitmap > memory
-            || memory - bitmap < 4 * WORKER_OVERHEAD || !bytes)
+    if (!bytes)
     {
-        DLOG1("disk-partitions unavailable: %zu bitmap bytes, %zu memory bytes, %zu payload bytes",
-                bitmap, memory, bytes);
+        DLOG1("dedupe engine: disk-partitions (no accepted lines)");
         free(work.parts);
-        partition_status(-1, 0);
-        return (false);
+        return (true);
     }
-    memory -= bitmap;
-    if (workers > memory / WORKER_MEMORY)
-        workers = memory / WORKER_MEMORY;
-    if (!workers)
-        workers = 1;
-    work.memory = memory / workers;
-    limit_partition_memory(&work);
-    if (bitmap > budget / 2 && !partition_worthwhile(&work, bytes))
+    if (!prepare_partition_memory(&work, bytes, bitmap, &workers))
     {
-        DLOG1("disk-partitions disabled: insufficient private storage for a large bitmap");
         free(work.parts);
         partition_status(-1, 0);
         return (false);
@@ -534,7 +530,7 @@ bool            tag_partitions(void)
         DLOG1("disk-partitions unavailable: temporary file: %s", ERRNO);
         free(work.parts);
         partition_status(-1, 0);
-        return (false);
+        return (engine_fallback("cannot create the partition file on a writable disk volume"));
     }
     if (ftruncate(work.fd, bytes) < 0)
         error("cannot prepare partition file: %s", ERRNO);
@@ -542,7 +538,7 @@ bool            tag_partitions(void)
     DLOG1("partitions: %zu ranges, %zu workers, %zu bytes, %zu bitmap bytes",
             work.count, workers, bytes, bitmap);
     DLOG1("partition memory: %zu budget bytes, %zu metadata bytes, %zu bytes per worker",
-            budget, work.count * sizeof(struct partition), work.memory);
+            g_conf.dedupe_memory, work.count * sizeof(struct partition), work.memory);
     write_partitions(&work);
     work.duplicates = calloc(bitmap, 1);
     if (work.duplicates == NULL)

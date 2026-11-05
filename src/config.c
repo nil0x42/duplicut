@@ -11,21 +11,7 @@
 #include "error.h"
 #include "debug.h"
 #include "bytesize.h"
-#include "partition.h"
-
-#ifndef PARTITION_MIN_CHUNKS
-# define PARTITION_MIN_CHUNKS 16
-#endif
-
-
-struct line_sample
-{
-    size_t  bytes;
-    size_t  lines;
-    size_t  contents;
-    double  min_size;
-};
-
+#include "engine.h"
 
 /** Count accepted lines within an aligned sample, including skipped bytes. */
 static void     sample_chunk(t_chunk chunk, struct line_sample *sample)
@@ -224,54 +210,6 @@ static void     config_mmap_window(const struct memstate *memstate)
 }
 
 
-/** Select an initial engine before checking its exact runtime requirements. */
-static void     config_dedupe(const struct memstate *memstate,
-                    const struct line_sample *sample)
-{
-#if PARTITION_MIN_CHUNKS > 0
-    size_t  chunks;
-    size_t  table_memory = g_conf.hmap_size * sizeof(t_line);
-    bool    parallel_short = false;
-
-    if (!g_conf.chunk_size || !sample->lines)
-    {
-        DLOG1("disk-partitions disabled: no usable line sample");
-        return;
-    }
-    chunks = g_file->orig_size / g_conf.chunk_size
-        + (g_file->orig_size % g_conf.chunk_size != 0);
-#if MULTITHREADING == 1
-    /* Few short-line chunks leave table insertion serial and workers idle. */
-    parallel_short = chunks <= g_conf.threads && g_conf.threads > 1
-        && g_file->orig_size / sample->bytes >= g_conf.threads
-        && (double)sample->contents / sample->lines <= 2 * sizeof(t_line);
-#endif
-    if (chunks < PARTITION_MIN_CHUNKS && !parallel_short)
-    {
-        DLOG1("disk-partitions disabled: %zu estimated chunks", chunks);
-        return;
-    }
-    if (parallel_short && chunks < PARTITION_MIN_CHUNKS)
-    {
-        DLOG1("disk-partitions candidate: %zu short-line chunks for %u threads",
-                chunks, g_conf.threads);
-    }
-    if (chunks < 8 * PARTITION_MIN_CHUNKS
-            && memstate->mem_available > (long long)table_memory
-            && g_file->orig_size <= (size_t)memstate->mem_available - table_memory
-            && (double)sample->contents / sample->lines > 2 * sizeof(t_line))
-    {
-        DLOG1("disk-partitions disabled: cached long lines");
-        return;
-    }
-#else
-    (void)memstate;
-    (void)sample;
-#endif
-    config_partitions();
-}
-
-
 /** Display common budgets and the initial plan for each engine. */
 static void     display_config(const struct memstate *memstate)
 {
@@ -294,6 +232,7 @@ static void     display_config(const struct memstate *memstate)
     } else {
         DLOG1("g_conf.dupfile_name:      (null)");
     }
+    DLOG1("g_conf.engine:            %s", engine_name(g_conf.engine));
     DLOG1("g_conf.threads:           %u", g_conf.threads);
     DLOG1("multithreading:          %s", MULTITHREADING == 1 ? "enabled" : "disabled");
     DLOG1("g_conf.line_max_size:     %u", g_conf.line_max_size);
@@ -337,9 +276,7 @@ void            config(void)
     config_sample(&sample);
     config_hmap_size(g_file, &sample);
     config_chunk_size(g_file, &sample);
-    g_conf.partition_count = 0;
-    g_conf.partition_workers = 0;
-    config_dedupe(&memstate, &sample);
+    config_engine(&memstate, &sample);
     config_mmap_window(&memstate);
     display_config(&memstate);
 }
