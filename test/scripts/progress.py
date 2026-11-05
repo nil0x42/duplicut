@@ -46,32 +46,39 @@ def terminal_reader(fd):
     return b''.join(chunks)
 
 
-def foreground():
+def terminal_session(command):
     os.setsid()
     fcntl.ioctl(2, termios.TIOCSCTTY, 0)
+    before = termios.tcgetattr(2)
+    result = subprocess.run(command, timeout=10)
+    # Keep the controlling session alive until its settings have been checked.
+    after = termios.tcgetattr(2)
+    # macOS sets PENDIN internally when canonical input is restored.
+    before[3] &= ~termios.PENDIN
+    after[3] &= ~termios.PENDIN
+    assert after == before, ('terminal settings were not restored', before, after)
+    sys.exit(result.returncode if result.returncode >= 0 else 128 - result.returncode)
 
 
 def terminal(command, content, columns=120, delay=0):
     master, slave = os.openpty()
     fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack('HHHH', 24, columns, 0, 0))
-    before = termios.tcgetattr(slave)
     try:
-        process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                   stderr=slave, preexec_fn=foreground)
+        process = subprocess.Popen([sys.executable, __file__, '--terminal', *command],
+                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                   stderr=slave)
         with ThreadPoolExecutor(max_workers=1) as pool:
             reader = pool.submit(terminal_reader, master)
             try:
                 if delay:
                     time.sleep(delay)
-                output, unused = process.communicate(content, timeout=10)
+                output, unused = process.communicate(content, timeout=12)
             finally:
                 if process.poll() is None:
                     process.kill()
                     process.wait()
-                after = termios.tcgetattr(slave)
                 os.close(slave)
             log = reader.result(timeout=5)
-        assert after == before, 'terminal settings were not restored'
         return process.returncode, output, log
     finally:
         os.close(master)
@@ -187,4 +194,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    if len(sys.argv) > 1 and sys.argv[1] == '--terminal':
+        terminal_session(sys.argv[2:])
+    else:
+        main()
