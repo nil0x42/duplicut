@@ -12,6 +12,9 @@
 #include "status.h"
 #include "error.h"
 #include "debug.h"
+#include "bytesize.h"
+#include "line.h"
+#include "const.h"
 
 
 struct conf g_conf = {
@@ -92,6 +95,20 @@ static void     remove_duplicates(void)
 }
 
 
+static void     display_mmap_config(void)
+{
+    status_info("engine:", "\e[1mmmap-chunks\e[0m (%s); lookup threads: up to \e[1m%u\e[0m",
+        g_conf.engine == ENGINE_AUTO ? "auto" : "forced",
+        MULTITHREADING == 1 ? g_conf.threads : 1);
+    status_info("table:", "\e[1m%s\e[0m; target load: %.0f%%, limit: %.0f%%",
+        sizerepr(g_conf.hmap_size * sizeof(t_line)),
+        HMAP_LOAD_FACTOR * 100, HMAP_MAX_LOAD * 100);
+    status_info("chunks:", "\e[1m%zu\e[0m estimated; nominal size: \e[1m%s\e[0m",
+        g_file->orig_size / g_conf.chunk_size + (g_file->orig_size % g_conf.chunk_size != 0),
+        sizerepr(g_conf.chunk_size));
+}
+
+
 int             main(int argc, char **argv)
 {
     optparse(argc, argv); /* setup g_conf options */
@@ -99,22 +116,25 @@ int             main(int argc, char **argv)
     start_progressbar();
 
     update_status(FCOPY_START);
-    init_files();
-    config(); /* configure g_conf options */
-    set_status(CHUNK_SIZE, g_conf.chunk_size);
-
-    update_status(TAGDUP_START);
-    if (!g_conf.partition_count || !tag_partitions())
+    if (init_files())
     {
-        DLOG1("dedupe engine: mmap-chunks");
-        update_status(CHUNK_START);
-        init_hmap(g_conf.hmap_size);
-        tag_duplicates();
-        destroy_hmap();
-    }
+        update_status(CONFIG_START);
+        config(); /* configure g_conf options */
+        set_status(CHUNK_SIZE, g_conf.chunk_size);
 
-    update_status(FCLEAN_START);
-    remove_duplicates();
+        if (!g_conf.partition_count || !tag_partitions())
+        {
+            DLOG1("dedupe engine: mmap-chunks");
+            update_status(CHUNK_START);
+            display_mmap_config();
+            init_hmap(g_conf.hmap_size);
+            tag_duplicates();
+            destroy_hmap();
+        }
+
+        update_status(FCLEAN_START);
+        remove_duplicates();
+    }
     cleanup_files();
 
     stop_progressbar();

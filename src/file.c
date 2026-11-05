@@ -240,6 +240,10 @@ static int      try_tmpfile(const char *path, bool directory, size_t size)
     if (fd >= 0)
     {
         DLOG1("temporary file: %s", name);
+        slash = strrchr(name, '/');
+        while (slash > name && slash[-1] == '/')
+            --slash;
+        status_info("temp dir:", "%.*s", slash == name ? 1 : (int)(slash - name), name);
     }
     free(name);
     return (fd);
@@ -294,7 +298,7 @@ static void buf_toupper(char *str, ssize_t size)
 
 /** Copy file from src_fd to dst_fd
  */
-static void copy_file(int dst_fd, int src_fd, bool send_status)
+static void copy_file(int dst_fd, int src_fd, enum e_status_set progress)
 {
     char        buffer[BUF_SIZE];
     ssize_t     nread;
@@ -334,13 +338,14 @@ static void copy_file(int dst_fd, int src_fd, bool send_status)
             }
         } while (nread > 0);
 
-        if (send_status && read_bytes >= BUF_SIZE * 0x100) {
-            set_status(FCOPY_BYTES, read_bytes);
+        if (read_bytes >= BUF_SIZE * 0x100) {
+            set_status(progress, read_bytes);
             read_bytes = 0;
         }
     }
     if (nread != 0)
         error("copy_file() -> read(): %s", ERRNO);
+    set_status(progress, read_bytes);
 }
 
 
@@ -348,8 +353,9 @@ static void copy_file(int dst_fd, int src_fd, bool send_status)
  * - Use a temporary file when output cannot serve as the working file.
  * - Register cleanup with atexit().
  * - Memory-map the working file for duplicate removal.
+ * Return false for an empty input.
  */
-void        init_files(void)
+bool        init_files(void)
 {
     struct file  *file;
     bool         use_stdout;
@@ -362,6 +368,7 @@ void        init_files(void)
 
     atexit(close_all);
     open_file(&g_infile, g_conf.infile_name, O_RDONLY);
+    set_status(FILE_SIZE, g_infile.info.st_size);
     use_stdout = strcmp(g_conf.outfile_name, "/dev/stdout") == 0;
     if (use_stdout)
         direct_output = open_stdout();
@@ -386,6 +393,12 @@ void        init_files(void)
     if (FILE_ISSET(&g_dupfile))
         truncate_file(&g_dupfile);
 
+    status_info("input:", "%s (%s)", g_conf.infile_name,
+        S_ISREG(g_infile.info.st_mode) ? sizerepr(g_infile.info.st_size) : "size unknown");
+    status_info("output:", "%s (%s)", g_conf.outfile_name,
+        direct_output ? "direct" : "temporary work file");
+    if (g_conf.dupfile_name != NULL)
+        status_info("duplicates:", "%s", g_conf.dupfile_name);
     if (direct_output)
         file = &g_outfile;
     else
@@ -394,26 +407,27 @@ void        init_files(void)
         file = &g_tmpfile;
     }
 
-    set_status(FILE_SIZE, g_infile.info.st_size);
-    copy_file(file->fd, g_infile.fd, 1);
+    copy_file(file->fd, g_infile.fd, FCOPY_BYTES);
     close_file(&g_infile);
 
     if (fstat(file->fd, &(file->info)) < 0)
         error("couldn't stat %s: %s", file->name, ERRNO);
+    set_status(FILE_SIZE, file->info.st_size);
+    file->orig_size = file->info.st_size;
+    file->addr = NULL;
+    g_file = file;
+    if (!S_ISREG(g_infile.info.st_mode))
+        status_info("input size:", "%s", sizerepr(file->info.st_size));
     if (file->info.st_size == 0)
     {
         DLOG1("empty input: nothing to deduplicate");
-        exit(0);
+        return (false);
     }
 
     file->addr = mmap(NULL, (size_t) file->info.st_size,
             (PROT_READ | PROT_WRITE), MAP_SHARED, file->fd, 0);
     if (file->addr == MAP_FAILED)
         error("couldn't mmap %s: %s", file->name, ERRNO);
-
-    set_status(FILE_SIZE, file->info.st_size);
-    file->orig_size = file->info.st_size;
-    g_file = file;
 
     DLOG1("");
     DLOG1("---------- g_file ------------");
@@ -423,6 +437,7 @@ void        init_files(void)
     DLOG1("g_file->info.st_size: %s (%ld)",
             sizerepr(g_file->info.st_size), g_file->info.st_size);
     DLOG1("------------------------------");
+    return (true);
 }
 
 
@@ -440,7 +455,9 @@ void        cleanup_files(void)
     else
         file = &g_outfile;
 
-    if (munmap(file->addr, file->orig_size) < 0)
+    set_status(FOUTPUT_SIZE, FILE_ISSET(&g_tmpfile) ? file->info.st_size : 0);
+    update_status(FILE_ISSET(&g_tmpfile) ? FWRITE_START : FOUTPUT_START);
+    if (file->orig_size && munmap(file->addr, file->orig_size) < 0)
         error("cannot munmap() %s: %s", file->name, ERRNO);
     if (ftruncate(file->fd, file->info.st_size) < 0)
         error("cannot ftruncate() %s: %s", file->name, ERRNO);
@@ -448,7 +465,7 @@ void        cleanup_files(void)
     if (FILE_ISSET(&g_tmpfile))
     {
         lseek(g_tmpfile.fd, 0, SEEK_SET);
-        copy_file(g_outfile.fd, g_tmpfile.fd, 0);
+        copy_file(g_outfile.fd, g_tmpfile.fd, FOUTPUT_BYTES);
     }
     else if (strcmp(g_conf.outfile_name, "/dev/stdout") == 0)
     {

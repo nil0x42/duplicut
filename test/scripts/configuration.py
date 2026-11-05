@@ -148,7 +148,11 @@ def main():
             assert result.returncode == 0
             text = result.stderr.decode()
             assert not re.search(r'\b(?:inf|nan)\b', text, re.IGNORECASE)
-            assert '94.0%' in text and '97.0%' in text and '100.0%' in text
+            assert '94.0%' in text and '99.0%' in text and '100.0%' in text
+            assert '(done: took 0.123s)' in text and '(done: took 0.456s)' in text
+            assert '(done: took 1h 0m)' in text and 'ETA:' not in text
+            if not flags:
+                assert '(done: took 1s)' in text and '(done: took 1m 0s)' in text
             assert 'disk-partitions' in text
             if flags:
                 assert 'mmap-chunks' in text and 'task 1/13' in text
