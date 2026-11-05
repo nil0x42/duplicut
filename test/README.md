@@ -54,6 +54,9 @@ Working memory tests exercise mapped scan windows, large bitmap admission and
 fallback, parallel selection for short lines, and RAM-backed stdout. Linux runs
 also check observed RSS on inputs much larger than the requested budget.
 
+Engine tests compare automatic and forced selection through `-e` and `--engine`,
+including case conversion, filters, duplicate output and exact counters. A forced
+partition engine reports resource failures explicitly instead of falling back.
 
 The partition tests build a small-input variant to exercise bounded memory,
 collisions, filters, output order and concurrent bitmap updates. Linux tests
@@ -79,3 +82,11 @@ Recorded measurements and selection rules are in the
 [partition benchmarks](benchmarks/partitions.md).
 The [selection audit](benchmarks/selection.md) explains the resource-based rules
 and their validation across available-memory estimates.
+The [engine audit](benchmarks/engines.md) describes the current complete policy,
+worker-dependent decisions and forced-engine comparisons.
+The [working memory measurements](benchmarks/memory.md) cover mapped scan windows,
+RAM-backed output and large bitmap admission.
+
+To compare the engines in the same binary, pass it as both positional arguments
+and add `--baseline-engine mmap-chunks --candidate-engine disk-partitions`.
+Omitting these options also works with older binaries that do not support `-e`.

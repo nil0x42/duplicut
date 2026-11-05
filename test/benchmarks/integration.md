@@ -1,5 +1,9 @@
 # Configuration and engine integration
 
+Later changes add [mapped-memory budgeting](memory.md) and a
+[central engine selector with manual forcing](engines.md). This page describes
+the preceding integration and its measurements.
+
 This follow-up integrates configuration, sampled sizing, engine selection,
 execution and diagnostics. Earlier partition, selection and saturation results
 remain in their respective reports; their binaries predate this change.
