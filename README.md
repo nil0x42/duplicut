@@ -28,14 +28,13 @@
     <img src="https://awesome.re/mentioned-badge.svg" alt="Mentioned in awesome-pentest">
   </a>
   <a href="https://inventory.raw.pm/tools.html#Duplicut" target="_blank">
-    <img src="https://inventory.raw.pm/img/badges/Rawsec-inventoried-FF5050_flat.svg">
+    <img src="https://inventory.raw.pm/img/badges/Rawsec-inventoried-FF5050_flat.svg" alt="Rawsec tool inventory">
   </a>
   <a href="https://www.blackarch.org/misc.html" target="_blank">
     <img src="https://img.shields.io/static/v1?label=BlackArch&message=packaged&color=red&logo=archlinux&logoColor=006">
   </a>
-  </a>
   <a href="https://x.com/intent/follow?screen_name=nil0x42" target="_blank">
-    <img src="https://img.shields.io/badge/Follow-@nil0x42-6aa?logo=x" akt="Follow on X">
+    <img src="https://img.shields.io/badge/Follow-@nil0x42-6aa?logo=x" alt="Follow on X">
   </a>
 </p>
 
@@ -51,132 +50,92 @@
 
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
-<a href="#"><img align="right" src=".github/images/1-comparison-v2.png" width="55%" /></a>
+<a href="#"><img align="right" src=".github/images/1-comparison-v2.png" width="55%" alt="Order and memory tradeoffs of sort and awk" /></a>
 
 ### :book: Overview
 
-Nowadays, password wordlist creation usually implies concatenating
-multiple data sources.
+Duplicut removes duplicate lines from massive wordlists **without changing their
+order**. Keep the first occurrence of each word, even when the file exceeds RAM.
 
-Ideally, most probable passwords should stand at start of the wordlist,
-so most common passwords are cracked instantly.
+When combining password wordlists, the most likely candidates should stay first.
+Sorting changes that priority; keeping every unique word in memory can exhaust
+RAM. Duplicut is written in optimized C and automatically chooses between
+chunk-based scans and disk partitions to fit the available resources.
 
-
-With existing *dedupe tools* you are forced to choose
-if you prefer to *preserve the order **OR** handle massive wordlists*.
-
-Unfortunately, **wordlist creation requires both**
-
-
-> **So i wrote duplicut in [highly optimized C][get-next-line] to address this very specific need :nerd\_face: :computer:**
-
-<a href="#"><img align="center" src=".github/images/demo.gif" width="80%" /></a>
+<br clear="all">
+<a href="#"><img align="center" src=".github/images/demo.gif" width="80%" alt="Duplicut terminal demonstration" /></a>
 <br>
 
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
+<a name="quick-start"></a>
 ### :bulb: Quick start
 
 ```sh
-git clone https://github.com/nil0x42/duplicut  # download ...
-cd duplicut/ && make                           # compile ...
-./duplicut wordlist.txt > clean-wordlist.txt   # dedupe !!!
+git clone https://github.com/nil0x42/duplicut  # download
+cd duplicut && make                         # compile
+./duplicut wordlist.txt > clean-wordlist.txt # dedupe
 ```
 
+Prefer a ready-to-run binary? Download the matching Linux or macOS binary from
+the [latest release](https://github.com/nil0x42/duplicut/releases/latest).
+Linux and macOS builds are available for x64 and ARM64.
+[Build and installation details](doc/development.md#building).
+
+<a name="options"></a>
 ### :wrench: Options
 
-```
--o, --outfile <FILE>       Write result to <FILE> (default stdout)
--t, --threads <NUM>        Worker threads (default online CPUs)
--m, --memlimit <VALUE>     Working memory budget (default available)
--e, --engine <ENGINE>      auto, mmap-chunks or disk-partitions (default auto)
--l, --line-max-size <NUM>  Max line size in bytes (default 1024, max 4095)
--p, --printable            Keep only printable ASCII lines
--c, --lowercase            Convert wordlist to lowercase
--C, --uppercase            Convert wordlist to uppercase
--D, --dupfile <FILE>       Write dupes to <FILE> (slows down duplicut)
--h, --help                 Display this help and exit
--v, --version              Output version information and exit
-```
+Run `./duplicut --help` for command-line help. Input comes from a named file or,
+when omitted, from stdin. Results go to stdout unless `-o` is given; progress and
+diagnostics go to stderr.
 
-Without `-o`, duplicut writes to stdout. You can redirect the result, append it
-to an existing file, or pipe it to another command:
+| Use | Option | Behavior |
+|---|---|---|
+| Output | `-o, --outfile FILE` | Write to a file instead of stdout. |
+| | `-D, --dupfile FILE` | Save removed duplicate occurrences; adds I/O. |
+| Resources | `-m, --memlimit VALUE` | Working-memory budget, e.g. `100M` or `2G`; defaults to available memory. |
+| | `-t, --threads NUM` | Maximum worker threads; defaults to online CPUs. |
+| Filtering | `-l, --line-max-size NUM` | Maximum line length in bytes; default 1024, maximum 4095. |
+| | `-p, --printable` | Keep only printable ASCII lines. |
+| Case | `-c, --lowercase` | Convert to lowercase before deduplication. |
+| | `-C, --uppercase` | Convert to uppercase before deduplication. |
+| Engine | `-e, --engine ENGINE` | `auto` (default), `mmap-chunks` or `disk-partitions`. |
+| Information | `-h, --help` | Show help. |
+| | `-v, --version` | Show version and license information. |
+
+### :bulb: Common uses
 
 ```sh
-./duplicut wordlist.txt > clean-wordlist.txt
-./duplicut wordlist.txt >> combined-wordlist.txt
-cat wordlist.txt | ./duplicut | another-command
+# Combine lists while preserving their priority
+cat preferred.txt extra.txt | ./duplicut > combined.txt
+
+# Normalize case and keep printable ASCII
+./duplicut -cp wordlist.txt > clean-wordlist.txt
+
+# Set a working-memory budget and save duplicate occurrences
+./duplicut -m 100M -D duplicates.txt wordlist.txt -o unique.txt
+
+# Append the result of this run to an existing file
+./duplicut wordlist.txt >> combined.txt
 ```
 
-*   **Features**:
-    *   Handle massive wordlists, even those whose size exceeds available RAM
-    *   Filter lines by max byte length (`--line-max-size` option)
-    *   Filter-out lines with non-printable ASCII chars (`--printable` option)
-    *   Save found duplicates to another file (`--dupfile` option)
-    *   Ignore case with `--lowercase` or `--uppercase` options
-    *   Displays a nice progress bar with ETA
+Append mode deduplicates the new input, not the existing destination contents.
+See the [usage guide](doc/usage.md) for line handling and output behavior, and
+[memory and disk use](doc/resources.md) for what the memory budget covers.
 
-*   **Implementation**:
-    *   Written in pure C code, designed to be fast
-    *   Compressed hashmap items on 64 bit platforms
-    *   Multithreading support
+### :zap: Observed performance
 
-*   **Limitations**:
-    *   `--line-max-size` can't exceed 4095
+On a **laptop with 16 GB RAM and an NVMe SSD**:
 
-### :book: Technical Details
+| Workload | Observed time |
+|---|---:|
+| Real wordlist: about 285 million lines, 2.58 GiB | **~36 seconds** |
+| Generated wordlist: 20 GiB, larger than RAM | **~2 min 20 seconds** |
 
-#### :small_orange_diamond: 1- Memory optimized:
+These are measured workloads, not a throughput guarantee.
+[Workloads, options and measurement details](doc/performance.md).
 
-Each hashmap entry packs a line address and its length into a 64-bit word
-using a [tagged pointer][tagged-pointer]: 12 bits for the byte length and
-52 bits for the address. This assumes the upper 12 address bits are zero.
+### :book: Documentation
 
-![][img-2-line-struct]
-
-#### :small_orange_diamond: 2- Massive file handling:
-
-The working file is memory-mapped. The `mmap-chunks` engine splits it into
-![][latex-n] chunks. A bounded sample estimates table capacity and chunk size;
-chunk boundaries are extended to the next newline.
-
-Each chunk is indexed in the hashmap and deduped. Subsequent chunks are
-then checked against that table.
-
-Without hash table saturation, `n` chunks schedule up to `n(n+1)/2`
-chunk-processing tasks. Saturated chunks are processed in additional passes.
-This task count is not an execution-time bound:
-
-![][img-3-chunked-processing]
-
-The `disk-partitions` engine uses disk-backed hash partitions, processed with
-private hash tables. A duplicate bitmap preserves the original output order.
-Temporary files prefer the input directory, then the output directory, then the
-current directory, using a writable disk volume with enough available space.
-
-`-m` estimates working memory, including resident mapped pages. Runtime overhead
-and the system file cache prevent it from being a strict RSS limit.
-
-## :bulb: Troubleshooting
-
-If you find a bug, or something doesn't work as expected,
-please compile duplicut in debug mode and post an [issue] with
-attached output:
-
-```
-# debug level can be from 1 to 4
-make debug level=1
-./duplicut [OPTIONS] 2>&1 | tee /tmp/duplicut-debug.log
-```
-
-[get-next-line]: https://github.com/nil0x42/duplicut/blob/master/src/line.c#L39
-
-[img-2-line-struct]: .github/images/2-line-struct.png
-[img-3-chunked-processing]: .github/images/3-chunked-processing.png
-[img-4-help]: .github/images/4-help.png
-
-[issue]: https://github.com/nil0x42/duplicut/issues
-[tagged-pointer]: https://en.wikipedia.org/wiki/Tagged_pointer
-
-[latex-n]: http://www.sciweavers.org/tex2img.php?fs=15&eq=n
-[latex-nth-triangle]: http://www.sciweavers.org/tex2img.php?fs=32&eq=%5Csum_%7Bk%3D1%7D%5Enk
+[Documentation index](doc/README.md) · [How it works](doc/architecture.md) ·
+[Troubleshooting](doc/troubleshooting.md) · [Development](doc/development.md)
