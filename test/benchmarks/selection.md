@@ -1,5 +1,10 @@
 # Partition selection
 
+The current [engine audit](engines.md) replaces the fixed cached-long threshold
+with worker-dependent lookup batches. The [memory report](memory.md) also
+supersedes the bitmap half-budget rejection and mapped-memory behavior below.
+This page retains the earlier measurements and their original policy.
+
 This audit describes `6107d5f`. The later
 [configuration integration](integration.md) shares sampling with adaptive table
 and chunk sizing, while retaining the selection thresholds described here.

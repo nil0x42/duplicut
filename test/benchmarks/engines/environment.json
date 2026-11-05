@@ -1,0 +1,42 @@
+{
+  "date": "2026-11-05",
+  "baseline_commit": "7183428",
+  "policy": "Usable partition workers and cached lookup batches; shared sizing and resource checks unchanged",
+  "flags": "-std=gnu99 -Wall -Wextra -Werror -O2 -DDEBUG=1 -mtune=native -ffast-math -Iinclude src/*.c -lm -pthread",
+  "affinity": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+  ],
+  "platform": "Linux-7.2.11-arch1-1-x86_64-with-glibc2.44",
+  "compiler": "gcc (GCC) 16.2.1 20260810",
+  "cpu": "Intel Core i5-12450H",
+  "ram_kib": 16084760,
+  "filesystem": "ext4 over LUKS",
+  "storage": "WD PC SN740 SDDPMQD-1T00-1101 NVMe",
+  "pilot": "Both forced engines and auto on one development executable; one exploratory run per combination, no timing claim for small differences",
+  "confirmation": "Same flags for before/final binaries, mixed order, one warm-up and three measured repetitions; fsync and checksum outside timing",
+  "binaries": {
+    "initial": "20a1ed389d8e749dce4b9a6c9a8519c4a0e9074906bdcba279ac889cd7bca625",
+    "before": "af89e12d5e20d2e39002528582a0bb0cbaf1c439735839322e97f46815b53306",
+    "final": "7ca7eb02ae335205256ada9ddb05a628cc5f5e7b90b62c7b8877993a33fe03ca",
+    "first": "12ef48db5a866b96779da7897772de3c1a86e6ce6c0056bb060010ba0e194606"
+  },
+  "first_policy": "16 cached lookup batches; retained single-worker and short-line confirmation cases have identical dispatch, dimensions and hot paths under the final eight-batch rule",
+  "final_policy": "Eight cached lookup batches; private scan-volume guard remains conservative, without a guessed CPU/I/O conversion factor",
+  "confirmation_files": {
+    "confirmation-16-batches.jsonl": "First prototype; single-worker and short-line rows are execution-equivalent to retained policy. Its four-worker cached-long control was rejected.",
+    "confirmation.jsonl": "Final eight-batch policy; all automatic selections match the intended engines."
+  },
+  "final_code_commit": "2a7af6b",
+  "flags_scope": "Controlled before/final confirmation builds; all three exploratory modes share the initial development executable"
+}

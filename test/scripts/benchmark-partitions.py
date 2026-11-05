@@ -27,10 +27,12 @@ def generate(path, size, length, percent):
     return count, unique
 
 
-def run(program, source, output, memory, threads, usage):
+def run(program, source, output, memory, threads, usage, engine=None):
     command = ['/usr/bin/time', '-f', '%U %S %M %I %O %F %R', '-o', str(usage),
                str(program), str(source), '-o', str(output), '-m', memory,
                '-t', str(threads)]
+    if engine:
+        command += ['--engine', engine]
     start = time.monotonic()
     result = subprocess.run(command, stderr=subprocess.PIPE, timeout=3600)
     elapsed = time.monotonic() - start
@@ -53,6 +55,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('baseline', type=Path)
     parser.add_argument('candidate', type=Path)
+    engines = ('auto', 'mmap-chunks', 'disk-partitions')
+    parser.add_argument('--baseline-engine', choices=engines)
+    parser.add_argument('--candidate-engine', choices=engines)
     parser.add_argument('--size-mib', type=int, default=1024)
     parser.add_argument('--lengths', nargs='+', type=int, default=[16, 128])
     parser.add_argument('--unique', nargs='+', type=int, default=[10, 50, 90])
@@ -66,6 +71,7 @@ def main():
     assert all(1 <= length <= 4095 for length in args.lengths)
     assert all(1 <= percent <= 100 for percent in args.unique)
     programs = dict(baseline=args.baseline.resolve(), candidate=args.candidate.resolve())
+    engines = dict(baseline=args.baseline_engine, candidate=args.candidate_engine)
     rng = random.Random(22)
     with tempfile.TemporaryDirectory(prefix='duplicut-benchmark-', dir=args.directory) as folder:
         folder = Path(folder).resolve()
@@ -79,7 +85,8 @@ def main():
                     names = list(programs)
                     rng.shuffle(names)
                     for name in names:
-                        row = run(programs[name], source, output, args.memory, args.threads, usage)
+                        row = run(programs[name], source, output, args.memory,
+                                  args.threads, usage, engines[name])
                         if expected is None:
                             expected = row['sha256']
                         assert row['sha256'] == expected, (name, length, percent)
