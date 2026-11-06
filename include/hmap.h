@@ -16,4 +16,4 @@ extern struct hmap  g_hmap;
 /* source file: hmap.c */
 void    init_hmap(size_t size);
 void    destroy_hmap(void);
-void    populate_hmap(t_chunk *chunk);
+bool    populate_hmap(t_chunk *chunk);

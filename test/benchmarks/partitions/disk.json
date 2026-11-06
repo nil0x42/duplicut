@@ -1,0 +1,39 @@
+{
+  "baseline": {
+    "variant": "baseline",
+    "seconds": 588.0773532810053,
+    "usage": "248.36 226.04 13372000 567161344 83887408 11543112 8844884",
+    "sha256": "e8bd5036418d80492046912173d9182fd12ef071466d76a1b42bd674f9c3d8f1",
+    "source_bytes": 21474836400,
+    "output_bytes": 10737418200
+  },
+  "candidate": {
+    "variant": "candidate",
+    "seconds": 160.57741986600013,
+    "sync_seconds": 0.04360092400020221,
+    "peaks": {
+      "partition_allocated_bytes": 22973140992,
+      "partition_logical_bytes": 22973080800,
+      "output_allocated_bytes": 21474840576
+    },
+    "usage": "46.95 51.16 12231624 248628416 128822368 13890 6096668",
+    "sha256": "e8bd5036418d80492046912173d9182fd12ef071466d76a1b42bd674f9c3d8f1",
+    "source_bytes": 21474836400,
+    "output_bytes": 10737418200
+  },
+  "earlier_prototype": {
+    "variant": "candidate",
+    "seconds": 183.63142936299846,
+    "usage": "47.45 52.09 12209188 251489016 128837208 9476 6097821",
+    "sha256": "e8bd5036418d80492046912173d9182fd12ef071466d76a1b42bd674f9c3d8f1",
+    "source_bytes": 21474836400,
+    "output_bytes": 10737418200
+  },
+  "repetitions": 1,
+  "reference_reused": true,
+  "source_length": 128,
+  "unique_percent": 50,
+  "memory": "2G",
+  "threads": 4,
+  "poll_interval_seconds": 0.2
+}

@@ -1,4 +1,7 @@
 #include <stdlib.h>
+#include <sys/mman.h>
+#include <stdint.h>
+#include <unistd.h>
 #include <string.h>
 #include <stdbool.h>
 #include <sys/types.h>
@@ -11,6 +14,69 @@
 #include "config.h"
 #include "status.h"
 #include "debug.h"
+#include "error.h"
+
+
+/** Locate boundaries without making future chunks resident. */
+static char *find_newline(char *ptr, char *endptr, struct file *file)
+{
+    char    buffer[0x1000];
+    char    *next;
+    size_t  size;
+    ssize_t result;
+
+    if (!g_conf.mmap_window)
+        return (memchr(ptr, '\n', endptr - ptr));
+    while (ptr < endptr)
+    {
+        size = endptr - ptr;
+        if (size > sizeof(buffer))
+            size = sizeof(buffer);
+        do {
+            result = pread(file->fd, buffer, size, ptr - file->addr);
+        } while (result < 0 && errno == EINTR);
+        if (result <= 0)
+            error("cannot read chunk boundary: %s", result < 0 ? ERRNO : "unexpected EOF");
+        next = memchr(buffer, '\n', result);
+        if (next != NULL)
+            return (ptr + (next - buffer));
+        ptr += result;
+    }
+    return (NULL);
+}
+
+
+/** Restrict a scan to the configured mapped window, ending after a newline. */
+t_chunk     get_chunk_window(const t_chunk *range)
+{
+    t_chunk chunk = *range;
+    char    *end;
+
+    if (!g_conf.mmap_window
+            || (size_t)(range->endptr - range->ptr) <= g_conf.mmap_window)
+        return (chunk);
+    end = range->ptr + g_conf.mmap_window;
+    end = find_newline(end, range->endptr, g_file);
+    chunk.endptr = end ? end + 1 : range->endptr;
+    return (chunk);
+}
+
+
+/** Release resident file pages while preserving their shared contents. */
+void        release_chunk(const t_chunk *chunk)
+{
+    uintptr_t start;
+    uintptr_t end;
+
+    if (!g_conf.mmap_window)
+        return;
+    start = (uintptr_t)chunk->ptr / g_conf.page_size * g_conf.page_size;
+    end = (uintptr_t)chunk->endptr / g_conf.page_size * g_conf.page_size;
+    if (end > start && madvise((void*)start, end - start, MADV_DONTNEED) < 0)
+    {
+        DLOG1("cannot release mapped file pages: %s", ERRNO);
+    }
+}
 
 
 int         count_chunks(void)
@@ -68,7 +134,7 @@ bool        get_next_chunk(t_chunk *chunk, struct file *file)
     {
         endptr = ptr + g_conf.chunk_size;
         remaining_size -= g_conf.chunk_size;
-        if ((endptr = memchr(endptr, '\n', remaining_size)) == NULL)
+        if ((endptr = find_newline(endptr, file->addr + file->info.st_size, file)) == NULL)
         {
             endptr = file->addr + file->info.st_size;
             remaining_size = 0;
@@ -99,6 +165,8 @@ bool        get_next_chunk(t_chunk *chunk, struct file *file)
 void        cleanout_chunk(void *arg)
 {
     t_chunk *chunk = arg;
+    t_chunk range;
+    t_chunk mapped;
     char    *line_ptr;
     int     line_sz;
     long    slot;
@@ -111,33 +179,40 @@ void        cleanout_chunk(void *arg)
     i = 0;
     base_ptr = chunk->ptr;
     size_t junk_lines = 0;
-    while (get_next_line(&line_ptr, &line_sz, chunk, &junk_lines))
+    range = *chunk;
+    while (range.ptr < range.endptr)
     {
-        slot = HASH(line_ptr, line_sz) % g_hmap.size;
-        while (LINE_ISSET(g_hmap.ptr[slot]))
+        *chunk = get_chunk_window(&range);
+        mapped = *chunk;
+        while (get_next_line(&line_ptr, &line_sz, chunk, &junk_lines))
         {
-            if (cmp_line(g_hmap.ptr[slot], line_ptr, line_sz) == 0)
+            slot = HASH(line_ptr, line_sz) % g_hmap.size;
+            while (LINE_ISSET(g_hmap.ptr[slot]))
             {
-                if (has_dupfile) {
-                    log_duplicate(line_ptr, line_sz);
+                if (cmp_line(g_hmap.ptr[slot], line_ptr, line_sz) == 0)
+                {
+                    if (has_dupfile) {
+                        log_duplicate(line_ptr, line_sz);
+                    }
+                    *line_ptr = DISABLED_LINE;
+                    ++duplicates;
+                    break;
                 }
-                *line_ptr = DISABLED_LINE;
-                ++duplicates;
-                break;
+                /* open addressing with linear probing */
+                slot = (slot + 1) % g_hmap.size;
             }
-            /* open addressing with linear probing */
-            slot = (slot + 1) % g_hmap.size;
+            i++;
+            if (i == 500000) {
+                set_status(TAGDUP_BYTES, (size_t)(chunk->ptr - base_ptr));
+                base_ptr = chunk->ptr;
+                i = 0;
+            }
         }
-        i++;
-        if (i == 500000) {
-            set_status(TAGDUP_BYTES, (size_t)(chunk->ptr - base_ptr));
-            base_ptr = chunk->ptr;
-            i = 0;
-        }
+        release_chunk(&mapped);
+        range.ptr = mapped.endptr;
     }
-    set_status(TAGDUP_BYTES, (size_t)(chunk->ptr - base_ptr));
+    set_status(TAGDUP_BYTES, (size_t)(range.endptr - base_ptr));
     set_status(TAGDUP_DUPLICATES, (size_t)duplicates);
-    set_status(TAGDUP_JUNK_LINES, junk_lines);
     free(chunk);
     update_status(CTASK_DONE);
 }

@@ -1,0 +1,33 @@
+{
+  "date": "2026-11-04",
+  "baseline_commit": "d513efb",
+  "candidate_base_commit": "8a25ade",
+  "candidate_policy": "Minimum sampled density for table; global sampled density for chunks; historical nearest-count balancing",
+  "compiler": "gcc (GCC) 16.2.1 20260810",
+  "flags": "gcc -std=gnu99 -Wall -Wextra -Werror -O2 -DNDEBUG -mtune=native -ffast-math -Iinclude src/*.c -lm -pthread",
+  "affinity": [
+    0,
+    2,
+    4,
+    6
+  ],
+  "cpu": "Intel Core i5-12450H",
+  "ram_kib": 16084760,
+  "filesystem": "ext4 over LUKS",
+  "storage": "WD PC SN740 SDDPMQD-1T00-1101 NVMe",
+  "governor": "powersave",
+  "energy_performance_preference": "balance_performance",
+  "binaries": {
+    "integration-baseline": "12ebb493a6a940525f77a8d5c23da2347f35845506d15dc1d409bbdcfe416138",
+    "integration-candidate": "9940fffa02825c37ffd3dfe587f8c9c326119949f71630d8e452c79f38e531db",
+    "integration-mean-chunks": "7bd3a1ca693e5978b4e98c076fa773284bbcb76f2641d631366105bf9736e711",
+    "integration-final-config": "4141bfb3baf27ed1bb51cae78c25cd7af0e705d5503b687d6c8c3ce11f6de505",
+    "integration-rounded": "bb173be51f0d3c5abef4af5b3d725d79d85e4f4615686b2621682b641cef3161",
+    "integration-complete": "fe4a3ff650a723f02f3730a5b498f37a014ab6a63333030ddbc8f6bd21f98550"
+  },
+  "ceiling_count_trials": "Discarded strict-envelope prototype; retained as rejection data",
+  "candidate_commit": "db1765c",
+  "final_envelope_guard": "After nearest-count balancing, clamp table plus nominal chunk to the historical 1.75 * dedupe_memory bound. No measured case changes dimensions.",
+  "disk_trial_binary": "integration-final-config",
+  "disk_trial_equivalence": "Final sizing refinements leave the 20 GiB case on disk-partitions with the same budget, 256 partitions, four workers and bitmap size."
+}

@@ -9,6 +9,7 @@
 #include "status.h"
 #include "const.h"
 #include "error.h"
+#include "cprintferr.h"
 
 #define BUF_SIZE    (1024)
 
@@ -37,7 +38,6 @@ static void *progressbar_worker(void *arg)
         usleep((SLEEPTIME_MS * 1000) / ITER); // 250ms / iter
         ++iter;
     }
-    display_status(1);
     return NULL;
 }
 
@@ -73,6 +73,9 @@ static void config_termios(void)
 
 void        start_progressbar(void)
 {
+    int result;
+
+    init_cprintferr();
     if (!isatty(STDERR_FILENO))
         return ;
 
@@ -81,16 +84,18 @@ void        start_progressbar(void)
         return;
 
     config_termios();
-    if (pthread_create(
+    status_interactive(true);
+    result = pthread_create(
                 &g_pbarthread_id, NULL,
                 &progressbar_worker, NULL
-                ) < 0) {
-        error("cannot create progressbar_worker() thread: %s", ERRNO);
-    }
+                );
+    if (result != 0)
+        error("cannot create progressbar_worker() thread: %s", strerror(result));
 }
 
 void        stop_progressbar(void)
 {
+    display_status(1);
     if (g_pbarthread_id == 0)
         return;
     g_pbarthread_running = 0;

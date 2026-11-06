@@ -1,6 +1,7 @@
 #pragma once
 
 #include <sys/stat.h>
+#include <stdbool.h>
 
 struct file
 {
@@ -15,6 +16,8 @@ struct file
 extern struct file  *g_file;
 
 /* source file: file.c */
-void    init_files(void);
+bool    init_files(void);
 void    cleanup_files(void);
 void    log_duplicate(char *ln, int sz);
+
+int     open_tmpfile(size_t size);

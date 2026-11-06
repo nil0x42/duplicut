@@ -6,10 +6,15 @@
 #include "config.h"
 #include "file.h"
 #include "hmap.h"
+#include "partition.h"
 #include "dedupe.h"
 #include "progressbar.h"
 #include "status.h"
 #include "error.h"
+#include "debug.h"
+#include "bytesize.h"
+#include "line.h"
+#include "const.h"
 
 
 struct conf g_conf = {
@@ -22,6 +27,12 @@ struct conf g_conf = {
     .chunk_size = 0,
     .filter_printable = 0,
     .memlimit = LONG_MAX,
+    .dedupe_memory = 0,
+    .partition_count = 0,
+    .partition_workers = 0,
+    .mmap_window = 0,
+    .page_size = 0,
+    .engine = ENGINE_AUTO,
 };
 
 struct file *g_file;
@@ -34,6 +45,9 @@ struct hmap g_hmap;
 static void     remove_duplicates(void)
 {
     t_chunk     file_chunk;
+    t_chunk     range;
+    t_chunk     mapped;
+    char        *output_start;
     char        *line_ptr;
     int         line_sz;
     char        *dst;
@@ -48,23 +62,50 @@ static void     remove_duplicates(void)
 
     dst = file_chunk.ptr;
     size_t junk_lines = 0;
-    while (get_next_line(&line_ptr, &line_sz, &file_chunk, &junk_lines))
+    range = file_chunk;
+    while (range.ptr < range.endptr)
     {
-        memmove(dst, line_ptr, line_sz);
-        dst += line_sz;
-        if (dst != file_chunk.endptr)
-            *dst++ = '\n';
-        i++;
-        if (i == 500000) {
-            set_status(FCLEAN_BYTES, (size_t)(file_chunk.ptr - base_ptr));
-            base_ptr = file_chunk.ptr;
-            i = 0;
+        file_chunk = get_chunk_window(&range);
+        mapped = file_chunk;
+        output_start = dst;
+        while (get_next_line(&line_ptr, &line_sz, &file_chunk, &junk_lines))
+        {
+            memmove(dst, line_ptr, line_sz);
+            dst += line_sz;
+            if (dst != range.endptr)
+                *dst++ = '\n';
+            i++;
+            if (i == 500000) {
+                set_status(FCLEAN_BYTES, (size_t)(file_chunk.ptr - base_ptr));
+                base_ptr = file_chunk.ptr;
+                i = 0;
+            }
         }
+        release_chunk(&mapped);
+        release_chunk(&(t_chunk){output_start, dst});
+        range.ptr = mapped.endptr;
     }
+
+    /* Count filtered lines once, excluding the duplicates already reported. */
+    set_status(FCLEAN_SKIPPED, junk_lines);
 
     /* update file size */
     g_file->info.st_size = dst - g_file->addr;
-    set_status(FCLEAN_BYTES, (size_t)(file_chunk.ptr - base_ptr));
+    set_status(FCLEAN_BYTES, (size_t)(range.endptr - base_ptr));
+}
+
+
+static void     display_mmap_config(void)
+{
+    status_info("engine:", "\e[1mmmap-chunks\e[0m (%s); lookup threads: up to \e[1m%u\e[0m",
+        g_conf.engine == ENGINE_AUTO ? "auto" : "forced",
+        MULTITHREADING == 1 ? g_conf.threads : 1);
+    status_info("table:", "\e[1m%s\e[0m; target load: %.0f%%, limit: %.0f%%",
+        sizerepr(g_conf.hmap_size * sizeof(t_line)),
+        HMAP_LOAD_FACTOR * 100, HMAP_MAX_LOAD * 100);
+    status_info("chunks:", "\e[1m%zu\e[0m estimated; nominal size: \e[1m%s\e[0m",
+        g_file->orig_size / g_conf.chunk_size + (g_file->orig_size % g_conf.chunk_size != 0),
+        sizerepr(g_conf.chunk_size));
 }
 
 
@@ -75,17 +116,25 @@ int             main(int argc, char **argv)
     start_progressbar();
 
     update_status(FCOPY_START);
-    init_files();
-    config(); /* configure g_conf options */
-    set_status(CHUNK_SIZE, g_conf.chunk_size);
+    if (init_files())
+    {
+        update_status(CONFIG_START);
+        config(); /* configure g_conf options */
+        set_status(CHUNK_SIZE, g_conf.chunk_size);
 
-    init_hmap(g_conf.hmap_size);
-    update_status(TAGDUP_START);
-    tag_duplicates();
-    destroy_hmap();
+        if (!g_conf.partition_count || !tag_partitions())
+        {
+            DLOG1("dedupe engine: mmap-chunks");
+            update_status(CHUNK_START);
+            display_mmap_config();
+            init_hmap(g_conf.hmap_size);
+            tag_duplicates();
+            destroy_hmap();
+        }
 
-    update_status(FCLEAN_START);
-    remove_duplicates();
+        update_status(FCLEAN_START);
+        remove_duplicates();
+    }
     cleanup_files();
 
     stop_progressbar();

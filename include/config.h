@@ -1,5 +1,7 @@
 #pragma once
 
+#include "engine.h"
+
 #define DEFAULT_LINE_MAX_SIZE (1024)
 
 struct              conf
@@ -15,6 +17,12 @@ struct              conf
     int             lowercase_wordlist;
     int             uppercase_wordlist;
     long            memlimit;
+    size_t          dedupe_memory;
+    size_t          partition_count;
+    size_t          partition_workers;
+    size_t          mmap_window;
+    size_t          page_size;
+    enum e_engine   engine;
 };
 
 /** Global configuration vars.

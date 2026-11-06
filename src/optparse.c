@@ -5,6 +5,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "optparse.h"
+#include "engine.h"
 #include "config.h"
 #include "const.h"
 #include "bytesize.h"
@@ -14,12 +15,13 @@
 
 /** Arguments configuration for getopt_long().
  */
-#define OPTSTRING "o:t:m:l:pcCD:hv"
+#define OPTSTRING "o:t:m:l:e:pcCD:hv"
 
 static struct option    g_options[] = {
     { "outfile",       required_argument, NULL, 'o' },
     { "threads",       required_argument, NULL, 't' },
     { "memlimit",      required_argument, NULL, 'm' },
+    { "engine",        required_argument, NULL, 'e' },
     { "line-max-size", required_argument, NULL, 'l' },
     { "printable",     no_argument,       NULL, 'p' },
     { "lowercase",     no_argument,       NULL, 'c' },
@@ -104,6 +106,22 @@ static void setopt_memlimit(const char *value)
 }
 
 
+static void setopt_engine(const char *value)
+{
+    int engine;
+
+    for (engine = ENGINE_AUTO; engine <= ENGINE_DISK_PARTITIONS; ++engine)
+    {
+        if (strcmp(value, engine_name(engine)) == 0)
+        {
+            g_conf.engine = engine;
+            return;
+        }
+    }
+    bad_argument("engine", value, "expected auto, mmap-chunks or disk-partitions");
+}
+
+
 static void setopt_line_max_size(const char *value)
 {
     char        *endptr;
@@ -159,7 +177,8 @@ static void setopt_help(const char *value)
            "Options:\n"
            "-o, --outfile <FILE>       Write result to <FILE> (default stdout)\n"
            "-t, --threads <NUM>        Worker threads (default online CPUs)\n"
-           "-m, --memlimit <VALUE>     Memory budget for sizing (default available)\n"
+           "-m, --memlimit <VALUE>     Working memory budget (default available)\n"
+           "-e, --engine <ENGINE>      auto, mmap-chunks or disk-partitions (default auto)\n"
            "-l, --line-max-size <NUM>  Max line size in bytes (default %d, max 4095)\n"
            "-p, --printable            Keep only printable ASCII lines\n"
            "-c, --lowercase            Convert wordlist to lowercase\n"
@@ -199,6 +218,7 @@ static void setopt(int opt, const char *value)
         { 'o', setopt_outfile },
         { 't', setopt_threads },
         { 'm', setopt_memlimit },
+        { 'e', setopt_engine },
         { 'l', setopt_line_max_size },
         { 'p', setopt_printable },
         { 'c', setopt_lowercase },

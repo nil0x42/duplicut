@@ -4,6 +4,10 @@ import sys
 import re
 
 
+def line_count(content):
+    return content.count(b'\n') + bool(content and not content.endswith(b'\n'))
+
+
 def line_isprint(line):
     for c in line:
         if not 31 < c < 127:

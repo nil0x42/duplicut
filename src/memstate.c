@@ -26,11 +26,6 @@ static long long    get_mem_available(void)
     mem_available = meminfo(MEMAVAILABLE);
     if (mem_available < 0)
         error("meminfo(MEMAVAILABLE): Cannot determine available memory");
-    if (mem_available > g_conf.memlimit)
-        mem_available = g_conf.memlimit;
-
-    if (mem_available < MIN_MEMORY)
-        error("not enough memory (at least %s required)", sizerepr(MIN_MEMORY));
     return (mem_available);
 }
 
@@ -44,6 +39,11 @@ static long long    get_mem_available(void)
 void        update_memstate(struct memstate *m)
 {
     m->mem_available = get_mem_available();
+    m->mem_budget = m->mem_available;
+    if (m->mem_budget > g_conf.memlimit)
+        m->mem_budget = g_conf.memlimit;
+    if (m->mem_budget < MIN_MEMORY)
+        error("not enough memory (at least %s required)", sizerepr(MIN_MEMORY));
 }
 
 
@@ -52,5 +52,5 @@ void        update_memstate(struct memstate *m)
 void        init_memstate(struct memstate *m)
 {
     m->page_size = get_page_size();
-    m->mem_available = get_mem_available();
+    update_memstate(m);
 }

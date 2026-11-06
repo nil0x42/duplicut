@@ -16,8 +16,8 @@ DEBUGFLAGS    = -O0 -D DEBUG=$(level) -g2
 COVERAGEFLAGS = -O0 -D NDEBUG -g2 --coverage -fprofile-update=atomic
 
 SOURCES       = main.c thpool.c file.c chunk.c line.c dedupe.c \
-                optparse.c config.c error.c memstate.c meminfo.c bytesize.c \
-                hmap.c status.c progressbar.c cprintferr.c \
+                optparse.c config.c engine.c error.c memstate.c meminfo.c \
+                bytesize.c hmap.c partition.c status.c progressbar.c cprintferr.c \
 
 COMMON        = include/const.h include/debug.h
 OBJECTS       = $(patsubst %.c, objects/%.o, $(SOURCES))
