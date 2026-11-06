@@ -69,18 +69,19 @@ bitmap and metadata reservations. Below the normal per-worker granule, a feasibl
 plan can still use one worker. Allocations are also capped by the largest range
 so excess available RAM does not create needlessly large private tables.
 
-For `N` accepted occurrences with `L` content bytes in total:
+For `N` accepted occurrences with `L` content bytes and header width `H`:
 
 ```text
-partition file bytes = 10 × N + L
+partition file bytes = H × N + L
 bitmap bytes         = ceil(N / 8)
 ```
 
-These are occurrence counts, including repeats. The [record layout](engines/disk-partitions.md#write-records)
-explains the overhead. During scattering, buffers and metadata share a bounded
-allowance; the buffers are freed before bitmap allocation. Later, workers share
-the memory remaining after the bitmap and metadata, using private tables,
-content storage and scratch buffers.
+Counts include repeats. The [record layout](engines/disk-partitions.md#write-records)
+defines `H`, from five to ten bytes. Metadata includes an eight-byte occurrence
+count per partition to finalize ranges without another source scan. During
+scattering, buffers and metadata share a bounded allowance; the buffers are freed
+before bitmap allocation. Later, workers share the memory remaining after the
+bitmap and metadata, using private tables, content storage and scratch buffers.
 
 The input, working file and partition file can coexist. A temporary working file
 may be needed in addition to the partitions, and copying the final result to a

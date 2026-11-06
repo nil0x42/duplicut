@@ -102,7 +102,19 @@ def test_options(program, directory):
     return content, expected
 
 
-def test_faults(program, directory, root, content, expected):
+def test_records(directory, root):
+    program = directory / 'records'
+    compiler = shlex.split(os.environ.get('CC', 'cc'))
+    sources = [str(path) for path in sorted((root / 'src').glob('*.c'))
+               if path.name not in ('main.c', 'partition.c')]
+    subprocess.run([*compiler, '-std=gnu99', '-O2', '-Wall', '-Wextra', '-Werror',
+                    '-I' + str(root / 'include'), str(root / 'test/scripts/records.c'),
+                    *sources, '-lm', '-pthread', '-o', str(program)], check=True)
+    run([str(program)])
+    return str(program)
+
+
+def test_faults(program, records, directory, root, content, expected):
     if sys.platform != 'linux':
         print('[*] Linux I/O fault injection skipped on this platform')
         return
@@ -121,6 +133,7 @@ def test_faults(program, directory, root, content, expected):
     log = directory / 'paths'
     command = [program, str(source), '-o', str(output), '-m', '4M', '-t', THREADS]
     environment = {**os.environ, 'LD_PRELOAD': str(library)}
+    run([records], env={**environment, 'DUPLICUT_TEST_FAULT': 'partial'})
     for fault in ('partial', 'ram', 'space'):
         run(command, env={**environment, 'DUPLICUT_TEST_FAULT': fault})
         assert output.read_bytes() == expected, fault
@@ -302,7 +315,8 @@ def main():
         test_outputs(program, directory)
         content, expected = test_options(program, directory)
         if len(sys.argv) == 1:
-            test_faults(program, directory, root, content, expected)
+            records = test_records(directory, root)
+            test_faults(program, records, directory, root, content, expected)
             test_collisions(directory, root)
 
 

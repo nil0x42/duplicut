@@ -1,0 +1,95 @@
+{
+  "date": "2026-11-06",
+  "baseline_commit": "a9c3d8f7e744875ffa0502d19049a08751b712a4",
+  "compiler": "gcc (GCC) 16.2.1 20260810",
+  "flags": "-std=gnu99 -O2 -DNDEBUG -mtune=native -ffast-math -Iinclude src/*.c -lm -pthread",
+  "candidate_source_sha256": "d0592b2ddaa644628b6bd97ce77a0b41845231475f67a44c85aa42df0915c886",
+  "binaries": {
+    "baseline": "34f5a4aa6fdf00b3f91ffe341ac17f0fdeeb161bea321b1e7dfa80db43b2c626",
+    "candidate": "7e7d136e4063f0d45ea8d403786fab9621a2dff99578fefc6fbd01b7e4523a16"
+  },
+  "cpu": "Intel Core i5-12450H",
+  "logical_cpus": 12,
+  "ram_kib": 16084760,
+  "filesystem": "ext4 over LUKS",
+  "storage": "WD PC SN740 SDDPMQD-1T00-1101 NVMe",
+  "governor": "powersave",
+  "energy_performance_preference": "balance_performance",
+  "method": {
+    "engine": "disk-partitions forced in both binaries",
+    "matrix": "1 GiB inputs, 8/16/128-byte contents, 10/50/90% unique, 128M memory, four P cores (0,2,4,6)",
+    "real": "private bigwl, -cp, 100M and default memory, default workers and CPU affinity",
+    "disk": "20 GiB input, 128-byte contents, 50% unique, 2G memory, four P cores",
+    "trials": "one warmup per binary followed by three measured trials, mixed order with random seed 22; disk control separately labelled",
+    "elapsed": "process completion; output fsync and SHA-256 verification after timing",
+    "outputs": "matching SHA-256, byte size, unique count, duplicate count and filtered count across every trial",
+    "partition_sizes": "peak logical size and allocated blocks sampled from the unlinked partition file through /proc every 50 ms",
+    "input_generation": "test/scripts/benchmark-partitions.py generate(); existing inputs reused where available",
+    "rss": "/usr/bin/time maximum resident set, includes file-backed mappings; not anonymous memory",
+    "variability": "Elapsed times vary with disk I/O during sustained writes; medians are observations on this host, not universal speedups.",
+    "disk_trials": "Preparatory pair and one candidate trial completed; measured baseline trial incomplete and excluded. No paired timing estimate for the disk control.",
+    "disk_status": "incomplete"
+  },
+  "synthetic_inputs": [
+    {
+      "name": "1024mib-128bytes-10pct.txt",
+      "bytes": 1073741820,
+      "first_line": "0000000000000000xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "second_line": "0000000000000001xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    {
+      "name": "1024mib-128bytes-50pct.txt",
+      "bytes": 1073741820,
+      "first_line": "0000000000000000xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "second_line": "0000000000000001xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    {
+      "name": "1024mib-128bytes-90pct.txt",
+      "bytes": 1073741820,
+      "first_line": "0000000000000000xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "second_line": "0000000000000001xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    {
+      "name": "1024mib-8bytes-10pct.txt",
+      "bytes": 1073741823,
+      "first_line": "00000000",
+      "second_line": "00000001"
+    },
+    {
+      "name": "1024mib-8bytes-50pct.txt",
+      "bytes": 1073741823,
+      "first_line": "00000000",
+      "second_line": "00000001"
+    },
+    {
+      "name": "1024mib-8bytes-90pct.txt",
+      "bytes": 1073741823,
+      "first_line": "00000000",
+      "second_line": "00000001"
+    },
+    {
+      "name": "1024mib-16bytes-10pct.txt",
+      "bytes": 1073741811,
+      "first_line": "0000000000000000",
+      "second_line": "0000000000000001"
+    },
+    {
+      "name": "1024mib-16bytes-50pct.txt",
+      "bytes": 1073741811,
+      "first_line": "0000000000000000",
+      "second_line": "0000000000000001"
+    },
+    {
+      "name": "1024mib-16bytes-90pct.txt",
+      "bytes": 1073741811,
+      "first_line": "0000000000000000",
+      "second_line": "0000000000000001"
+    },
+    {
+      "name": "20480mib-128bytes-50pct.txt",
+      "bytes": 21474836400,
+      "first_line": "0000000000000000xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "second_line": "0000000000000001xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    }
+  ]
+}
