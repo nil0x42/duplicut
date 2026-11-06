@@ -72,13 +72,13 @@ Each internal record contains:
 
 | Field | Size | Purpose |
 |---|---:|---|
-| Occurrence ID | 8 bytes | Zero-based index among accepted occurrences |
-| Content length | 2 bytes | Number of content bytes |
+| Packed index and length | 5–10 bytes | Zero-based occurrence index and 12-bit content length |
 | Contents | Variable | The actual line, without its separator |
 
-The fixed overhead is ten bytes per accepted occurrence. Records retain their
-relative input order within each partition. Buffers collect writes instead of
-issuing a syscall for every small field.
+One header width is chosen for the whole run from the exact accepted occurrence
+count: five bytes through 2²⁸ occurrences, then one more byte per eight additional
+index bits. Records retain their input order within each partition. Buffers
+collect writes instead of issuing a syscall for every small field.
 
 ## Deduplicate locally
 

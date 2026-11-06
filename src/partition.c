@@ -21,7 +21,20 @@
 #include "debug.h"
 #include "bytesize.h"
 
-#define RECORD_HEADER_SIZE (10)
+#define RECORD_HEADER_MAX (10)
+#define RECORD_SIZE(low)             ((uint16_t)((low) & 0xFFF))
+#define RECORD_ID(low, high)         (((low) >> 12) | ((uint64_t)(high) << 52))
+#define MAKE_RECORD_LOW(id, size)    (((uint64_t)(id) << 12) | ((size) & 0xFFF))
+#define MAKE_RECORD_HIGH(id)         ((uint16_t)((id) >> 52))
+
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+# define RECORD_LE64(value) __builtin_bswap64(value)
+# define RECORD_LE16(value) __builtin_bswap16(value)
+#else
+# define RECORD_LE64(value) (value)
+# define RECORD_LE16(value) (value)
+#endif
+
 #define BUF_SIZE (0x4000)
 #define WORKER_OVERHEAD (2 * BUF_SIZE + MAX_MAX_LINE_SIZE)
 #define WORKER_MEMORY (64 * BUF_SIZE)
@@ -30,6 +43,7 @@ struct partition
 {
     size_t          start;
     size_t          end;
+    uint64_t        lines;
     size_t          cursor;
     size_t          buffered;
     char            *buffer;
@@ -41,6 +55,7 @@ struct partition_work
     size_t          count;
     size_t          next;
     size_t          memory;
+    size_t          header_size;
     uint64_t        lines;
     int             fd;
     unsigned char   *duplicates;
@@ -57,6 +72,43 @@ struct partition_input
     size_t          available;
     char            buffer[BUF_SIZE];
 };
+
+
+/** The low word packs length and index; its extension keeps all 64 index bits. */
+static void     encode_record(uint8_t *header, uint64_t id, uint16_t size)
+{
+    uint64_t low = RECORD_LE64(MAKE_RECORD_LOW(id, size));
+    uint16_t high = RECORD_LE16(MAKE_RECORD_HIGH(id));
+
+    memcpy(header, &low, sizeof(low));
+    memcpy(header + sizeof(low), &high, sizeof(high));
+}
+
+
+static bool     decode_record(const uint8_t *header, uint64_t *id, uint16_t *size)
+{
+    uint64_t low;
+    uint16_t high;
+
+    memcpy(&low, header, sizeof(low));
+    memcpy(&high, header + sizeof(low), sizeof(high));
+    low = RECORD_LE64(low);
+    high = RECORD_LE16(high);
+    *id = RECORD_ID(low, high);
+    *size = RECORD_SIZE(low);
+    return (high <= 0xFFF);
+}
+
+
+static size_t   record_header_size(uint64_t lines)
+{
+    uint64_t id = lines ? lines - 1 : 0;
+    size_t   size = 5;
+
+    for (id >>= 28; id; id >>= 8)
+        ++size;
+    return (size);
+}
 
 
 static void     write_partition(int fd, struct partition *part)
@@ -147,6 +199,8 @@ static void     clean_partition(struct partition_work *work,
     uint64_t    id;
     uint16_t    length;
     char        line[MAX_MAX_LINE_SIZE];
+    /* Width is fixed: bytes beyond each short header stay zero across passes. */
+    uint8_t     header[RECORD_HEADER_MAX] = {0};
 
     while (end > part->start)
     {
@@ -159,10 +213,12 @@ static void     clean_partition(struct partition_work *work,
         filled = 0;
         while (readpos < end)
         {
-            read_partition(&input, &id, sizeof(id));
-            read_partition(&input, &length, sizeof(length));
-            if (id >= work->lines || !length || length > MAX_MAX_LINE_SIZE
-                    || length > end - readpos - RECORD_HEADER_SIZE)
+            if (end - readpos < work->header_size)
+                error("invalid partition record");
+            read_partition(&input, header, work->header_size);
+            if (!decode_record(header, &id, &length)
+                    || id >= work->lines || !length || length > MAX_MAX_LINE_SIZE
+                    || length > end - readpos - work->header_size)
                 error("invalid partition record");
             read_partition(&input, line, length);
             slot = HASH(line, length) % slots;
@@ -180,11 +236,10 @@ static void     clean_partition(struct partition_work *work,
             }
             else
             {
-                append_partition(work->fd, &output, &id, sizeof(id));
-                append_partition(work->fd, &output, &length, sizeof(length));
+                append_partition(work->fd, &output, header, work->header_size);
                 append_partition(work->fd, &output, line, length);
             }
-            readpos += RECORD_HEADER_SIZE + length;
+            readpos += work->header_size + length;
         }
         if (!filled)
             error("partition memory budget is too small");
@@ -264,6 +319,23 @@ void            config_partitions(void)
 }
 
 
+/** Finalize exact range sizes once the global index width is known. */
+static size_t   size_partitions(struct partition_work *work, size_t contents)
+{
+    size_t index;
+    size_t bytes;
+
+    work->header_size = record_header_size(work->lines);
+    if (contents > (size_t)LLONG_MAX
+            || work->lines > ((size_t)LLONG_MAX - contents) / work->header_size)
+        error("partition file is too large");
+    bytes = contents + work->lines * work->header_size;
+    for (index = 0; index < work->count; ++index)
+        work->parts[index].end += work->parts[index].lines * work->header_size;
+    return (bytes);
+}
+
+
 /** Count exact record ranges before creating the partition file. */
 static size_t   count_partitions(struct partition_work *work)
 {
@@ -291,10 +363,11 @@ static size_t   count_partitions(struct partition_work *work)
         while (get_next_line(&line, &size, &chunk, &junk))
         {
             index = HASH(line, size) & (count - 1);
-            if ((size_t)size + RECORD_HEADER_SIZE > (size_t)LLONG_MAX - bytes)
+            if ((size_t)size > (size_t)LLONG_MAX - bytes)
                 error("partition file is too large");
-            work->parts[index].end += RECORD_HEADER_SIZE + size;
-            bytes += RECORD_HEADER_SIZE + size;
+            work->parts[index].end += size;
+            ++work->parts[index].lines;
+            bytes += size;
             ++lines;
             if (lines % 500000 == 0)
             {
@@ -307,7 +380,7 @@ static size_t   count_partitions(struct partition_work *work)
     }
     set_status(TAGDUP_BYTES, g_file->orig_size - (base - g_file->addr));
     work->lines = lines;
-    return (bytes);
+    return (size_partitions(work, bytes));
 }
 
 
@@ -322,7 +395,7 @@ static void     write_partitions(struct partition_work *work)
     size_t      position;
     size_t      junk = 0;
     uint64_t    id = 0;
-    uint16_t    length;
+    uint8_t     header[RECORD_HEADER_MAX];
     int         size;
     int         fd = work->fd;
     char        *line;
@@ -354,9 +427,8 @@ static void     write_partitions(struct partition_work *work)
         while (get_next_line(&line, &size, &chunk, &junk))
         {
             index = HASH(line, size) & (count - 1);
-            length = size;
-            append_partition(fd, &work->parts[index], &id, sizeof(id));
-            append_partition(fd, &work->parts[index], &length, sizeof(length));
+            encode_record(header, id, size);
+            append_partition(fd, &work->parts[index], header, work->header_size);
             append_partition(fd, &work->parts[index], line, size);
             ++id;
             if (id % 500000 == 0)
@@ -457,7 +529,7 @@ static void     limit_partition_memory(struct partition_work *work)
 
     for (index = 0; index < work->count; ++index)
     {
-        count = work->parts[index].end / (RECORD_HEADER_SIZE + 1);
+        count = work->parts[index].end / (work->header_size + 1);
         if (count > records)
             records = count;
     }
@@ -489,7 +561,7 @@ static bool     prepare_partition_memory(struct partition_work *work,
     limit_partition_memory(work);
     slots = (work->memory - WORKER_OVERHEAD) / (2 * sizeof(t_line));
     estimate = (struct partition_estimate){
-        .lines = work->lines, .contents = bytes - work->lines * RECORD_HEADER_SIZE,
+        .lines = work->lines, .contents = bytes - work->lines * work->header_size,
         .bytes = bytes, .count = work->count, .workers = *workers,
         .entries = slots / 2, .capacity = work->memory - WORKER_OVERHEAD - slots * sizeof(t_line),
         .bitmap = bitmap
@@ -509,7 +581,8 @@ static void     display_partition_config(const struct partition_work *work,
     snprintf(entries, sizeof(entries), "%s", sizerepr(table));
     status_info("engine:", "\e[1mdisk-partitions\e[0m (%s); workers: \e[1m%zu\e[0m",
         g_conf.engine == ENGINE_AUTO ? "auto" : "forced", workers);
-    status_info("partitions:", "\e[1m%zu\e[0m; data: %s; bitmap: %s", work->count, data, sizerepr(bitmap));
+    status_info("partitions:", "\e[1m%zu\e[0m; data: %s; bitmap: %s; header: %zuB",
+        work->count, data, sizerepr(bitmap), work->header_size);
     status_info("worker RAM:", "%s per worker (table, contents and scratch)", sizerepr(work->memory));
     status_info("storage:", "table: %s; contents: %s per worker; load limit: 50%%",
         entries, sizerepr(work->memory - WORKER_OVERHEAD - table));
@@ -556,8 +629,10 @@ bool            tag_partitions(void)
     if (ftruncate(work.fd, bytes) < 0)
         error("cannot prepare partition file: %s", ERRNO);
     DLOG1("dedupe engine: disk-partitions");
-    DLOG1("partitions: %zu ranges, %zu workers, %zu bytes, %zu bitmap bytes",
-            work.count, workers, bytes, bitmap);
+    DLOG1("partitions: %zu ranges, %zu workers, %zu bytes, %zu bitmap bytes, %zu-byte headers",
+            work.count, workers, bytes, bitmap, work.header_size);
+    DLOG1("partition records: %llu accepted occurrences, %zu content bytes",
+            (unsigned long long)work.lines, bytes - work.lines * work.header_size);
     DLOG1("partition memory: %zu budget bytes, %zu metadata bytes, %zu bytes per worker",
             g_conf.dedupe_memory, work.count * sizeof(struct partition), work.memory);
     display_partition_config(&work, workers, bytes, bitmap);
