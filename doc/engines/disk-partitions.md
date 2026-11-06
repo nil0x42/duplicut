@@ -7,6 +7,51 @@ processes independent partitions with private hashmaps. A bitmap records which
 occurrences are duplicates. Applying that bitmap to the working file preserves
 source order, regardless of worker scheduling.
 
+## Group, compare, preserve order
+
+Equal lines always enter the same partition. Numbers below are input positions
+from the [shared example](../architecture.md#shared-example); A and B illustrate
+one possible hash routing.
+
+```mermaid
+%%{init: {"flowchart": {"wrappingWidth": 360, "rankSpacing": 25, "nodeSpacing": 25}}}%%
+flowchart TB
+    subgraph G["1. GROUP BY HASH · ranges in one temporary file"]
+        direction LR
+        I["Working file<br/>1 alpha<br/>2 beta<br/>3 alpha<br/>4 gamma<br/>5 beta"]
+        A["Partition A<br/>1 alpha<br/>3 alpha<br/>4 gamma"]
+        B["Partition B<br/>2 beta<br/>5 beta"]
+        I --> A
+        I --> B
+    end
+    subgraph D["2. FIND DUPLICATES · workers can run concurrently"]
+        direction LR
+        WB["Private hashmap for B<br/>5 beta repeats 2 beta"]
+        WA["Private hashmap for A<br/>3 alpha repeats 1 alpha"]
+        M["Shared bitmap · 1 = duplicate<br/><table border='1' cellspacing='0' cellpadding='4'><tr><td>Position</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td></tr><tr><td>Bit</td><td>0</td><td>0</td><td>1</td><td>0</td><td>1</td></tr></table>"]
+        WB -->|Mark 5| M
+        WA -->|Mark 3| M
+    end
+    subgraph R["3. APPLY THE BITMAP · reread in original order"]
+        F["<table border='0' cellspacing='0' cellpadding='0'><tr><td><table width='450' bgcolor='#fff2dc' border='1' cellspacing='5' cellpadding='8'><tr><td colspan='5'>Bitmap</td></tr><tr><td width='20%' bgcolor='#fff2dc'>Bit 0</td><td width='20%' bgcolor='#fff2dc'>Bit 0</td><td width='20%' bgcolor='#fff2dc'>Bit 1</td><td width='20%' bgcolor='#fff2dc'>Bit 0</td><td width='20%' bgcolor='#fff2dc'>Bit 1</td></tr></table></td></tr><tr><td><table width='450' border='0' cellspacing='5' cellpadding='0'><tr><td width='20%'>↓</td><td width='20%'>↓</td><td width='20%'>↓</td><td width='20%'>↓</td><td width='20%'>↓</td></tr><tr><td width='20%' height='50' bgcolor='#e7f5e8'>1 alpha<br/>KEEP</td><td width='20%' height='50' bgcolor='#e7f5e8'>2 beta<br/>KEEP</td><td width='20%' height='50' bgcolor='#fde8e8'>3 alpha<br/>MARK</td><td width='20%' height='50' bgcolor='#e7f5e8'>4 gamma<br/>KEEP</td><td width='20%' height='50' bgcolor='#fde8e8'>5 beta<br/>MARK</td></tr></table></td></tr></table>"]
+    end
+    O["Compact output · skip marked lines<br/>alpha → beta → gamma"]
+    G --> D --> R --> O
+    style G fill:#f7f9fc,stroke:#8a98a8,color:#172d45
+    style D fill:#f7f9fc,stroke:#8a98a8,color:#172d45
+    style R fill:#f7f9fc,stroke:#8a98a8,color:#172d45
+    classDef file fill:#eaf3ff,stroke:#4676a9,color:#172d45
+    classDef table fill:#f1ecff,stroke:#8064a2,color:#312147
+    classDef marks fill:#fff2dc,stroke:#b78030,color:#513710
+    classDef output fill:#e7f5e8,stroke:#4d8653,color:#203d24
+    class I,A,B file
+    class WA,WB table
+    class M marks
+    class O output
+
+    style F fill:none,stroke:none
+```
+
 ## Count and plan
 
 An initial scan counts accepted occurrences and their serialized bytes in each
@@ -21,8 +66,7 @@ the line's hash select its range.
 ## Write records
 
 A second source-order scan writes each accepted line into its chosen partition.
-Identical contents always choose the same partition. Different contents may
-choose it too, so workers still perform exact comparisons.
+Different contents can share a partition, so workers still compare actual bytes.
 
 Each internal record contains:
 
@@ -34,18 +78,7 @@ Each internal record contains:
 
 The fixed overhead is ten bytes per accepted occurrence. Records retain their
 relative input order within each partition. Buffers collect writes instead of
-issuing a syscall for every small field. This is an internal, temporary format,
-not an exported file format.
-
-For the [shared example](../architecture.md#shared-example), a possible routing is:
-
-| Partition | Input positions and contents |
-|---|---|
-| A | 1: `alpha`, 3: `alpha`, 4: `gamma` |
-| B | 2: `beta`, 5: `beta` |
-
-The actual partition labels depend on hashes; this example illustrates the
-required grouping rather than particular hash values.
+issuing a syscall for every small field.
 
 ## Deduplicate locally
 
@@ -66,44 +99,9 @@ occurrence remains the one retained.
 
 ## Preserve order with a bitmap
 
-A **bitmap** stores one bit per accepted occurrence. A set bit means “remove this
-occurrence.” Workers update their bits atomically, including when separate IDs
-share a bitmap byte.
-
-In the example, A marks position 3 and B marks position 5. B may finish first;
-that does not make `beta` the first output line.
-
-```mermaid
-%%{init: {"flowchart": {"wrappingWidth": 420, "rankSpacing": 30}}}%%
-flowchart TD
-    I["Working file in source order<br/>1: alpha | 2: beta | 3: alpha | 4: gamma | 5: beta"]
-    I --> S["Count, then write hash partitions<br/>Equal words always go to the same partition"]
-    subgraph F["One temporary file, separate ranges"]
-        A["Partition A<br/>1: alpha | 3: alpha | 4: gamma"]
-        B["Partition B<br/>2: beta | 5: beta"]
-    end
-    S --> A
-    S --> B
-    A --> WA["Worker A: private hashmap<br/>Keep 1 and 4; mark 3 duplicate"]
-    B --> WB["Worker B: private hashmap<br/>Keep 2; mark 5 duplicate"]
-    WA --> D["Shared bitmap: occurrences 3 and 5 are marked<br/>Worker completion order does not matter"]
-    WB --> D
-    D --> R["Scan the working file in its original order<br/>Keep positions 1, 2 and 4; skip 3 and 5"]
-    R --> O["Output<br/>alpha → beta → gamma"]
-    classDef data fill:#eaf3ff,stroke:#4676a9,color:#172d45
-    classDef table fill:#f1ecff,stroke:#8064a2,color:#312147
-    classDef marks fill:#fff2dc,stroke:#b78030,color:#513710
-    classDef output fill:#e7f5e8,stroke:#4d8653,color:#203d24
-    style F fill:#f7f9fc,stroke:#8a98a8,color:#172d45
-    class I,A,B data
-    class WA,WB table
-    class D,R marks
-    class O output
-```
-
-A final source-order scan checks the bits and marks duplicate lines in the
-working file. The shared compaction produces `alpha`, `beta`, `gamma`. The output
-is never assembled by concatenating processed partitions.
+Workers update the shared bitmap atomically, including when separate occurrence
+IDs share a byte. A source-order scan applies its set bits as duplicate marks in
+the working file, before the [shared compaction](../architecture.md#working-file-and-output).
 
 ## Cost and suitable workloads
 
