@@ -2,12 +2,12 @@
 
 import os
 import runpy
-import shlex
 import subprocess
 import sys
 import tempfile
 from collections import Counter
 from pathlib import Path
+from build import build
 
 
 reference = runpy.run_path(str(Path(__file__).with_name('reference-dedupe.py')))
@@ -72,12 +72,8 @@ def main():
                 '#define HMAP_MAX_LOAD           (0.7)', '#define HMAP_MAX_LOAD           (0.25)'))
             (include / 'hash.h').write_text('#pragma once\n#include <stdint.h>\n'
                                           '#define HASH(line, size) ((uint64_t)0)\n')
-            collision_program = str(directory / 'collisions')
-            compiler = shlex.split(os.environ.get('CC', 'cc'))
-            subprocess.run([*compiler, '-std=gnu99', '-O2', '-DNDEBUG', '-Wall', '-Wextra',
-                            '-I' + str(include), '-I' + str(root / 'include'),
-                            *map(str, sorted((root / 'src').glob('*.c'))),
-                            '-lm', '-pthread', '-o', collision_program], check=True)
+            collision_program = str(build(root, directory, 'collisions', '-DNDEBUG',
+                                          '-I' + str(include)))
             words = [bytes((alphabet[i // len(alphabet) ** 2],
                             alphabet[i // len(alphabet) % len(alphabet)],
                             alphabet[i % len(alphabet)])) for i in range(8400)]

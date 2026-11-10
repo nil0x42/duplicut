@@ -8,16 +8,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-
-
-def build(root, directory, name, *flags):
-    program = directory / name
-    compiler = shlex.split(os.environ.get('CC', 'cc'))
-    subprocess.run([*compiler, '-std=gnu99', '-O2', '-DDEBUG=1', '-Wall', '-Wextra',
-                    *flags, '-I' + str(root / 'include'),
-                    *map(str, sorted((root / 'src').glob('*.c'))),
-                    '-lm', '-pthread', '-o', str(program)], check=True)
-    return program
+from build import build
 
 
 def run(program, directory, content, memory='8M', env=None):
@@ -53,7 +44,8 @@ def main():
     root = Path.cwd().resolve()
     with tempfile.TemporaryDirectory(prefix='duplicut-configuration-', dir=root) as folder:
         directory = Path(folder)
-        program = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else build(root, directory, 'debug')
+        program = (Path(sys.argv[1]).resolve() if len(sys.argv) > 1
+                   else build(root, directory, 'debug', '-DDEBUG=1'))
         words = b''.join(('%03x\n' % i).encode() for i in range(4096))
         fields, log, output = run(program, directory, words * 2, '64K')
         assert fields['sample'] == 4 and output == words
@@ -106,7 +98,7 @@ def main():
 
         if len(sys.argv) > 1:
             return
-        partitions = build(root, directory, 'partitions', '-DPARTITION_MIN_CHUNKS=0')
+        partitions = build(root, directory, 'partitions', '-DDEBUG=1', '-DPARTITION_MIN_CHUNKS=0')
         fields, log, output = run(partitions, directory, long_words * 2)
         assert output == long_words
         assert 'engine candidate: disk-partitions' in log

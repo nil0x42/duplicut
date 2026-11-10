@@ -8,19 +8,20 @@ import sys
 import tempfile
 from collections import Counter
 from pathlib import Path
+from build import build
 
 
 reference = runpy.run_path(str(Path(__file__).with_name('reference-dedupe.py')))
 dedupe = reference['dedupe']
 line_count = reference['line_count']
-build = runpy.run_path(str(Path(__file__).with_name('configuration.py')))['build']
 
 
 def main():
     root = Path.cwd().resolve()
     with tempfile.TemporaryDirectory(prefix='duplicut-engines-', dir=root) as folder:
         directory = Path(folder)
-        program = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else build(root, directory, 'debug')
+        program = (Path(sys.argv[1]).resolve() if len(sys.argv) > 1
+                   else build(root, directory, 'debug', '-DDEBUG=1'))
         source, output, duplicates = (directory / name for name in ('input', 'output', 'duplicates'))
         content = (b'Alpha\r\nalpha\n\0hidden\nA\xff\nB\0C\nB\0C\nsmall\nSMALL\n'
                    + b'z' * 4095 + b'\n') * 64 + b'last'
