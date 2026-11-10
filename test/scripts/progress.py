@@ -14,21 +14,12 @@ import termios
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from build import build
 
 
 reference = runpy.run_path(str(Path(__file__).with_name('reference-dedupe.py')))
 dedupe = reference['dedupe']
 ANSI = re.compile(rb'\x1b\[[0-?]*[ -/]*[@-~]')
-
-
-def build(root, directory, name, *flags):
-    program = directory / name
-    compiler = shlex.split(os.environ.get('CC', 'cc'))
-    subprocess.run([*compiler, '-std=gnu99', '-O2', '-DNDEBUG', '-Wall', '-Wextra',
-                    '-Werror', *flags, '-I' + str(root / 'include'),
-                    *map(str, sorted((root / 'src').glob('*.c'))),
-                    '-lm', '-pthread', '-o', str(program)], check=True)
-    return program
 
 
 def terminal_reader(fd):
@@ -105,7 +96,7 @@ def main():
     root = Path.cwd().resolve()
     with tempfile.TemporaryDirectory(prefix='duplicut-progress-', dir=root) as folder:
         directory = Path(folder)
-        program = build(root, directory, 'release')
+        program = build(root, directory, 'release', '-DNDEBUG', '-Werror')
         content = (b'Alpha\r\nalpha\nBeta\n\0hidden\nA\xff\nlast\n' * 400) + b'final'
         expected = dedupe(content, 1024, True, True)[0]
         for engine, phases in (('mmap-chunks', 5), ('disk-partitions', 8)):
@@ -176,7 +167,8 @@ def main():
         assert result.returncode == 0 and os.fsencode(source) in result.stderr
         print('[+] complete long paths in the technical summary')
         if sys.platform == 'linux':
-            program = build(root, directory, 'candidate', '-DPARTITION_MIN_CHUNKS=0')
+            program = build(root, directory, 'candidate', '-DNDEBUG', '-Werror',
+                            '-DPARTITION_MIN_CHUNKS=0')
             library = directory / 'faults.so'
             compiler = shlex.split(os.environ.get('CC', 'cc'))
             subprocess.run([*compiler, '-shared', '-fPIC', '-Wall', '-Wextra',

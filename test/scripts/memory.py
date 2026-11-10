@@ -2,16 +2,15 @@
 
 import os
 import re
-import runpy
 import shlex
 import subprocess
 import sys
 import tempfile
 import time
 from pathlib import Path
+from build import build
 
 
-build = runpy.run_path(str(Path(__file__).with_name('configuration.py')))['build']
 THREADS = min(4, os.cpu_count() or 1)
 
 
@@ -66,7 +65,7 @@ def main():
     root = Path.cwd().resolve()
     with tempfile.TemporaryDirectory(prefix='duplicut-memory-', dir=root) as folder:
         directory = Path(folder)
-        program = build(root, directory, 'debug')
+        program = build(root, directory, 'debug', '-DDEBUG=1')
         check(program, directory, 32, 128, '4M', 'disk-partitions')
         text = check(program, directory, 96, 8, '4M', 'disk-partitions')
         assert 'large bitmap estimate:' in text

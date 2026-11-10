@@ -8,6 +8,7 @@ import sys
 import tempfile
 from collections import Counter
 from pathlib import Path
+from build import build
 
 
 THREADS = str(min(4, os.cpu_count() or 1))
@@ -270,13 +271,8 @@ def test_collisions(directory, root):
     include.mkdir()
     (include / 'hash.h').write_text('#pragma once\n#include <stdint.h>\n'
                                   '#define HASH(line, size) ((uint64_t)0)\n')
-    program = str(directory / 'collisions')
-    compiler = shlex.split(os.environ.get('CC', 'cc'))
-    subprocess.run([*compiler, '-std=gnu99', '-O2', '-DNDEBUG',
-                    '-DPARTITION_MIN_CHUNKS=0', '-I' + str(include),
-                    '-I' + str(root / 'include'),
-                    *map(str, sorted((root / 'src').glob('*.c'))),
-                    '-lm', '-pthread', '-o', program], check=True)
+    program = str(build(root, directory, 'collisions', '-DNDEBUG',
+                        '-DPARTITION_MIN_CHUNKS=0', '-I' + str(include)))
     words = [('%08x' % i + 'x' * (4095 - 8)).encode() for i in range(2000)]
     source = directory / 'input'
     output = directory / 'output'
@@ -291,11 +287,8 @@ def test_collisions(directory, root):
     (include / 'hash.h').write_text('#pragma once\n#include <stdint.h>\n'
                                   '#define XXH_INLINE_ALL\n#include "xxhash.h"\n'
                                   '#define HASH(line, size) (XXH3_64bits(line, size) & ~UINT64_C(4095))\n')
-    subprocess.run([*compiler, '-std=gnu99', '-O2', '-DNDEBUG',
-                    '-DPARTITION_MIN_CHUNKS=0', '-I' + str(include),
-                    '-I' + str(root / 'include'),
-                    *map(str, sorted((root / 'src').glob('*.c'))),
-                    '-lm', '-pthread', '-o', program], check=True)
+    build(root, directory, 'collisions', '-DNDEBUG',
+          '-DPARTITION_MIN_CHUNKS=0', '-I' + str(include))
     test_table_overflow(program, directory)
 
 
@@ -306,12 +299,8 @@ def main():
         if len(sys.argv) > 1:
             program = str(Path(sys.argv[1]).resolve())
         else:
-            program = str(directory / 'duplicut')
-            compiler = shlex.split(os.environ.get('CC', 'cc'))
-            subprocess.run([*compiler, '-std=gnu99', '-O2', '-DNDEBUG', '-Wall', '-Wextra',
-                            '-DPARTITION_MIN_CHUNKS=0', '-I' + str(root / 'include'),
-                            *map(str, sorted((root / 'src').glob('*.c'))),
-                            '-lm', '-pthread', '-o', program], check=True)
+            program = str(build(root, directory, 'duplicut', '-DNDEBUG',
+                                '-DPARTITION_MIN_CHUNKS=0'))
         test_outputs(program, directory)
         content, expected = test_options(program, directory)
         if len(sys.argv) == 1:
