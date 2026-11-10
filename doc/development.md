@@ -77,7 +77,7 @@ documentation when user-visible behavior changes.
 
 ## Release binaries
 
-`test/build-releases.sh` uses Zig and `make` to cross-compile four targets:
+`tests/build-releases.sh` uses Zig and `make` to cross-compile four targets:
 Linux x64/ARM64 and macOS x64/ARM64. Linux targets use static musl builds. The
 macOS targets are x64 from 10.13 and ARM64 from 11.0. The script prefers
 `llvm-strip` when available and names binaries using the Git description.
@@ -85,7 +85,7 @@ macOS targets are x64 from 10.13 and ARM64 from 11.0. The script prefers
 Run it with Bash supporting associative arrays, such as Bash 4 or newer:
 
 ```sh
-bash test/build-releases.sh
+bash tests/build-releases.sh
 ```
 
 This build process is separate from the compiler choices exercised by CI. It

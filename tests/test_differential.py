@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import os
 import shlex
 import subprocess
@@ -10,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from threading import Event
 
-from reference import dedupe, line_count
+from .reference import dedupe, line_count
 
 
 def default_jobs():
@@ -22,7 +20,7 @@ def default_jobs():
     return (cpus + 1) // 2
 
 
-def test_case(wordlist, content, size, flags, stop):
+def check_case(program, wordlist, content, size, flags, stop):
     if stop.is_set():
         return None
     args = ['-l', str(size), *flags]
@@ -33,7 +31,7 @@ def test_case(wordlist, content, size, flags, stop):
     with tempfile.TemporaryDirectory(prefix='duplicut-tests-') as directory:
         output = Path(directory) / 'output'
         dupfile = Path(directory) / 'duplicates'
-        command = ['./duplicut', '-o', str(output), '-D', str(dupfile), '-m', '64K', *args]
+        command = [program, '-o', str(output), '-D', str(dupfile), '-m', '64K', *args]
         stderr = b''
         if stop.is_set():
             return None
@@ -89,11 +87,11 @@ def report_failure(failure):
         print('[!] Outputs: %s, %s' % (reference, actual), file=sys.stderr)
 
 
-def main():
-    wordlists = sorted(path for path in Path('test/wordlists').glob('*.txt') if path.is_file())
+def test_reference_matrix(program, root):
+    wordlists = sorted(path for path in (root / 'tests/wordlists').glob('*.txt') if path.is_file())
     if not wordlists:
         print('[!] No test wordlists found', file=sys.stderr)
-        return 1
+        raise AssertionError('No test wordlists found')
 
     sizes = (1, 5, 14, 15, 40, 65, 128, 2000, 4095)
     options = ((), ('-p',), ('-c',), ('-p', '-c'), ('-C',), ('-p', '-C'))
@@ -105,7 +103,7 @@ def main():
             raise ValueError
     except ValueError:
         print('[!] TEST_JOBS must be a positive integer', file=sys.stderr)
-        return 1
+        raise AssertionError('TEST_JOBS must be a positive integer')
 
     jobs = min(jobs, total)
     print('[*] Running %d differential cases with %d jobs' % (total, jobs), flush=True)
@@ -114,7 +112,7 @@ def main():
     done = Counter()
     cases = 0
     with ThreadPoolExecutor(max_workers=jobs) as pool:
-        futures = {pool.submit(test_case, wordlist, content, size, flags, stop): wordlist
+        futures = {pool.submit(check_case, program, wordlist, content, size, flags, stop): wordlist
                    for wordlist, content in contents for size in sizes for flags in options}
         try:
             for future in as_completed(futures):
@@ -124,7 +122,7 @@ def main():
                 if result is not True:
                     stop.set()
                     report_failure(result)
-                    return 1
+                    raise AssertionError('Differential case failed; see retained outputs')
                 wordlist = futures[future]
                 done[wordlist] += 1
                 cases += 1
@@ -136,8 +134,3 @@ def main():
             for future in futures:
                 future.cancel()
     print('[+] %d/%d differential cases succeeded' % (cases, total))
-    return 0
-
-
-if __name__ == '__main__':
-    sys.exit(main())

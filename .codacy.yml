@@ -3,5 +3,5 @@ exclude_paths:
   - "include/xxhash.h"
   - "include/thpool.h"
   - "src/thpool.c"
-  - "test/wordlists/**"
+  - "tests/wordlists/**"
   - ".github/images/demo.gif-terminalizer.yml"

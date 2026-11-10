@@ -10,3 +10,8 @@
 /cov*.xml
 /duplicut-macos-*
 /duplicut-linux-*
+
+/.venv/
+/.pytest_cache/
+__pycache__/
+/duplicut-tests-*/

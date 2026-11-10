@@ -38,14 +38,14 @@ jobs:
       - name: Setup MacOS environment
         if: startsWith(matrix.os, 'macos')
         run: |
-          brew install coreutils ctags expect
+          brew install coreutils ctags
           echo "$(brew --prefix)/opt/gnu-sed/libexec/gnubin" >> $GITHUB_PATH
 
       - name: Setup Linux environment
         if: startsWith(matrix.os, 'ubuntu')
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y exuberant-ctags expect-dev
+          sudo apt-get install -y exuberant-ctags
 
       - name: Setup compiler
         uses: aminya/setup-cpp@15a6bd8cf39030f88b5da3d203a829ec4eea4955 # v1.10.1
@@ -53,13 +53,15 @@ jobs:
           compiler: ${{ matrix.compiler }}
           gcovr: "8.8"
 
-      - name: Run test suite
-        # stdbuf has a bug on mac-latest (stdbuf is arm64, github wm arm64e)
-        # using 'unbuffer' command (made availavble by 'expect' package);
-        # run: |
-        #   stdbuf -oL -eL ./test/run.sh 2>&1
+      - name: Setup test environment
         run: |
-          unbuffer ./test/run.sh
+          python3 -c 'import sys; assert sys.version_info >= (3, 10), "Python 3.10+ required"'
+          python3 -m venv "$RUNNER_TEMP/duplicut-tests"
+          "$RUNNER_TEMP/duplicut-tests/bin/python" -m pip install -r tests/requirements.txt
+          echo "$RUNNER_TEMP/duplicut-tests/bin" >> "$GITHUB_PATH"
+
+      - name: Run test suite
+        run: make test
 
       - name: Setup $GCOV executable (llvm)
         if: matrix.compiler == 'llvm'

@@ -2,31 +2,36 @@
 
 [Documentation](README.md) · [Development](development.md) · [Measurements](performance.md)
 
-Run from the repository root with a C toolchain, `make`, Python 3 and the shell
-utilities used by the test suite. Python tests use the standard library. The
-suite builds instrumented and targeted variants as needed.
-
-## Run the checks
+Tests require Python 3.10+, pytest 9, a C toolchain, `make` and the system
+utilities used to inspect builds. Run these commands from the repository root:
 
 ```sh
+python3 -m venv .venv
+. .venv/bin/activate
+python3 -m pip install -r tests/requirements.txt
 make test
-TEST=20-differential.sh make test
-TEST=28-progress.sh make test
 ```
 
-The first command runs the suite; the others select one script. CI checks GCC
-and Clang on Linux and macOS, with separate ARM macOS coverage. Compiler and
-coverage tools are configured by CI rather than required for ordinary use.
+## Run selected scenarios
 
-`TEST=all` also selects the full suite. To run several families, separate their
-script names with spaces. Unknown or non-executable selections fail before any
-build starts. Each completed family reports its elapsed time.
+```sh
+python3 -m pytest tests/test_engines.py
+python3 -m pytest tests/test_progress.py::test_fallback_progress
+python3 -m pytest -k saturation
+```
 
-Within one suite run, the standard debug executable and Linux fault-injection
-library are built on first use and shared. The runner owns their temporary
-directory and removes it on exit. Special variants are rebuilt explicitly, including
-when a test changes a substitute header. Running a Python scenario directly
-still builds its own binaries.
+Pytest discovers named scenarios and reports skips, failures and the ten slowest
+tests. It stops at the first failure by default; use `--maxfail=0` to continue.
+
+The suite builds coverage and optimized variants on first use, sharing fixed
+profiles through session fixtures. Variants with substitute headers are rebuilt
+explicitly. Makefile checks use a separate source copy so they cannot erase the
+functional tests' coverage data. Large inputs use temporary storage on the
+repository volume, and fixtures clean up their files on completion or failure.
+
+CI runs the same suite with GCC and Clang on Linux and macOS, including ARM.
+It installs pytest in a virtual environment using the runner's Python. Coverage
+tools are configured by CI rather than required for ordinary use.
 
 ## What is verified
 
@@ -70,7 +75,7 @@ order, and records CPU, RSS, block I/O, faults and checksums. Generation and
 output synchronization/checksumming occur outside process timing.
 
 ```sh
-python3 test/scripts/benchmark-partitions.py /path/to/baseline /path/to/candidate \
+python3 tests/benchmark-partitions.py /path/to/baseline /path/to/candidate \
     --size-mib 1024 --memory 100M --results /tmp/partitions.jsonl
 ```
 
