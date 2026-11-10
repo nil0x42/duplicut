@@ -1,19 +1,14 @@
 #!/usr/bin/env python3
 
 import os
-import runpy
-import shlex
 import subprocess
 import sys
 import tempfile
 from collections import Counter
 from pathlib import Path
-from build import build
 
-
-reference = runpy.run_path(str(Path(__file__).with_name('reference-dedupe.py')))
-dedupe = reference['dedupe']
-line_count = reference['line_count']
+from reference import dedupe, line_count
+from build import build_debug, build_faults
 
 
 def main():
@@ -21,7 +16,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix='duplicut-engines-', dir=root) as folder:
         directory = Path(folder)
         program = (Path(sys.argv[1]).resolve() if len(sys.argv) > 1
-                   else build(root, directory, 'debug', '-DDEBUG=1'))
+                   else build_debug(root, directory))
         source, output, duplicates = (directory / name for name in ('input', 'output', 'duplicates'))
         content = (b'Alpha\r\nalpha\n\0hidden\nA\xff\nB\0C\nB\0C\nsmall\nSMALL\n'
                    + b'z' * 4095 + b'\n') * 64 + b'last'
@@ -77,11 +72,7 @@ def main():
                                  '-e', 'disk-partitions', '-m', '64K'], stderr=subprocess.PIPE)
         assert result.returncode != 0 and b'disk-partitions engine unavailable' in result.stderr
         if sys.platform == 'linux':
-            library = directory / 'faults.so'
-            compiler = shlex.split(os.environ.get('CC', 'cc'))
-            subprocess.run([*compiler, '-shared', '-fPIC', '-Wall', '-Wextra',
-                            str(root / 'test/scripts/partition-faults.c'), '-ldl',
-                            '-o', str(library)], check=True)
+            library = build_faults(root, directory)
             env = {**os.environ, 'LD_PRELOAD': str(library), 'DUPLICUT_TEST_FAULT': 'space'}
             command = [str(program), str(source), '-o', str(output), '-m', '8M']
             result = subprocess.run([*command, '-e', 'disk-partitions'], env=env, stderr=subprocess.PIPE)

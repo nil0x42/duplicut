@@ -18,6 +18,16 @@ The first command runs the suite; the others select one script. CI checks GCC
 and Clang on Linux and macOS, with separate ARM macOS coverage. Compiler and
 coverage tools are configured by CI rather than required for ordinary use.
 
+`TEST=all` also selects the full suite. To run several families, separate their
+script names with spaces. Unknown or non-executable selections fail before any
+build starts. Each completed family reports its elapsed time.
+
+Within one suite run, the standard debug executable and Linux fault-injection
+library are built on first use and shared. The runner owns their temporary
+directory and removes it on exit. Special variants are rebuilt explicitly, including
+when a test changes a substitute header. Running a Python scenario directly
+still builds its own binaries.
+
 ## What is verified
 
 | Family | Coverage |

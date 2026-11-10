@@ -1,22 +1,18 @@
 #!/usr/bin/env python3
 
 import os
-import runpy
 import shlex
 import subprocess
 import sys
 import tempfile
 from collections import Counter
 from pathlib import Path
-from build import build
+
+from reference import dedupe, line_count
+from build import build, build_faults
 
 
 THREADS = str(min(4, os.cpu_count() or 1))
-
-
-reference = runpy.run_path(str(Path(__file__).with_name('reference-dedupe.py')))
-dedupe = reference['dedupe']
-line_count = reference['line_count']
 
 
 def run(command, success=True, **kwargs):
@@ -119,11 +115,7 @@ def test_faults(program, records, directory, root, content, expected):
     if sys.platform != 'linux':
         print('[*] Linux I/O fault injection skipped on this platform')
         return
-    library = directory / 'faults.so'
-    compiler = shlex.split(os.environ.get('CC', 'cc'))
-    subprocess.run([*compiler, '-shared', '-fPIC', '-Wall', '-Wextra',
-                    str(root / 'test/scripts/partition-faults.c'), '-ldl',
-                    '-o', str(library)], check=True)
+    library = build_faults(root, directory)
     source_dir = directory / 'source'
     output_dir = directory / 'destination'
     source_dir.mkdir()

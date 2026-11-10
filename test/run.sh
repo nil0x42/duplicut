@@ -1,15 +1,11 @@
 #!/bin/bash
 
-cd `git rev-parse --show-toplevel`
+cd "$(git rev-parse --show-toplevel)" || exit 1
 
 _PROGRAM="./duplicut"
-_MAIN_DIR="./test"
-_TESTS_DIR="$_MAIN_DIR/tests"
+_TESTS_DIR="./test/tests"
 
-_DEFAULT_TEST=$(find "$_TESTS_DIR" -maxdepth 1 -type f  \
-                -name '*.sh' -exec basename {} ';' | sort)
-
-BANNER=$(perl -E 'print "="x79 . "\r\t\t"')
+BANNER="==============================================================================="
 
 function print_info () {
     echo -e "\033[1;34m[*]\033[0;36m $1\033[0m"
@@ -30,7 +26,7 @@ function die ()
     echo "[*] CC=\"$CC\""
     echo "[*] FLAGS=\"$FLAGS\""
     echo "[*] TEST=\"$_test\""
-    echo "[!] $errmsg" > /dev/stderr
+    echo "[!] $errmsg" >&2
     exit 1
 }
 
@@ -54,51 +50,45 @@ function check_program ()
 }
 
 
-scripts=0
-errors=0
-function execute_scripts () {
-    if [ -d "$1" ]; then
-        for i in "$1"/*; do
-            execute_scripts "$i"
-        done
-    elif [ -f "$1" ] && [ -x "$1" ]; then
-        if [[ $scripts -eq 0 && ! "$1" -ef "$_TESTS_DIR/00-build.sh" ]]; then
-            build_program
-        fi
-        print_info "$BANNER"
-        print_info "RUNNING $1 ..."
-        print_info "$BANNER"
-        if "$1"; then
-            print_good "$1 succeeded"
-        else
-            print_bad "$1 failed !"
-            exit 1
-            (( ++errors ))
-        fi
-        if [[ $scripts -eq 0 && "$1" -ef "$_TESTS_DIR/00-build.sh" ]]; then
-            check_program
-        fi
-        echo -e "\n"
-        (( ++scripts ))
-    fi
-}
-
-[ -z "$TEST" ] && TEST="$_DEFAULT_TEST"
-
-if [[ "$TEST" == "all" ]]; then
-    TEST="$(find . -maxdepth 1 -type f -executable)"
+tests=()
+if [[ -z "$TEST" || "$TEST" == "all" ]]; then
+    tests=("$_TESTS_DIR"/*.sh)
+else
+    for _test in $TEST; do
+        tests+=("$_TESTS_DIR/$_test")
+    done
 fi
 
-export FLAGS=""
-for _test in $TEST; do
-    _test="$_TESTS_DIR/$_test"
-    execute_scripts "$_test"
+[[ ${#tests[@]} -gt 0 ]] || die "No tests selected"
+for _test in "${tests[@]}"; do
+    [[ -f "$_test" && -x "$_test" ]] || die "Unknown or non-executable test: $_test"
 done
 
-if [[ $errors -eq 0 ]]; then
-    print_good "$scripts/$scripts test scripts succeeded"
-    exit 0
-else
-    print_bad "$errors/$scripts test scripts failed"
-    exit 1
-fi
+DUPLICUT_TEST_BUILD_DIR=$(mktemp -d "$(pwd)/duplicut-tests.XXXXXX") \
+    || die "Cannot create test build directory"
+export DUPLICUT_TEST_BUILD_DIR
+trap 'rm -rf "$DUPLICUT_TEST_BUILD_DIR"' EXIT
+
+export FLAGS=""
+scripts=0
+for _test in "${tests[@]}"; do
+    if [[ $scripts -eq 0 && ! "$_test" -ef "$_TESTS_DIR/00-build.sh" ]]; then
+        build_program
+    fi
+    print_info "$BANNER"
+    print_info "RUNNING $_test ..."
+    print_info "$BANNER"
+    started=$SECONDS
+    if ! "$_test"; then
+        print_bad "$_test failed !"
+        exit 1
+    fi
+    if [[ "$_test" -ef "$_TESTS_DIR/00-build.sh" ]]; then
+        check_program
+    fi
+    print_good "$_test succeeded ($((SECONDS - started))s)"
+    echo -e "\n"
+    (( ++scripts ))
+done
+
+print_good "$scripts/$scripts test scripts succeeded"

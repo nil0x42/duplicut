@@ -77,3 +77,10 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     ! test -e gmon.out
     nm --debug-syms duplicut | grep -Eq '_gcov_'
 fi
+
+#### invalid selections must fail before running any test
+! TEST=does-not-exist.sh ./test/run.sh
+! TEST=' ' ./test/run.sh
+! selection=$(TEST='10-cli.sh does-not-exist.sh' ./test/run.sh 2>&1)
+grep -q 'Unknown or non-executable test' <<< "$selection"
+! grep -Eq 'RUNNING|BUILDING' <<< "$selection"
