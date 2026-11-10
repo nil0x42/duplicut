@@ -29,6 +29,9 @@
 #define BUF_SIZE       (0x20000) /* 128 KiB */
 
 
+struct file *g_file;
+
+
 static struct file  g_infile;
 static struct file  g_outfile;
 static struct file  g_tmpfile;

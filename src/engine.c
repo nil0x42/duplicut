@@ -5,7 +5,6 @@
 #include "file.h"
 #include "line.h"
 #include "memstate.h"
-#include "partition.h"
 #include "debug.h"
 #include "error.h"
 #include "status.h"
@@ -102,11 +101,8 @@ static bool     initial_partitions(const struct memstate *memory, const struct l
 /** Configure the requested engine, retaining resource checks for forced runs. */
 void            config_engine(const struct memstate *memory, const struct line_sample *sample)
 {
-    g_conf.partition_count = 0;
-    g_conf.partition_workers = 0;
     if (g_conf.engine == ENGINE_MMAP_CHUNKS)
         return;
-    config_partitions();
     if (!g_conf.partition_count)
     {
         if (g_conf.engine == ENGINE_DISK_PARTITIONS)

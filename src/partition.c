@@ -55,6 +55,8 @@ struct partition_work
     size_t          count;
     size_t          next;
     size_t          memory;
+    size_t          slots;
+    size_t          capacity;
     size_t          header_size;
     uint64_t        lines;
     int             fd;
@@ -262,8 +264,8 @@ static void     partition_worker(void *arg)
     t_line      *table;
     char        *area;
 
-    slots = (work->memory - WORKER_OVERHEAD) / (2 * sizeof(t_line));
-    capacity = work->memory - WORKER_OVERHEAD - slots * sizeof(t_line);
+    slots = work->slots;
+    capacity = work->capacity;
     table = malloc(slots * sizeof(t_line));
     area = malloc(capacity);
     if (table == NULL || area == NULL)
@@ -293,6 +295,10 @@ void            config_partitions(void)
     size_t  count = 1;
     size_t  workers = g_conf.threads;
 
+    g_conf.partition_count = 0;
+    g_conf.partition_workers = 0;
+    if (g_conf.engine == ENGINE_MMAP_CHUNKS)
+        return;
     if (budget < 4 * WORKER_OVERHEAD || !g_conf.chunk_size)
     {
         DLOG1("disk-partitions disabled: insufficient working memory");
@@ -351,7 +357,7 @@ static size_t   count_partitions(struct partition_work *work)
     char        *base;
     int         size;
 
-    partition_status(0, g_file->orig_size);
+    partition_status(PARTITION_COUNT, g_file->orig_size);
     chunk.ptr = g_file->addr;
     chunk.endptr = g_file->addr + g_file->orig_size;
     base = chunk.ptr;
@@ -409,7 +415,7 @@ static void     write_partitions(struct partition_work *work)
         work->parts[index].end = position;
         work->parts[index].cursor = work->parts[index].start;
     }
-    partition_status(1, g_file->orig_size);
+    partition_status(PARTITION_WRITE, g_file->orig_size);
     for (index = 0; index < count; ++index)
     {
         work->parts[index].buffer = malloc(BUF_SIZE);
@@ -486,7 +492,7 @@ static void     mark_partitions(const struct partition_work *work)
     char        *line;
     char        *base;
 
-    partition_status(3, g_file->orig_size);
+    partition_status(PARTITION_MARK, g_file->orig_size);
     chunk.ptr = g_file->addr;
     chunk.endptr = g_file->addr + g_file->orig_size;
     base = chunk.ptr;
@@ -543,7 +549,6 @@ static bool     prepare_partition_memory(struct partition_work *work,
                     size_t bytes, size_t bitmap, size_t *workers)
 {
     size_t  memory = g_conf.dedupe_memory - work->count * sizeof(struct partition);
-    size_t  slots;
     struct partition_estimate estimate;
 
     if (bitmap > memory || memory - bitmap < 4 * WORKER_OVERHEAD)
@@ -559,11 +564,12 @@ static bool     prepare_partition_memory(struct partition_work *work,
         *workers = 1;
     work->memory = memory / *workers;
     limit_partition_memory(work);
-    slots = (work->memory - WORKER_OVERHEAD) / (2 * sizeof(t_line));
+    work->slots = (work->memory - WORKER_OVERHEAD) / (2 * sizeof(t_line));
+    work->capacity = work->memory - WORKER_OVERHEAD - work->slots * sizeof(t_line);
     estimate = (struct partition_estimate){
         .lines = work->lines, .contents = bytes - work->lines * work->header_size,
         .bytes = bytes, .count = work->count, .workers = *workers,
-        .entries = slots / 2, .capacity = work->memory - WORKER_OVERHEAD - slots * sizeof(t_line),
+        .entries = work->slots / 2, .capacity = work->capacity,
         .bitmap = bitmap
     };
     return (prefer_partitions(&estimate));
@@ -573,7 +579,7 @@ static bool     prepare_partition_memory(struct partition_work *work,
 static void     display_partition_config(const struct partition_work *work,
                     size_t workers, size_t bytes, size_t bitmap)
 {
-    size_t table = ((work->memory - WORKER_OVERHEAD) / (2 * sizeof(t_line))) * sizeof(t_line);
+    size_t table = work->slots * sizeof(t_line);
     char data[32];
     char entries[32];
 
@@ -585,7 +591,7 @@ static void     display_partition_config(const struct partition_work *work,
         work->count, data, sizerepr(bitmap), work->header_size);
     status_info("worker RAM:", "%s per worker (table, contents and scratch)", sizerepr(work->memory));
     status_info("storage:", "table: %s; contents: %s per worker; load limit: 50%%",
-        entries, sizerepr(work->memory - WORKER_OVERHEAD - table));
+        entries, sizerepr(work->capacity));
 }
 
 
@@ -615,7 +621,7 @@ bool            tag_partitions(void)
     if (!prepare_partition_memory(&work, bytes, bitmap, &workers))
     {
         free(work.parts);
-        partition_status(-1, 0);
+        partition_status(PARTITION_CANCEL, 0);
         return (false);
     }
     work.fd = open_tmpfile(bytes);
@@ -623,7 +629,7 @@ bool            tag_partitions(void)
     {
         DLOG1("disk-partitions unavailable: temporary file: %s", ERRNO);
         free(work.parts);
-        partition_status(-1, 0);
+        partition_status(PARTITION_CANCEL, 0);
         return (engine_fallback("cannot create the partition file on a writable disk volume"));
     }
     if (ftruncate(work.fd, bytes) < 0)
@@ -640,7 +646,7 @@ bool            tag_partitions(void)
     work.duplicates = calloc(bitmap, 1);
     if (work.duplicates == NULL)
         die("cannot calloc() duplicate bitmap");
-    partition_status(2, bytes);
+    partition_status(PARTITION_DEDUPE, bytes);
     dedupe_partitions(&work, workers);
     mark_partitions(&work);
     if (close(work.fd) < 0)

@@ -22,6 +22,7 @@ enum    e_status_set
     FILE_SIZE,          /* total file size (g_infile) */
     FCOPY_BYTES,        /* bytes currently processed by FCOPY */
     CHUNK_SIZE,         /* chunk size */
+    CHUNK_COUNT,        /* exact mmap-chunks count and initial tasks */
     CTASK_EXTRA,        /* extra tasks for a saturated chunk */
     TAGDUP_BYTES,       /* bytes currently processed by TAGDUP */
     TAGDUP_DUPLICATES,  /* total duplicates found */
@@ -31,12 +32,21 @@ enum    e_status_set
     FOUTPUT_BYTES,      /* restored output bytes */
 };
 
+enum    e_partition_stage
+{
+    PARTITION_CANCEL = -1,
+    PARTITION_COUNT,
+    PARTITION_WRITE,
+    PARTITION_DEDUPE,
+    PARTITION_MARK
+};
+
 /* source file: status.c */
 void                display_report(void);
 void                display_status(int finished);
 void                update_status(enum e_status_update action);
 void                set_status(enum e_status_set var, size_t val);
 
-void                partition_status(int stage, size_t total);
+void                partition_status(enum e_partition_stage stage, size_t total);
 void                status_interactive(bool enabled);
 void                status_info(const char *label, const char *fmt, ...);

@@ -2,6 +2,7 @@
 
 #include <sys/stat.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 struct file
 {

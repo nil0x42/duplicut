@@ -1,8 +1,18 @@
 #pragma once
 
+#include <stddef.h>
 #include "engine.h"
 
 #define DEFAULT_LINE_MAX_SIZE (1024)
+
+struct line_sample
+{
+    size_t  bytes;
+    size_t  lines;
+    size_t  contents;
+    double  min_size;
+};
+
 
 struct              conf
 {
@@ -26,7 +36,7 @@ struct              conf
 };
 
 /** Global configuration vars.
- * Actually initialized on main.c
+ * Initialized in config.c
  */
 extern struct conf  g_conf;
 
