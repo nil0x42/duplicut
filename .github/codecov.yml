@@ -36,4 +36,4 @@ ignore:
   - "^include/xxhash\\.h$"
   - "^include/thpool\\.h$"
   - "^src/thpool\\.c$"
-  - "test/**"
+  - "tests/**"

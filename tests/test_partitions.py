@@ -1,15 +1,12 @@
-#!/usr/bin/env python3
-
 import os
-import shlex
 import subprocess
-import sys
-import tempfile
 from collections import Counter
 from pathlib import Path
 
-from reference import dedupe, line_count
-from build import build, build_faults
+import pytest
+
+from .reference import dedupe, line_count
+from .build import build
 
 
 THREADS = str(min(4, os.cpu_count() or 1))
@@ -21,7 +18,15 @@ def run(command, success=True, **kwargs):
     return result
 
 
-def test_outputs(program, directory):
+@pytest.fixture(scope='module')
+def option_content():
+    content = (b'Alpha\r\nalpha\n\0hidden\nA\xff\nB\x00C\nB\x00C\na\nb\n'
+               + b'z' * 4095 + b'\n' + b'w' * 512 + b'\n') * 4000 + b'last'
+    return content
+
+
+def test_order_and_unique_ratios(partition_program, directory):
+    program = partition_program
     source = directory / 'input'
     output = directory / 'output'
     duplicates = directory / 'duplicates'
@@ -42,10 +47,9 @@ def test_outputs(program, directory):
             assert output.read_bytes() == expected, (percent, threads)
             assert Counter(duplicates.read_bytes().splitlines()) == expected_duplicates
             assert not list(directory.rglob('duplicut_tmpfile.*'))
-            print('[+] %d%% unique lines, at most %d threads' % (percent, threads))
 
 
-def test_table_overflow(program, directory):
+def check_table_overflow(program, directory):
     source = directory / 'input'
     output = directory / 'output'
     duplicates = directory / 'duplicates'
@@ -64,12 +68,11 @@ def test_table_overflow(program, directory):
         ('%08x' % i).encode() for i in range(count - unique))
     assert b'10000 duplicates' in result.stderr
     assert b'6250 filtered lines' in result.stderr
-    print('[+] short records, table saturation and single-count statistics')
 
 
-def test_options(program, directory):
-    content = (b'Alpha\r\nalpha\n\0hidden\nA\xff\nB\x00C\nB\x00C\na\nb\n'
-               + b'z' * 4095 + b'\n' + b'w' * 512 + b'\n') * 4000 + b'last'
+def test_filters_and_streams(partition_program, directory, option_content):
+    program = partition_program
+    content = option_content
     source = directory / 'input'
     output = directory / 'output'
     duplicates = directory / 'duplicates'
@@ -95,27 +98,18 @@ def test_options(program, directory):
     with output.open('ab') as stream:
         run([program, str(source), '-m', '4M'], stdout=stream)
     assert output.read_bytes() == b'prefix' + expected
-    print('[+] filters, case, binary lines, final line, pipe and append')
-    return content, expected
 
 
-def test_records(directory, root):
-    program = directory / 'records'
-    compiler = shlex.split(os.environ.get('CC', 'cc'))
-    sources = [str(path) for path in sorted((root / 'src').glob('*.c'))
-               if path.name not in ('main.c', 'partition.c')]
-    subprocess.run([*compiler, '-std=gnu99', '-O2', '-Wall', '-Wextra', '-Werror',
-                    '-I' + str(root / 'include'), str(root / 'test/scripts/records.c'),
-                    *sources, '-lm', '-pthread', '-o', str(program)], check=True)
-    run([str(program)])
-    return str(program)
+def test_record_headers(records_program):
+    run([records_program])
 
 
-def test_faults(program, records, directory, root, content, expected):
-    if sys.platform != 'linux':
-        print('[*] Linux I/O fault injection skipped on this platform')
-        return
-    library = build_faults(root, directory)
+def test_io_faults_and_temporary_paths(partition_program, records_program, faults, directory, option_content):
+    program = partition_program
+    records = records_program
+    content = option_content
+    expected = dedupe(content, 1024)[0]
+    library = faults
     source_dir = directory / 'source'
     output_dir = directory / 'destination'
     source_dir.mkdir()
@@ -178,13 +172,18 @@ def test_faults(program, records, directory, root, content, expected):
     assert output.read_bytes() == expected
     assert all(Path(path).parent == output_dir for path in log.read_text().splitlines())
     assert not list(directory.rglob('duplicut_tmpfile.*'))
-    print('[+] partial I/O, EINTR, EOF, ENOSPC, volumes, paths and immediate unlink')
+
+
+def test_production_engine_selection(program, faults, directory):
+    source, output = directory / 'input', directory / 'output'
+    log = directory / 'paths'
+    environment = {**os.environ, 'LD_PRELOAD': faults}
     word = b'abcdefghijklmno\n'
     with source.open('wb') as stream:
         block = (word + b'\0' * (4096 - len(word) - 1) + b'\n') * 256
         for unused in range(256):
             stream.write(block)
-    production = [str(root / 'duplicut'), str(source), '-o', str(output),
+    production = [program, str(source), '-o', str(output),
                   '-m', '8M', '-l', '4095', '-t', THREADS]
     result = run(production, success=False,
                  env={**environment, 'DUPLICUT_TEST_FAULT': 'zero'})
@@ -196,7 +195,6 @@ def test_faults(program, records, directory, root, content, expected):
     result = run(production, success=False,
                  env={**environment, 'DUPLICUT_TEST_FAULT': 'zero'})
     assert b'cannot write partitions' in result.stderr, result.stderr
-    print('[+] production dispatch below the former size threshold')
     with source.open('wb') as stream:
         block = (b'x' * 4095 + b'\n') * 256
         for unused in range(256):
@@ -210,7 +208,6 @@ def test_faults(program, records, directory, root, content, expected):
                          'DUPLICUT_TEST_LOG': str(log)})
     assert output.read_bytes() == b'x' * 4095 + b'\n'
     assert log.read_text().splitlines()
-    print('[+] cached and uncached long-line selection')
     with source.open('r+b') as stream:
         stream.write(word * (65536 // len(word)))
     log.unlink()
@@ -218,7 +215,6 @@ def test_faults(program, records, directory, root, content, expected):
                          'DUPLICUT_TEST_LOG': str(log)})
     assert output.read_bytes() == word + b'x' * 4095 + b'\n'
     assert log.exists() == (int(THREADS) <= 2)
-    print('[+] distributed samples with an unrepresentative short prefix')
     source.write_bytes((word + b'\0' * (4096 - len(word) - 1) + b'\n') * 2048)
     for memory, partitioned in (('8M', int(THREADS) > 1), ('1M', False),
                                 ('768K', True), ('512K', True), ('256K', False)):
@@ -230,7 +226,6 @@ def test_faults(program, records, directory, root, content, expected):
             assert output.read_bytes() == word
     run([*production, '-m', '512K'])
     assert output.read_bytes() == word
-    print('[+] relative chunk selection and bounded workers below 1 MiB')
     source.write_bytes((b'x' * 4095 + b'\n') * 2048)
     for available, partitioned in ((4096, True), (8256, True), (8448, False), (9216, False),
                                     (4 * 1024 * 1024, False), (128 * 1024 * 1024, False)):
@@ -242,7 +237,6 @@ def test_faults(program, records, directory, root, content, expected):
             assert b'cannot write partitions' in result.stderr, (available, result.stderr)
         else:
             assert output.read_bytes() == b'x' * 4095 + b'\n'
-    print('[+] low and high available memory, including hash table headroom')
     env = {**environment, 'DUPLICUT_TEST_FAULT': 'zero',
            'DUPLICUT_TEST_AVAILABLE': str(128 * 1024 * 1024)}
     result = run([*production, '-m', '512K'], success=int(THREADS) >= 4, env=env)
@@ -254,11 +248,9 @@ def test_faults(program, records, directory, root, content, expected):
         stream.write((b'x' * 4095 + b'\n') * 6144)
     result = run([*production, '-m', '512K'], success=False, env=env)
     assert b'cannot write partitions' in result.stderr, result.stderr
-    print('[+] cached long lines with many estimated passes')
 
 
-
-def test_collisions(directory, root):
+def test_collision_overflow(directory, root):
     include = directory / 'include'
     include.mkdir()
     (include / 'hash.h').write_text('#pragma once\n#include <stdint.h>\n'
@@ -275,31 +267,9 @@ def test_collisions(directory, root):
          '-m', '4M', '-l', '4095', '-t', THREADS])
     assert output.read_bytes() == b''.join(word + b'\n' for word in words)
     assert Counter(duplicates.read_bytes().splitlines()) == Counter(words * 3)
-    print('[+] forced hash collisions and bounded overflow passes')
     (include / 'hash.h').write_text('#pragma once\n#include <stdint.h>\n'
                                   '#define XXH_INLINE_ALL\n#include "xxhash.h"\n'
                                   '#define HASH(line, size) (XXH3_64bits(line, size) & ~UINT64_C(4095))\n')
     build(root, directory, 'collisions', '-DNDEBUG',
           '-DPARTITION_MIN_CHUNKS=0', '-I' + str(include))
-    test_table_overflow(program, directory)
-
-
-def main():
-    root = Path.cwd().resolve()
-    with tempfile.TemporaryDirectory(prefix='duplicut-partitions-', dir=root) as folder:
-        directory = Path(folder)
-        if len(sys.argv) > 1:
-            program = str(Path(sys.argv[1]).resolve())
-        else:
-            program = str(build(root, directory, 'duplicut', '-DNDEBUG',
-                                '-DPARTITION_MIN_CHUNKS=0'))
-        test_outputs(program, directory)
-        content, expected = test_options(program, directory)
-        if len(sys.argv) == 1:
-            records = test_records(directory, root)
-            test_faults(program, records, directory, root, content, expected)
-            test_collisions(directory, root)
-
-
-if __name__ == '__main__':
-    main()
+    check_table_overflow(program, directory)

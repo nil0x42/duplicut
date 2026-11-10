@@ -34,7 +34,7 @@ Limited budgets use a disk working file before restoring the result to stdout.
 The final RAM-backed result still occupies about 296 MiB outside this simple
 process RSS figure.
 
-[Raw observations](../test/benchmarks/memory/bigwl.jsonl) also contain earlier
+[Raw observations](../tests/benchmarks/memory/bigwl.jsonl) also contain earlier
 single-run controls. Those controls are not three-run medians. Polled output
 sizes may miss the final copy and must not be read as bounds below the final
 result size.
@@ -63,8 +63,8 @@ input; it is historical, not a fresh forced-mmap measurement of the current
 binary. Later selector and UI changes retain this workload's engine and
 execution dimensions; the figure is not presented as a rerun of those changes.
 
-[Retained disk observation](../test/benchmarks/memory/disk.json) ·
-[Earlier disk comparison](../test/benchmarks/partitions/disk.json).
+[Retained disk observation](../tests/benchmarks/memory/disk.json) ·
+[Earlier disk comparison](../tests/benchmarks/partitions/disk.json).
 
 ## Engine tradeoffs
 
@@ -113,18 +113,18 @@ establish that partitioning will be faster.
 
 ## Data and provenance
 
-Raw records remain under `test/benchmarks`. JSONL holds one observation per line;
+Raw records remain under `tests/benchmarks`. JSONL holds one observation per line;
 `repeat: -1` denotes a warm-up. Parameters, commands and hashes are in the rows;
 environment files add compiler flags, CPU affinity, build IDs and binary hashes.
 
 | Dataset | Scope and interpretation |
 |---|---|
-| [Partitions](../test/benchmarks/partitions/) · [environment](../test/benchmarks/partitions/environment.json) | Initial comparison with `a4a5d80`; typically one warm-up and seven measured trials, plus single disk trials and thread-scaling controls. Earlier activation rules are no longer current. |
-| [Saturation](../test/benchmarks/saturation/) · [environment](../test/benchmarks/saturation/environment.json) | `ab958d2` versus the bounded-insertion change `991b765`; three measured trials, then seven pinned trials for the variable 2 GiB long-line control. |
-| [Selection](../test/benchmarks/selection/) · [environment](../test/benchmarks/selection/environment.json) | `63cfc02` versus selection finalized in `6107d5f`; three trials after warm-up. Timed long-line inputs had 128 chunks; the measured 64-chunk gate and final 128-chunk gate chose the same engine there. |
-| [Integration](../test/benchmarks/integration/) · [environment](../test/benchmarks/integration/environment.json) | Sampled sizing, nearest-count controls and heterogeneous inputs around `db1765c`; `ceiling-count` includes a rejected prototype. Disk data precedes the later mapped-memory changes. |
-| [Working memory](../test/benchmarks/memory/) | `de5ba3c` observations used above. `bitmap-controls` includes unconditional admission; `bounded` checks retained admission. Real-wordlist controls are single runs; retained rows have three repeats. |
-| [Engines](../test/benchmarks/engines/) · [environment](../test/benchmarks/engines/environment.json) | Frozen optimized DEBUG=1 builds around `7183428` and `2a7af6b`. `forced` is exploratory; confirmation files record the repeated selector comparison. |
+| [Partitions](../tests/benchmarks/partitions/) · [environment](../tests/benchmarks/partitions/environment.json) | Initial comparison with `a4a5d80`; typically one warm-up and seven measured trials, plus single disk trials and thread-scaling controls. Earlier activation rules are no longer current. |
+| [Saturation](../tests/benchmarks/saturation/) · [environment](../tests/benchmarks/saturation/environment.json) | `ab958d2` versus the bounded-insertion change `991b765`; three measured trials, then seven pinned trials for the variable 2 GiB long-line control. |
+| [Selection](../tests/benchmarks/selection/) · [environment](../tests/benchmarks/selection/environment.json) | `63cfc02` versus selection finalized in `6107d5f`; three trials after warm-up. Timed long-line inputs had 128 chunks; the measured 64-chunk gate and final 128-chunk gate chose the same engine there. |
+| [Integration](../tests/benchmarks/integration/) · [environment](../tests/benchmarks/integration/environment.json) | Sampled sizing, nearest-count controls and heterogeneous inputs around `db1765c`; `ceiling-count` includes a rejected prototype. Disk data precedes the later mapped-memory changes. |
+| [Working memory](../tests/benchmarks/memory/) | `de5ba3c` observations used above. `bitmap-controls` includes unconditional admission; `bounded` checks retained admission. Real-wordlist controls are single runs; retained rows have three repeats. |
+| [Engines](../tests/benchmarks/engines/) · [environment](../tests/benchmarks/engines/environment.json) | Frozen optimized DEBUG=1 builds around `7183428` and `2a7af6b`. `forced` is exploratory; confirmation files record the repeated selector comparison. |
 
 Standard generated workloads use cyclic hexadecimal identifiers, padded with
 `x` and followed by LF. Line count is the byte target divided by word length

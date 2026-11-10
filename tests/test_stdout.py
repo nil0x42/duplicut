@@ -1,17 +1,28 @@
-#!/usr/bin/env python3
-
 import errno
 import os
 import select
 import signal
 import subprocess
-import sys
 import time
 import tty
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from reference import dedupe
+import pytest
+
+from .reference import dedupe
+
+
+pytestmark = pytest.mark.parametrize('options', [(), ('-o', '/dev/stdout')],
+                                     ids=['default', 'stdout'])
+
+
+@pytest.fixture
+def stdout_files(directory, monkeypatch):
+    monkeypatch.chdir(directory)
+    Path('input').write_bytes(b'alpha\nbeta\nalpha\n')
+    Path('empty').write_bytes(b'')
+    return b'alpha\nbeta\n'
 
 
 def run(command, success=True, **kwargs):
@@ -21,7 +32,11 @@ def run(command, success=True, **kwargs):
     return result
 
 
-def test_outputs(program, options):
+def shell(command, script, success=True):
+    return run(['bash', '-e', '-o', 'pipefail', '-c', script, '_', *command], success=success)
+
+
+def test_output_matrix(program, options, stdout_files):
     contents = (b'', b'alpha\nbeta\nalpha\n', b'alpha\nbeta',
                 b'Alpha\r\nalpha\n\0hidden\nA\xff\nB\x00C\nB\x00C\n',
                 b'alpha\nbeta\nalpha\n' * 16384)
@@ -47,7 +62,9 @@ def test_outputs(program, options):
                 assert sorted(actual_duplicates) == sorted(duplicates.split(b'\n'))
 
 
-def test_descriptors(command, expected):
+def test_inherited_descriptors(program, options, stdout_files):
+    command = [program, '-t', '1', 'input', *options]
+    expected = stdout_files
     # inherited O_RDWR, nonzero positions and existing tails
     for content, offset, append in ((b'', 0, False), (b'', 7, False),
                                     (b'header:old output with a tail', 7, False),
@@ -81,10 +98,13 @@ def test_descriptors(command, expected):
         assert Path(path).read_bytes() == saved
         assert Path('input').read_bytes() == original
 
+
+def test_write_only_output(program, options, stdout_files):
+    command = [program, '-t', '1', 'input', *options]
+    expected = stdout_files
     # reopening a write-only destination must fall back to a temporary file
     Path('output').write_bytes(b'')
     Path('output').chmod(0o200)
-    restricted = True
     try:
         try:
             fd = os.open('output', os.O_RDWR)
@@ -93,17 +113,15 @@ def test_descriptors(command, expected):
                 run(command, stdout=output)
         else:
             os.close(fd)
-            restricted = False
-            print('[*] Skipping write-only permissions test: read access is not restricted')
+            pytest.skip('read access is not restricted')
     finally:
         Path('output').chmod(0o600)
-    if restricted:
-        assert Path('output').read_bytes() == expected
+    assert Path('output').read_bytes() == expected
 
 
-def test_streams(program, options, expected):
+def test_fifo_output(program, options, stdout_files):
     command = [program, '-t', '1', 'input', *options]
-
+    expected = stdout_files
     # FIFO with a bounded reader
     os.mkfifo('fifo')
     try:
@@ -132,6 +150,10 @@ def test_streams(program, options, expected):
     finally:
         Path('fifo').unlink()
 
+
+def test_raw_terminal_output(program, options, stdout_files):
+    command = [program, '-t', '1', 'input', *options]
+    expected = stdout_files
     # raw terminal output must contain only the deduped bytes
     master, slave = os.openpty()
     try:
@@ -149,6 +171,9 @@ def test_streams(program, options, expected):
         os.close(slave)
         os.close(master)
 
+
+def test_sigpipe_cleanup(program, options, stdout_files):
+    command = [program, '-t', '1', 'input', *options]
     # SIGPIPE must not leave a named temporary file
     reader, writer = os.pipe()
     os.close(reader)
@@ -158,6 +183,8 @@ def test_streams(program, options, expected):
     finally:
         os.close(writer)
 
+
+def test_interrupted_copy(program, options, stdout_files):
     # interrupt a process blocked while copying input into its temporary file
     with subprocess.Popen([program, '-t', '1', *options], stdin=subprocess.PIPE,
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0) as process:
@@ -182,18 +209,79 @@ def test_streams(program, options, expected):
         assert process.returncode == -signal.SIGTERM
 
 
-def main():
-    program = sys.argv[1]
-    for options in ([], ['-o', '/dev/stdout']):
-        test_outputs(program, options)
-        Path('input').write_bytes(b'alpha\nbeta\nalpha\n')
-        command = [program, '-t', '1', 'input', *options]
-        expected = b'alpha\nbeta\n'
-        test_descriptors(command, expected)
-        test_streams(program, options, expected)
-    print('[+] stdout regression tests succeeded')
-    return 0
+def test_shell_redirections(program, options, stdout_files):
+    command = [program, *options]
+    expected = stdout_files
+    Path('output').write_bytes(b'old output\n')
+    shell(command, '"$@" input > output')
+    assert Path('output').read_bytes() == expected
+    shell(command, '"$@" input >> output')
+    assert Path('output').read_bytes() == expected * 2
+    Path('output').unlink()
+    shell(command, '"$@" input >> output')
+    assert Path('output').read_bytes() == expected
+    Path('output').write_bytes(b'prefix')
+    shell(command, '"$@" input >> output; "$@" input >> output')
+    assert Path('output').read_bytes() == b'prefix' + expected * 2
+    shell(command, '("$@" input; printf footer) > output')
+    assert Path('output').read_bytes() == expected + b'footer'
+    shell(command, '(printf header; "$@" input; printf footer) > output')
+    assert Path('output').read_bytes() == b'header' + expected + b'footer'
+    shell(command, '"$@" empty >> output; "$@" input -l 1 >> output')
+    assert Path('output').read_bytes() == b'header' + expected + b'footer'
+    shell(command, '"$@" empty > output')
+    assert not Path('output').read_bytes()
+    shell(command, '"$@" < input > output')
+    assert Path('output').read_bytes() == expected
+    shell(command, '"$@" input | cat > output')
+    assert Path('output').read_bytes() == expected
+    shell(command, '"$@" input > /dev/null')
 
 
-if __name__ == '__main__':
-    sys.exit(main())
+def test_redirected_aliases(program, options, stdout_files):
+    command = [program, *options]
+    original = Path('input').read_bytes()
+    for pair in ('infile-outfile', 'outfile-dupfile'):
+        for link in ('same', 'hardlink', 'symlink'):
+            Path('target').write_bytes(original)
+            Path('duplicates').write_bytes(b'keep duplicates\n')
+            if link == 'same':
+                alias = 'target'
+            elif link == 'hardlink':
+                alias = 'alias'
+                os.link('target', alias)
+            else:
+                alias = 'alias'
+                Path(alias).symlink_to('target')
+            if pair == 'infile-outfile':
+                shell([alias, *command], 'alias=$1; shift; "$@" target -D duplicates >> "$alias"',
+                      success=False)
+                assert Path('duplicates').read_bytes() == b'keep duplicates\n'
+            else:
+                shell([alias, *command], 'alias=$1; shift; "$@" input -D "$alias" >> target',
+                      success=False)
+            assert Path('target').read_bytes() == original
+            if link != 'same':
+                Path(alias).unlink()
+
+
+def test_invalid_stdout(program, options, stdout_files):
+    command = [program, *options]
+    shell(command, '"$@" input >&-', success=False)
+    shell(command, '"$@" input 1< input', success=False)
+    original = Path('input').read_bytes()
+    Path('output').write_bytes(original)
+    shell(command, '"$@" input -D . >> output', success=False)
+    assert Path('output').read_bytes() == original
+    if Path('/dev/full').exists():
+        shell(command, '"$@" input > /dev/full', success=False)
+
+
+def test_explicit_output_precedence(program, options, stdout_files):
+    command = [program, *options]
+    shell(command, '"$@" input -o output > unused')
+    assert Path('output').read_bytes() == stdout_files
+    assert not Path('unused').read_bytes()
+    shell(command, '"$@" input -o output >&-')
+    assert Path('output').read_bytes() == stdout_files
+    assert not list(Path('.').rglob('duplicut_tmpfile.*'))

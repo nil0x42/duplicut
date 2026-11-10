@@ -71,7 +71,7 @@ uninstall:
 	rm $(BINDIR)/$(TARGET)
 
 test:
-	./test/run.sh
+	python3 -m pytest
 
 clean:
 	-rm -rf objects/
