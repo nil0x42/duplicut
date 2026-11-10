@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import os
-import runpy
 import shlex
 import subprocess
 import sys
@@ -11,10 +10,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from threading import Event
 
-
-reference = runpy.run_path(str(Path(__file__).with_name('reference-dedupe.py')))
-dedupe = reference['dedupe']
-line_count = reference['line_count']
+from reference import dedupe, line_count
 
 
 def default_jobs():

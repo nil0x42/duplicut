@@ -1,18 +1,14 @@
 #!/usr/bin/env python3
 
 import os
-import runpy
 import subprocess
 import sys
 import tempfile
 from collections import Counter
 from pathlib import Path
+
+from reference import dedupe, line_count
 from build import build
-
-
-reference = runpy.run_path(str(Path(__file__).with_name('reference-dedupe.py')))
-dedupe = reference['dedupe']
-line_count = reference['line_count']
 
 
 def check(program, directory, content, flags=()):

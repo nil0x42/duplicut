@@ -26,6 +26,7 @@ def dedupe(content, max_line_size, printable=False, lowercase=False, uppercase=F
     lines = re.split(b"\r\n|\n", content)
     dupes = []
     uniques = []
+    seen = set()
     for line in lines:
         if not line:
             continue
@@ -35,9 +36,10 @@ def dedupe(content, max_line_size, printable=False, lowercase=False, uppercase=F
             continue
         if printable and not line_isprint(line):
             continue
-        if line in uniques:
+        if line in seen:
             dupes.append(line)
             continue
+        seen.add(line)
         uniques.append(line)
 
     result = b"\n".join(uniques)

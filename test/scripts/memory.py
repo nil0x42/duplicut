@@ -2,13 +2,13 @@
 
 import os
 import re
-import shlex
 import subprocess
 import sys
 import tempfile
 import time
 from pathlib import Path
-from build import build
+
+from build import build_debug, build_faults
 
 
 THREADS = min(4, os.cpu_count() or 1)
@@ -65,7 +65,7 @@ def main():
     root = Path.cwd().resolve()
     with tempfile.TemporaryDirectory(prefix='duplicut-memory-', dir=root) as folder:
         directory = Path(folder)
-        program = build(root, directory, 'debug', '-DDEBUG=1')
+        program = build_debug(root, directory)
         check(program, directory, 32, 128, '4M', 'disk-partitions')
         text = check(program, directory, 96, 8, '4M', 'disk-partitions')
         assert 'large bitmap estimate:' in text
@@ -85,11 +85,7 @@ def main():
                     assert 'RAM-backed output: using a disk-backed working file' in text
                     assert 'g_file->name:         temporary file' in text
                     print('[+] RAM-backed stdout receives only the final result')
-                    library = directory / 'faults.so'
-                    compiler = shlex.split(os.environ.get('CC', 'cc'))
-                    subprocess.run([*compiler, '-shared', '-fPIC', '-Wall', '-Wextra',
-                                    str(root / 'test/scripts/partition-faults.c'), '-ldl',
-                                    '-o', str(library)], check=True)
+                    library = build_faults(root, directory)
                     env = {**os.environ, 'LD_PRELOAD': str(library),
                            'DUPLICUT_TEST_AVAILABLE': '8192'}
                     text = check(program, directory, 32, 128, None, 'mmap-chunks',

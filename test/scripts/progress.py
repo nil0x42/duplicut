@@ -4,8 +4,6 @@ import errno
 import fcntl
 import os
 import re
-import runpy
-import shlex
 import struct
 import subprocess
 import sys
@@ -14,11 +12,11 @@ import termios
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from build import build
+
+from reference import dedupe
+from build import build, build_faults
 
 
-reference = runpy.run_path(str(Path(__file__).with_name('reference-dedupe.py')))
-dedupe = reference['dedupe']
 ANSI = re.compile(rb'\x1b\[[0-?]*[ -/]*[@-~]')
 
 
@@ -169,11 +167,7 @@ def main():
         if sys.platform == 'linux':
             program = build(root, directory, 'candidate', '-DNDEBUG', '-Werror',
                             '-DPARTITION_MIN_CHUNKS=0')
-            library = directory / 'faults.so'
-            compiler = shlex.split(os.environ.get('CC', 'cc'))
-            subprocess.run([*compiler, '-shared', '-fPIC', '-Wall', '-Wextra',
-                            str(root / 'test/scripts/partition-faults.c'), '-ldl',
-                            '-o', str(library)], check=True)
+            library = build_faults(root, directory)
             env = {**os.environ, 'LD_PRELOAD': str(library), 'DUPLICUT_TEST_FAULT': 'space'}
             result = subprocess.run([str(program), str(source), '-o', str(output), '-m', '8M'],
                                     env=env, stderr=subprocess.PIPE, timeout=10)

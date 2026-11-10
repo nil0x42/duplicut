@@ -2,7 +2,6 @@
 
 import errno
 import os
-import runpy
 import select
 import signal
 import subprocess
@@ -12,8 +11,7 @@ import tty
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-
-dedupe = runpy.run_path(str(Path(__file__).with_name('reference-dedupe.py')))['dedupe']
+from reference import dedupe
 
 
 def run(command, success=True, **kwargs):

@@ -8,7 +8,8 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from build import build
+
+from build import build, build_debug, build_faults
 
 
 def run(program, directory, content, memory='8M', env=None):
@@ -45,7 +46,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix='duplicut-configuration-', dir=root) as folder:
         directory = Path(folder)
         program = (Path(sys.argv[1]).resolve() if len(sys.argv) > 1
-                   else build(root, directory, 'debug', '-DDEBUG=1'))
+                   else build_debug(root, directory))
         words = b''.join(('%03x\n' % i).encode() for i in range(4096))
         fields, log, output = run(program, directory, words * 2, '64K')
         assert fields['sample'] == 4 and output == words
@@ -110,11 +111,7 @@ def main():
         print('[+] initial partition plan, final allocations and phases')
 
         if sys.platform == 'linux':
-            library = directory / 'faults.so'
-            compiler = shlex.split(os.environ.get('CC', 'cc'))
-            subprocess.run([*compiler, '-shared', '-fPIC', '-Wall', '-Wextra',
-                            str(root / 'test/scripts/partition-faults.c'), '-ldl',
-                            '-o', str(library)], check=True)
+            library = build_faults(root, directory)
             reads = directory / 'memory-reads'
             env = {**os.environ, 'LD_PRELOAD': str(library), 'DUPLICUT_TEST_FAULT': 'space',
                    'DUPLICUT_TEST_AVAILABLE': str(128 * 1024 * 1024),
