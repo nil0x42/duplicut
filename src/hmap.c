@@ -10,6 +10,9 @@
 #include "debug.h"
 
 
+struct hmap g_hmap;
+
+
 void        init_hmap(size_t size)
 {
     DLOG2("CALL init_hmap()");

@@ -2,7 +2,6 @@
 #include <time.h>
 #include "status.h"
 
-static int g_chunk_counts;
 static double g_now = 1000;
 
 
@@ -16,13 +15,6 @@ int         clock_gettime(clockid_t clock, struct timespec *result)
 }
 
 
-int         count_chunks(void)
-{
-    ++g_chunk_counts;
-    return (4);
-}
-
-
 int         main(int argc, char **argv)
 {
     (void)argv;
@@ -33,13 +25,14 @@ int         main(int argc, char **argv)
     g_now += 0.123;
     update_status(CONFIG_START);
     g_now += 0.456;
-    partition_status(0, 100);
+    partition_status(PARTITION_COUNT, 100);
     set_status(TAGDUP_BYTES, 50);
     display_status(0);
     if (argc > 1)
     {
-        partition_status(-1, 0);
+        partition_status(PARTITION_CANCEL, 0);
         update_status(CHUNK_START);
+        set_status(CHUNK_COUNT, 4);
         set_status(CTASK_EXTRA, 3);
         set_status(TAGDUP_BYTES, 50);
         display_status(0);
@@ -47,13 +40,13 @@ int         main(int argc, char **argv)
     else
     {
         g_now += 1.234;
-        partition_status(1, 100);
+        partition_status(PARTITION_WRITE, 100);
         set_status(TAGDUP_BYTES, 100);
         g_now += 60;
-        partition_status(2, 100);
+        partition_status(PARTITION_DEDUPE, 100);
         set_status(TAGDUP_BYTES, 100);
         g_now += 3600;
-        partition_status(3, 100);
+        partition_status(PARTITION_MARK, 100);
         set_status(TAGDUP_BYTES, 100);
     }
     g_now += 60;
@@ -65,5 +58,5 @@ int         main(int argc, char **argv)
     g_now += 3600;
     update_status(FOUTPUT_START);
     display_status(1);
-    return (g_chunk_counts != (argc > 1));
+    return (0);
 }

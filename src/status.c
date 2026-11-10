@@ -8,7 +8,6 @@
 #include <sys/ioctl.h>
 #include <math.h>
 #include "status.h"
-#include "chunk.h"
 #include "debug.h"
 #include "cprintferr.h"
 
@@ -429,8 +428,6 @@ void            status_info(const char *label, const char *fmt, ...)
 
 void            update_status(enum e_status_update action)
 {
-    int chunks;
-
     if (action == FCOPY_START)
     {
         DLOG1("CALL update_status(FCOPY_START)");
@@ -442,11 +439,6 @@ void            update_status(enum e_status_update action)
     {
         DLOG1("CALL update_status(CHUNK_START)");
         change_phase(PHASE_CHUNKS, 0);
-        chunks = count_chunks();
-        pthread_mutex_lock(&g_mutex);
-        g_status.total_chunks = chunks;
-        g_status.total_ctasks = TRIANGULAR(chunks);
-        pthread_mutex_unlock(&g_mutex);
     }
     else if (action == FCLEAN_START)
     {
@@ -467,11 +459,12 @@ void            update_status(enum e_status_update action)
 }
 
 
-void            partition_status(int stage, size_t total)
+void            partition_status(enum e_partition_stage stage, size_t total)
 {
-    if (stage >= 0)
+    if (stage >= PARTITION_COUNT)
     {
-        DLOG1("disk-partitions phase: %s, %zu bytes", stage == 0 ? "counting partitions" : g_phases[PHASE_CHECK + stage].name, total);
+        DLOG1("disk-partitions phase: %s, %zu bytes", stage == PARTITION_COUNT
+                ? "counting partitions" : g_phases[PHASE_CHECK + stage].name, total);
         change_phase(PHASE_CHECK + stage, total);
     }
     else
@@ -494,6 +487,10 @@ void            set_status(enum e_status_set var, size_t val)
             break ;
         case CHUNK_SIZE:
             g_status.chunk_size = val;
+            break ;
+        case CHUNK_COUNT:
+            g_status.total_chunks = val;
+            g_status.total_ctasks = TRIANGULAR(val);
             break ;
         case CTASK_EXTRA:
             g_status.total_ctasks += val;

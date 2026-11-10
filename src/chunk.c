@@ -1,18 +1,11 @@
-#include <stdlib.h>
 #include <sys/mman.h>
 #include <stdint.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdbool.h>
-#include <sys/types.h>
 #include "chunk.h"
-#include "line.h"
 #include "file.h"
-#include "hmap.h"
-#include "hash.h"
-#include "const.h"
 #include "config.h"
-#include "status.h"
 #include "debug.h"
 #include "error.h"
 
@@ -79,20 +72,6 @@ void        release_chunk(const t_chunk *chunk)
 }
 
 
-int         count_chunks(void)
-{
-    t_chunk     chunk = {
-        .ptr = NULL,
-        .endptr = NULL
-    };
-    int         result = 0;
-
-    while (get_next_chunk(&chunk, g_file))
-        result++;
-    return (result);
-}
-
-
 /** Write next chunk from `file` into `chunk`
  * If `chunk->ptr` is NULL, chunk is set to `file`'s first chunk.
  * Otherwise, `chunk` is replaced by the next one.
@@ -155,64 +134,4 @@ bool        get_next_chunk(t_chunk *chunk, struct file *file)
             remaining_size
          );
     return (true);
-}
-
-
-/** Disable lines on `chunk` that already exist in `hmap`
- * by tagging them with 'DISABLED_LINE'
- * Main work for threads in thread pool.
- */
-void        cleanout_chunk(void *arg)
-{
-    t_chunk *chunk = arg;
-    t_chunk range;
-    t_chunk mapped;
-    char    *line_ptr;
-    int     line_sz;
-    long    slot;
-    char    *base_ptr;
-    int     i;
-    long    duplicates;
-    const int has_dupfile = (g_conf.dupfile_name != NULL);
-
-    duplicates = 0;
-    i = 0;
-    base_ptr = chunk->ptr;
-    size_t junk_lines = 0;
-    range = *chunk;
-    while (range.ptr < range.endptr)
-    {
-        *chunk = get_chunk_window(&range);
-        mapped = *chunk;
-        while (get_next_line(&line_ptr, &line_sz, chunk, &junk_lines))
-        {
-            slot = HASH(line_ptr, line_sz) % g_hmap.size;
-            while (LINE_ISSET(g_hmap.ptr[slot]))
-            {
-                if (cmp_line(g_hmap.ptr[slot], line_ptr, line_sz) == 0)
-                {
-                    if (has_dupfile) {
-                        log_duplicate(line_ptr, line_sz);
-                    }
-                    *line_ptr = DISABLED_LINE;
-                    ++duplicates;
-                    break;
-                }
-                /* open addressing with linear probing */
-                slot = (slot + 1) % g_hmap.size;
-            }
-            i++;
-            if (i == 500000) {
-                set_status(TAGDUP_BYTES, (size_t)(chunk->ptr - base_ptr));
-                base_ptr = chunk->ptr;
-                i = 0;
-            }
-        }
-        release_chunk(&mapped);
-        range.ptr = mapped.endptr;
-    }
-    set_status(TAGDUP_BYTES, (size_t)(range.endptr - base_ptr));
-    set_status(TAGDUP_DUPLICATES, (size_t)duplicates);
-    free(chunk);
-    update_status(CTASK_DONE);
 }

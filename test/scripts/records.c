@@ -2,10 +2,6 @@
 #include <sys/wait.h>
 #include "../../src/partition.c"
 
-struct conf g_conf;
-struct hmap g_hmap;
-struct file *g_file;
-
 
 static void     check_record(uint64_t id, uint16_t size)
 {

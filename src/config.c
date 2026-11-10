@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <limits.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -12,7 +13,28 @@
 #include "debug.h"
 #include "bytesize.h"
 #include "engine.h"
+#include "partition.h"
 #include "status.h"
+
+
+struct conf g_conf = {
+    .infile_name = NULL,
+    .outfile_name = "/dev/stdout",
+    .dupfile_name = NULL,
+    .threads = 0,
+    .line_max_size = DEFAULT_LINE_MAX_SIZE,
+    .hmap_size = 0,
+    .chunk_size = 0,
+    .filter_printable = 0,
+    .memlimit = LONG_MAX,
+    .dedupe_memory = 0,
+    .partition_count = 0,
+    .partition_workers = 0,
+    .mmap_window = 0,
+    .page_size = 0,
+    .engine = ENGINE_AUTO,
+};
+
 
 /** Count accepted lines within an aligned sample, including skipped bytes. */
 static void     sample_chunk(t_chunk chunk, struct line_sample *sample)
@@ -278,6 +300,7 @@ void            config(void)
     config_sample(&sample);
     config_hmap_size(g_file, &sample);
     config_chunk_size(g_file, &sample);
+    config_partitions();
     config_engine(&memstate, &sample);
     config_mmap_window(&memstate);
     display_config(&memstate);

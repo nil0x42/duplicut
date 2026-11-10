@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 struct memstate;
+struct line_sample;
 
 
 enum    e_engine
@@ -12,15 +13,6 @@ enum    e_engine
     ENGINE_AUTO,
     ENGINE_MMAP_CHUNKS,
     ENGINE_DISK_PARTITIONS
-};
-
-
-struct line_sample
-{
-    size_t  bytes;
-    size_t  lines;
-    size_t  contents;
-    double  min_size;
 };
 
 

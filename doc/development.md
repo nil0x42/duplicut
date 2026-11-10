@@ -6,6 +6,18 @@ Use a normal release build for wordlist processing, and a debug build when
 investigating behavior. Documentation and diagnostic examples assume commands
 are run from the repository root.
 
+## Source organization
+
+Sources and headers stay in `src/` and `include/`. `main.c` follows the program's
+lifecycle; `dedupe.c` dispatches to an engine and handles shared compaction.
+The engines live in `mmap.c` and `partition.c`, with their workers and private
+helpers. Shared line reading and scan windows belong to `line.c` and `chunk.c`.
+
+`config.c` owns configuration and coordinates sizing; `engine.c` owns selection
+rules. File handling, temporary storage and output belong to `file.c`. Progress
+is reported to `status.c`, while `progressbar.c` manages refresh and the terminal.
+Each module defines the global state it owns.
+
 ## Building
 
 Native builds require a C compiler and `make` on 64-bit Linux or macOS. Hashing
